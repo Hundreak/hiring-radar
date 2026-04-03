@@ -1,0 +1,15 @@
+sources:
+  - source_name: demo-greenhouse
+    company_name: Demo Company
+    source_type: greenhouse
+    url: https://boards.greenhouse.io/demo
+
+  - source_name: demo-lever
+    company_name: Demo Company
+    source_type: lever
+    url: https://jobs.lever.co/demo
+
+  - source_name: demo-custom-static
+    company_name: Demo Company
+    source_type: custom_static
+    url: https://example.com/careers

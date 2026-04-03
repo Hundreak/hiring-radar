@@ -1,0 +1,30 @@
+Metadata-Version: 2.4
+Name: hiring-radar
+Version: 0.1.0
+Summary: CLI-based system for tracking company career pages and detecting new job postings.
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: httpx<1.0,>=0.27
+Requires-Dist: beautifulsoup4<5.0,>=4.12
+Requires-Dist: PyYAML<7.0,>=6.0
+Requires-Dist: typer<1.0,>=0.12
+Provides-Extra: dev
+Requires-Dist: pytest<9.0,>=8.0; extra == "dev"
+Requires-Dist: ruff<1.0,>=0.5; extra == "dev"
+
+# Hiring Radar
+
+Hiring Radar is a CLI-based system for monitoring company career pages, detecting new job postings, storing normalized job data, and generating exports and summaries.
+
+## MVP goals
+- Monitor configured company career pages
+- Normalize job posting data
+- Detect new jobs via fingerprinting
+- Store data in SQLite
+- Export CSV
+- Show crawl summaries
+
+## Planned CLI commands
+- `crawl`
+- `export`
+- `summary`

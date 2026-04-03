@@ -1,0 +1,14 @@
+app:
+  env: development
+  log_level: INFO
+
+http:
+  timeout_seconds: 20
+  user_agent: "HiringRadar/0.1"
+
+storage:
+  db_path: data/hiring_radar.db
+  export_dir: data/exports
+
+crawl:
+  retry_count: 2

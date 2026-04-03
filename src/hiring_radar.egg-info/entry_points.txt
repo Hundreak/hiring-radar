@@ -1,0 +1,2 @@
+[console_scripts]
+hiring-radar = hiring_radar.cli:app

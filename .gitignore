@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local env files
+.env
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Keep folders, ignore generated contents
+data/*
+!data/.gitkeep
+!data/exports/
+
+data/exports/*
+!data/exports/.gitkeep
+
+logs/*
+!logs/.gitkeep
+
+# Generated artifacts
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.log

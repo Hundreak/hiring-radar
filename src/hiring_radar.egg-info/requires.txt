@@ -1,0 +1,8 @@
+httpx<1.0,>=0.27
+beautifulsoup4<5.0,>=4.12
+PyYAML<7.0,>=6.0
+typer<1.0,>=0.12
+
+[dev]
+pytest<9.0,>=8.0
+ruff<1.0,>=0.5

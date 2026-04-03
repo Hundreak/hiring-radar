@@ -1,16 +1,523 @@
 # Hiring Radar
 
-Hiring Radar is a CLI-based system for monitoring company career pages, detecting new job postings, storing normalized job data, and generating exports and summaries.
+Hiring Radar is a CLI-based job monitoring system that tracks company careers pages, detects new job postings, normalizes the data, stores crawl history, and produces actionable outputs such as CSV exports and terminal summaries.
 
-## MVP goals
-- Monitor configured company career pages
-- Normalize job posting data
-- Detect new jobs via fingerprinting
-- Store data in SQLite
-- Export CSV
-- Show crawl summaries
+It is designed as both:
+- a portfolio-quality engineering project
+- and a foundation for a real product that can later grow into scheduled monitoring, email digests, dashboards, and search/filter workflows
 
-## Planned CLI commands
-- `crawl`
-- `export`
-- `summary`
+---
+
+## What problem does it solve?
+
+Tracking job openings manually across multiple companies is repetitive, inconsistent, and easy to miss.
+
+Different companies expose job postings through different systems such as:
+- Greenhouse
+- Lever
+- custom careers pages
+
+That makes it difficult to:
+- detect newly published roles consistently
+- keep historical visibility
+- compare what changed over time
+- build reusable workflows around the data
+
+Hiring Radar solves this with:
+- modular crawlers
+- normalized job records
+- change detection
+- crawl run tracking
+- CSV export
+- terminal summaries
+
+---
+
+## Current MVP status
+
+The current MVP already supports a complete end-to-end workflow:
+
+- crawl configured job sources
+- normalize postings into a shared job model
+- store results in SQLite
+- detect new vs existing postings via fingerprinting
+- mark missing postings inactive
+- track crawl executions in `crawl_runs`
+- export all stored jobs to CSV
+- print a terminal summary of stored job data
+
+### Live-validated source types
+
+The following source types have been validated with real public sources:
+
+- **Greenhouse**
+  - implemented with an API-first strategy for stronger compatibility with branded Greenhouse career pages
+- **Lever**
+
+### Fixture/test-validated source type
+
+- **Custom static careers pages**
+  - parser contract and fixture-based tests are implemented
+  - live selector adaptation still depends on the target site structure
+
+---
+
+## Core features
+
+### Crawling
+- crawl one or more configured company career sources
+- sequential multi-source execution
+- source-level success/failure reporting
+- crawl run history stored in SQLite
+
+### Normalization
+Each job is normalized into a consistent record including:
+- title
+- company name
+- location
+- canonical URL
+- source type
+- source job ID
+- first seen / last seen timestamps
+- active / inactive status
+
+### Change detection
+Hiring Radar keeps track of:
+- newly discovered jobs
+- previously seen jobs that were updated/re-seen
+- jobs that disappeared from a source and should now be marked inactive
+
+### Persistence
+- SQLite storage
+- `jobs` table for normalized postings
+- `crawl_runs` table for source-level crawl history
+
+### Outputs
+- terminal crawl results
+- terminal summary report
+- CSV export under `data/exports/`
+
+---
+
+## Architecture at a glance
+
+The project follows a simple but scalable layered structure:
+
+- **CLI**
+  - user-facing commands: `crawl`, `export`, `summary`
+- **Services**
+  - orchestration and output logic
+- **Scrapers**
+  - source-specific parsing logic
+- **Repository / DB**
+  - SQLite persistence and aggregation queries
+- **Utilities**
+  - hashing, normalization, shared helpers
+
+### Important architectural choices
+
+- SQLite first for MVP simplicity and portability
+- fixture-first parser tests instead of live-site-dependent tests
+- API-first Greenhouse support to handle branded Greenhouse pages more reliably
+- clean repository hygiene with data, logs, CSVs, and DB files excluded from Git
+- stepwise growth path toward scheduler, digest, dashboard, and richer filtering
+
+---
+
+## Project structure
+
+```text
+hiring-radar/
+├── README.md
+├── pyproject.toml
+├── .gitignore
+├── .env.example
+├── Makefile
+├── config/
+│   ├── companies.example.yml
+│   └── settings.example.yml
+├── data/
+│   ├── .gitkeep
+│   └── exports/
+│       └── .gitkeep
+├── logs/
+│   └── .gitkeep
+├── src/
+│   └── hiring_radar/
+│       ├── __init__.py
+│       ├── cli.py
+│       ├── config.py
+│       ├── logging_config.py
+│       ├── models.py
+│       ├── db/
+│       │   ├── sqlite.py
+│       │   ├── schema.py
+│       │   └── repository.py
+│       ├── scrapers/
+│       │   ├── base.py
+│       │   ├── factory.py
+│       │   ├── greenhouse.py
+│       │   ├── lever.py
+│       │   └── custom_static.py
+│       ├── services/
+│       │   ├── crawl.py
+│       │   ├── change_detection.py
+│       │   ├── export.py
+│       │   └── summary.py
+│       └── utils/
+│           ├── dates.py
+│           ├── hashing.py
+│           └── urls.py
+├── tests/
+│   ├── fixtures/
+│   ├── test_crawl_service.py
+│   ├── test_export_service.py
+│   ├── test_greenhouse.py
+│   ├── test_lever.py
+│   ├── test_repository.py
+│   └── test_summary_service.py
+└── docs/
+    └── architecture.md
+```
+
+---
+
+## Data model
+
+### `jobs`
+Stores normalized job records.
+
+Important fields:
+- `title`
+- `company_name`
+- `location`
+- `canonical_url`
+- `source_name`
+- `source_type`
+- `source_job_id`
+- `raw_posted_at`
+- `posted_at`
+- `fingerprint`
+- `first_seen_at`
+- `last_seen_at`
+- `is_active`
+- `scraped_at`
+
+### `crawl_runs`
+Stores one record per source crawl execution.
+
+Important fields:
+- `started_at`
+- `finished_at`
+- `source_name`
+- `success`
+- `notes`
+
+---
+
+## Fingerprint strategy
+
+New job detection is based on a stable fingerprint built from:
+
+- normalized `company_name`
+- normalized `title`
+- normalized `location`
+- `canonical_url`
+
+If a source provides a stable native job ID, it is also stored separately in `source_job_id`.
+
+This lets the system distinguish:
+- truly new postings
+- already-seen postings
+- postings that disappeared from the source and should be marked inactive
+
+---
+
+## Installation
+
+### Requirements
+- Python 3.11+
+- Linux or macOS recommended
+- Git
+
+### Setup
+
+```bash
+git clone https://github.com/Hundreak/hiring-radar.git
+cd hiring-radar
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+make install
+```
+
+### Verify the environment
+
+```bash
+make lint
+make test
+hiring-radar --help
+```
+
+---
+
+## Configuration
+
+### Example config
+
+The repository includes:
+
+```text
+config/companies.example.yml
+```
+
+This is an example source configuration file.
+
+### Local config
+
+For real crawling, create your own local config:
+
+```bash
+cp config/companies.example.yml config/companies.local.yml
+```
+
+Then edit it with real targets.
+
+Example:
+
+```yaml
+sources:
+  - source_name: corelight-greenhouse
+    company_name: Corelight
+    source_type: greenhouse
+    url: https://boards.greenhouse.io/corelight
+
+  - source_name: trendyol-lever
+    company_name: Trendyol
+    source_type: lever
+    url: https://jobs.lever.co/trendyol
+```
+
+### Why `companies.local.yml` is not committed
+
+Local crawling targets are intentionally kept out of Git to preserve:
+- repo hygiene
+- portability
+- reproducibility of the example config
+
+---
+
+## Usage
+
+### 1) Crawl configured sources
+
+```bash
+hiring-radar crawl --config-path config/companies.local.yml
+```
+
+Example output:
+
+```text
+[SUCCESS] corelight-greenhouse (greenhouse)
+  parsed=31 new=31 updated=0 deactivated=0
+[SUCCESS] trendyol-lever (lever)
+  parsed=97 new=0 updated=97 deactivated=0
+
+Crawl summary
+  sources=2 succeeded=2 failed=0
+  new_jobs=31 updated_jobs=97 deactivated_jobs=0
+```
+
+### 2) Export stored jobs to CSV
+
+```bash
+hiring-radar export
+```
+
+Example output:
+
+```text
+Export completed
+  rows=128
+  output=data/exports/jobs_export_2026-04-03T14-28-01+00-00.csv
+```
+
+### 3) Show a terminal summary
+
+```bash
+hiring-radar summary
+```
+
+Example output:
+
+```text
+Summary
+
+Overall
+  total_jobs=128
+  active_jobs=128
+  inactive_jobs=0
+
+By source
+  corelight-greenhouse (greenhouse): total=31 active=31 inactive=0
+  trendyol-lever (lever): total=97 active=97 inactive=0
+
+By company
+  Corelight: total=31 active=31 inactive=0
+  Trendyol: total=97 active=97 inactive=0
+```
+
+---
+
+## Testing strategy
+
+Hiring Radar intentionally avoids relying on live websites for parser correctness.
+
+### Current testing principles
+- fixture-first parser tests
+- temporary SQLite databases for repository and service tests
+- no live-site dependency for correctness tests
+- Ruff + pytest as the baseline quality gate
+
+This means tests answer:
+- “does the parser behave correctly for expected HTML?”
+- not:
+- “is the website currently up?”
+
+That separation makes the system more stable and easier to maintain.
+
+---
+
+## What is live-validated today
+
+The current project has already been validated end-to-end with live crawling for:
+
+- **Greenhouse**
+  - validated using an API-first approach
+- **Lever**
+
+This means the current stack has already demonstrated:
+- live crawling
+- persistence
+- change detection
+- export
+- summary
+
+---
+
+## Engineering highlights
+
+A few implementation choices that make this project stronger than a one-off scraping script:
+
+- modular scraper architecture
+- Greenhouse API-first support
+- crawl run audit trail
+- active/inactive lifecycle tracking
+- deterministic CSV export
+- service-layer separation
+- fixture-driven parser tests
+- incremental Git history with conventional commits
+
+---
+
+## Current limitations
+
+This is an MVP, so some things are intentionally not yet implemented:
+
+- scheduler / cron integration
+- email digest
+- dashboard UI
+- advanced filtering in CLI
+- richer date/window analysis
+- live hardening for every custom static careers site
+- Playwright fallback for JS-heavy sources
+
+These are planned growth areas, not ignored gaps.
+
+---
+
+## Roadmap
+
+### Near-term
+- richer `summary` output
+- live custom static source integration
+- README/demo improvements
+- better config ergonomics
+
+### Next product steps
+- weekly digest
+- scheduler support
+- Streamlit dashboard
+- search/filter layer
+- role/skill tagging
+- source-level health reporting
+
+### Longer-term
+- better source discovery
+- stronger custom careers-page adapters
+- containerization polish
+- CI quality gates
+- deployment/documentation polish
+
+---
+
+## Development workflow
+
+### Run checks
+
+```bash
+make lint
+make test
+```
+
+### Commands currently implemented
+- `hiring-radar crawl`
+- `hiring-radar export`
+- `hiring-radar summary`
+
+### Git strategy
+This project is developed with:
+- GitHub-first workflow
+- short-lived feature branches
+- conventional commit style, e.g.:
+  - `feat:`
+  - `fix:`
+  - `refactor:`
+  - `test:`
+  - `docs:`
+
+---
+
+## Repository hygiene
+
+Generated files are intentionally excluded from Git:
+- SQLite database files
+- CSV export files
+- logs
+- local config files
+
+Tracked directories such as `data/`, `data/exports/`, and `logs/` are preserved with `.gitkeep`.
+
+---
+
+## Why this project is portfolio-worthy
+
+Hiring Radar is not just a scraping script.
+
+It demonstrates:
+- backend thinking
+- data normalization
+- durable persistence design
+- change detection
+- CLI product thinking
+- testable parser architecture
+- disciplined incremental engineering
+
+It is intentionally built to be understandable, extensible, and productizable.
+
+---
+
+## License
+
+License selection can be added in the next documentation/polish phase.

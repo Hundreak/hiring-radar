@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import typer
 
@@ -28,6 +28,7 @@ DEFAULT_COMPANIES_CONFIG_PATH = "config/companies.example.yml"
 DEFAULT_DB_PATH = "data/hiring_radar.db"
 DEFAULT_EXPORT_DIR = "data/exports"
 DEFAULT_ENV_PATH = ".env"
+DIGEST_EMAIL_CHECKPOINT_KEY = "digest_email"
 
 app = typer.Typer(no_args_is_help=True, help="Hiring Radar CLI")
 
@@ -36,8 +37,42 @@ def _utc_now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _utc_iso_hours_ago(*, base_timestamp: str, hours: int) -> str:
+    base_dt = datetime.fromisoformat(base_timestamp.replace("Z", "+00:00"))
+    since_dt = base_dt - timedelta(hours=hours)
+    return since_dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def _format_bool(value: bool) -> str:
     return "true" if value else "false"
+
+
+def _resolve_digest_since(
+    *,
+    repository: HiringRadarRepository,
+    generated_at: str,
+    window_hours: int,
+) -> str:
+    checkpoint = repository.get_notification_checkpoint(DIGEST_EMAIL_CHECKPOINT_KEY)
+    if checkpoint is not None:
+        return checkpoint.last_processed_at
+
+    return _utc_iso_hours_ago(
+        base_timestamp=generated_at,
+        hours=window_hours,
+    )
+
+
+def _advance_digest_checkpoint(
+    *,
+    repository: HiringRadarRepository,
+    processed_at: str,
+) -> None:
+    repository.upsert_notification_checkpoint(
+        checkpoint_key=DIGEST_EMAIL_CHECKPOINT_KEY,
+        last_processed_at=processed_at,
+        updated_at=processed_at,
+    )
 
 
 def _resolve_digest_recipients(
@@ -60,6 +95,37 @@ def _resolve_digest_recipients(
         "No digest recipients configured. Use --to, add active digest-enabled subscribers, "
         "or set HIRING_RADAR_EMAIL_TO_DEFAULT."
     )
+
+
+def _send_digest_emails(
+    *,
+    repository: HiringRadarRepository,
+    digest: DigestResult,
+    env_path: str,
+    explicit_to: str | None,
+) -> tuple[int, str]:
+    settings = load_smtp_settings(env_path)
+    recipients = _resolve_digest_recipients(
+        repository=repository,
+        explicit_to=explicit_to,
+        default_to=settings.default_to,
+    )
+
+    subject = render_digest_subject(digest)
+    body_text = render_digest_text(digest)
+
+    for recipient in recipients:
+        payload = EmailMessagePayload(
+            to=recipient,
+            subject=subject,
+            body_text=body_text,
+        )
+        send_email_via_smtp(
+            settings=settings,
+            payload=payload,
+        )
+
+    return len(recipients), subject
 
 
 def _print_crawl_result(result: CrawlSourceResult) -> None:
@@ -218,6 +284,124 @@ def crawl(
         raise typer.Exit(code=1)
 
 
+@app.command(name="crawl-and-notify")
+def crawl_and_notify(
+    config_path: str = typer.Option(
+        DEFAULT_COMPANIES_CONFIG_PATH,
+        "--config-path",
+        help="Path to the YAML source configuration file.",
+    ),
+    window_hours: int = typer.Option(
+        6,
+        "--window-hours",
+        help="Fallback digest window size in hours when no notification checkpoint exists yet.",
+    ),
+    env_path: str = typer.Option(
+        DEFAULT_ENV_PATH,
+        "--env-path",
+        help="Path to the .env file that contains SMTP settings.",
+    ),
+    to: str | None = typer.Option(
+        None,
+        "--to",
+        help="Send only to this recipient instead of the subscriber list.",
+    ),
+    send_empty: bool = typer.Option(
+        False,
+        "--send-empty",
+        help="Send the digest even when there are no new jobs in the selected window.",
+    ),
+) -> None:
+    """Run crawl and then send a digest using the notification checkpoint."""
+    if window_hours < 1:
+        typer.secho("Invalid window-hours: must be >= 1", fg="red", err=True)
+        raise typer.Exit(code=2)
+
+    try:
+        source_configs = load_source_configs(config_path)
+    except ConfigError as exc:
+        typer.secho(f"Config error ({config_path}): {exc}", fg="red", err=True)
+        raise typer.Exit(code=2) from exc
+
+    connection = None
+    results: list[CrawlSourceResult] = []
+
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+
+        results = run_multi_source_crawl(
+            source_configs=source_configs,
+            repository=repository,
+        )
+
+        for result in results:
+            _print_crawl_result(result)
+
+        _print_crawl_summary(results)
+
+        successful_results = [result for result in results if result.success]
+        generated_at = _utc_now_iso()
+
+        if not successful_results:
+            typer.secho("Digest email skipped", fg="yellow", bold=True)
+            typer.echo("  reason=no successful crawl sources")
+        else:
+            since = _resolve_digest_since(
+                repository=repository,
+                generated_at=generated_at,
+                window_hours=window_hours,
+            )
+
+            digest = build_digest(
+                repository,
+                since=since,
+                generated_at=generated_at,
+            )
+
+            if digest.total_new_jobs == 0 and not send_empty:
+                typer.secho("Digest email skipped", fg="yellow", bold=True)
+                typer.echo("  reason=no new jobs in this window")
+                typer.echo(f"  since={digest.since}")
+                _advance_digest_checkpoint(
+                    repository=repository,
+                    processed_at=generated_at,
+                )
+            else:
+                recipient_count, subject = _send_digest_emails(
+                    repository=repository,
+                    digest=digest,
+                    env_path=env_path,
+                    explicit_to=to,
+                )
+                typer.secho("Digest emails sent", fg="green", bold=True)
+                typer.echo(f"  recipient_count={recipient_count}")
+                typer.echo(f"  new_jobs={digest.total_new_jobs}")
+                typer.echo(f"  subject={subject}")
+                _advance_digest_checkpoint(
+                    repository=repository,
+                    processed_at=generated_at,
+                )
+
+    except EmailConfigError as exc:
+        typer.secho(f"Email config error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=2) from exc
+
+    except EmailDeliveryError as exc:
+        typer.secho(f"Email delivery error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=1) from exc
+
+    except Exception as exc:
+        typer.secho(f"Unexpected crawl-and-notify error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=1) from exc
+
+    finally:
+        close_connection(connection)
+
+    if any(not result.success for result in results):
+        raise typer.Exit(code=1)
+
+
 @app.command()
 def export() -> None:
     """Export stored jobs to CSV."""
@@ -315,29 +499,15 @@ def send_digest(
             typer.echo(f"  since={digest.since}")
             return
 
-        settings = load_smtp_settings(env_path)
-        recipients = _resolve_digest_recipients(
+        recipient_count, subject = _send_digest_emails(
             repository=repository,
+            digest=digest,
+            env_path=env_path,
             explicit_to=to,
-            default_to=settings.default_to,
         )
 
-        subject = render_digest_subject(digest)
-        body_text = render_digest_text(digest)
-
-        for recipient in recipients:
-            payload = EmailMessagePayload(
-                to=recipient,
-                subject=subject,
-                body_text=body_text,
-            )
-            send_email_via_smtp(
-                settings=settings,
-                payload=payload,
-            )
-
         typer.secho("Digest emails sent", fg="green", bold=True)
-        typer.echo(f"  recipient_count={len(recipients)}")
+        typer.echo(f"  recipient_count={recipient_count}")
         typer.echo(f"  new_jobs={digest.total_new_jobs}")
         typer.echo(f"  subject={subject}")
 

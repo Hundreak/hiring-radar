@@ -4,7 +4,7 @@ import sqlite3
 from collections.abc import Iterable
 from typing import Any
 
-from hiring_radar.models import CrawlRun, JobRecord, Subscriber
+from hiring_radar.models import CrawlRun, JobRecord, NotificationCheckpoint, Subscriber
 
 
 def _row_to_job_record(row: sqlite3.Row) -> JobRecord:
@@ -49,6 +49,15 @@ def _row_to_subscriber(row: sqlite3.Row) -> Subscriber:
         is_active=bool(row["is_active"]),
         digest_enabled=bool(row["digest_enabled"]),
         created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+
+def _row_to_notification_checkpoint(row: sqlite3.Row) -> NotificationCheckpoint:
+    return NotificationCheckpoint(
+        checkpoint_key=row["checkpoint_key"],
+        last_processed_at=row["last_processed_at"],
         updated_at=row["updated_at"],
     )
 
@@ -348,6 +357,70 @@ class HiringRadarRepository:
 
         rows = cursor.fetchall()
         return [_row_to_job_record(row) for row in rows]
+
+
+
+    def get_notification_checkpoint(
+        self,
+        checkpoint_key: str,
+    ) -> NotificationCheckpoint | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                checkpoint_key,
+                last_processed_at,
+                updated_at
+            FROM notification_checkpoints
+            WHERE checkpoint_key = ?
+            """,
+            (checkpoint_key,),
+        )
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return _row_to_notification_checkpoint(row)
+
+    def upsert_notification_checkpoint(
+        self,
+        *,
+        checkpoint_key: str,
+        last_processed_at: str,
+        updated_at: str,
+    ) -> NotificationCheckpoint:
+        with self.connection:
+            self.connection.execute(
+                """
+                INSERT INTO notification_checkpoints (
+                    checkpoint_key,
+                    last_processed_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?)
+                ON CONFLICT(checkpoint_key) DO UPDATE SET
+                    last_processed_at = excluded.last_processed_at,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    checkpoint_key,
+                    last_processed_at,
+                    updated_at,
+                ),
+            )
+
+        checkpoint = self.get_notification_checkpoint(checkpoint_key)
+        if checkpoint is None:
+            raise RuntimeError(
+                "Notification checkpoint upsert succeeded but record could not be reloaded."
+            )
+
+        return checkpoint
+    
+    
+
+
+
 
     def get_subscriber_by_email(self, email: str) -> Subscriber | None:
         cursor = self.connection.execute(

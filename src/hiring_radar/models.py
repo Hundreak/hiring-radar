@@ -44,6 +44,13 @@ class Subscriber:
 
 
 @dataclass(slots=True, frozen=True)
+class NotificationCheckpoint:
+    checkpoint_key: str = ""
+    last_processed_at: str = ""
+    updated_at: str = ""
+
+
+@dataclass(slots=True, frozen=True)
 class CrawlSourceResult:
     source_name: str = ""
     source_type: str = ""

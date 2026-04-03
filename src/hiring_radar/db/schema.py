@@ -63,8 +63,15 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
     CREATE INDEX IF NOT EXISTS idx_subscribers_active_digest_enabled
     ON subscribers (is_active, digest_enabled)
     """,
+    """
+    CREATE TABLE IF NOT EXISTS notification_checkpoints (
+        checkpoint_key TEXT PRIMARY KEY,
+        last_processed_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    """,
 )
-
+ 
 
 def init_db_schema(connection: sqlite3.Connection) -> None:
     with connection:

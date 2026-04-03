@@ -370,6 +370,34 @@ By company
 
 ---
 
+
+## Scheduled runs
+
+Hiring Radar can be scheduled on Linux with cron.
+
+A helper script is included:
+
+```bash
+./scripts/run_crawl.sh
+```
+
+What it does:
+- runs the configured crawl using `config/companies.local.yml`
+- writes output to `logs/crawl.log`
+- prevents overlapping runs with a simple lock directory
+
+Example cron setup:
+
+```cron
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+0 */6 * * * /home/remzi/projects/hiring-radar/scripts/run_crawl.sh
+```
+
+This runs the crawler every 6 hours.
+
+
 ## Testing strategy
 
 Hiring Radar intentionally avoids relying on live websites for parser correctness.

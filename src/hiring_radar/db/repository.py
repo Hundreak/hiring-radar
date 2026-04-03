@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Iterable
+from typing import Any
 
 from hiring_radar.models import CrawlRun, JobRecord
 
@@ -182,6 +183,92 @@ class HiringRadarRepository:
 
         rows = cursor.fetchall()
         return [_row_to_job_record(row) for row in rows]
+
+    def get_job_counts(self) -> dict[str, int]:
+        """
+        Return overall job counts for summary/reporting flows.
+        """
+        cursor = self.connection.execute(
+            """
+            SELECT
+                COUNT(*) AS total_jobs,
+                COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0) AS active_jobs,
+                COALESCE(SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END), 0) AS inactive_jobs
+            FROM jobs
+            """
+        )
+        row = cursor.fetchone()
+
+        if row is None:
+            return {
+                "total_jobs": 0,
+                "active_jobs": 0,
+                "inactive_jobs": 0,
+            }
+
+        return {
+            "total_jobs": int(row["total_jobs"]),
+            "active_jobs": int(row["active_jobs"]),
+            "inactive_jobs": int(row["inactive_jobs"]),
+        }
+
+    def get_source_summary_rows(self) -> list[dict[str, Any]]:
+        """
+        Return aggregated summary rows grouped by source.
+        """
+        cursor = self.connection.execute(
+            """
+            SELECT
+                source_name,
+                source_type,
+                COUNT(*) AS total_jobs,
+                COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0) AS active_jobs,
+                COALESCE(SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END), 0) AS inactive_jobs
+            FROM jobs
+            GROUP BY source_name, source_type
+            ORDER BY source_name, source_type
+            """
+        )
+        rows = cursor.fetchall()
+
+        return [
+            {
+                "source_name": row["source_name"],
+                "source_type": row["source_type"],
+                "total_jobs": int(row["total_jobs"]),
+                "active_jobs": int(row["active_jobs"]),
+                "inactive_jobs": int(row["inactive_jobs"]),
+            }
+            for row in rows
+        ]
+
+    def get_company_summary_rows(self) -> list[dict[str, Any]]:
+        """
+        Return aggregated summary rows grouped by company.
+        """
+        cursor = self.connection.execute(
+            """
+            SELECT
+                company_name,
+                COUNT(*) AS total_jobs,
+                COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0) AS active_jobs,
+                COALESCE(SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END), 0) AS inactive_jobs
+            FROM jobs
+            GROUP BY company_name
+            ORDER BY company_name
+            """
+        )
+        rows = cursor.fetchall()
+
+        return [
+            {
+                "company_name": row["company_name"],
+                "total_jobs": int(row["total_jobs"]),
+                "active_jobs": int(row["active_jobs"]),
+                "inactive_jobs": int(row["inactive_jobs"]),
+            }
+            for row in rows
+        ]
 
     def list_active_jobs(self, source_name: str | None = None) -> list[JobRecord]:
         if source_name is None:

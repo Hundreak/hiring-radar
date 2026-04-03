@@ -8,6 +8,7 @@ from hiring_radar.db.sqlite import close_connection, initialize_database
 from hiring_radar.models import CrawlSourceResult
 from hiring_radar.services.crawl import run_multi_source_crawl
 from hiring_radar.services.export import ExportResult, export_jobs_to_csv
+from hiring_radar.services.summary import SummaryResult, build_summary
 
 DEFAULT_COMPANIES_CONFIG_PATH = "config/companies.example.yml"
 DEFAULT_DB_PATH = "data/hiring_radar.db"
@@ -52,6 +53,37 @@ def _print_export_result(result: ExportResult) -> None:
     typer.secho("Export completed", fg="green", bold=True)
     typer.echo(f"  rows={result.row_count}")
     typer.echo(f"  output={result.output_path}")
+
+
+def _print_summary_result(result: SummaryResult) -> None:
+    typer.secho("Summary", bold=True)
+    typer.echo("")
+    typer.secho("Overall", bold=True)
+    typer.echo(f"  total_jobs={result.overall.total_jobs}")
+    typer.echo(f"  active_jobs={result.overall.active_jobs}")
+    typer.echo(f"  inactive_jobs={result.overall.inactive_jobs}")
+
+    typer.echo("")
+    typer.secho("By source", bold=True)
+    if result.by_source:
+        for row in result.by_source:
+            typer.echo(
+                f"  {row.source_name} ({row.source_type}): "
+                f"total={row.total_jobs} active={row.active_jobs} inactive={row.inactive_jobs}"
+            )
+    else:
+        typer.echo("  no source data")
+
+    typer.echo("")
+    typer.secho("By company", bold=True)
+    if result.by_company:
+        for row in result.by_company:
+            typer.echo(
+                f"  {row.company_name}: "
+                f"total={row.total_jobs} active={row.active_jobs} inactive={row.inactive_jobs}"
+            )
+    else:
+        typer.echo("  no company data")
 
 
 @app.command()
@@ -124,8 +156,22 @@ def export() -> None:
 
 @app.command()
 def summary() -> None:
-    """Show a short crawl / jobs summary."""
-    typer.echo("TODO: summary command will be implemented in a later step.")
+    """Show a short jobs summary."""
+    connection = None
+
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+
+        result = build_summary(repository)
+        _print_summary_result(result)
+
+    except Exception as exc:
+        typer.secho(f"Unexpected summary error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=1) from exc
+
+    finally:
+        close_connection(connection)
 
 
 if __name__ == "__main__":

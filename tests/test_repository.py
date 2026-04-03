@@ -222,3 +222,132 @@ def test_list_jobs_returns_all_jobs_including_inactive_in_sorted_order(
         "Data Analyst",
     ]
     assert [job.is_active for job in jobs] == [True, True, False]
+
+
+def test_get_job_counts_returns_overall_totals(repository: HiringRadarRepository) -> None:
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-1",
+            source_name="corelight-greenhouse",
+            company_name="Corelight",
+            source_type="greenhouse",
+            title="Security Engineer",
+            canonical_url="https://boards.greenhouse.io/corelight/jobs/7751102",
+            source_job_id="7751102",
+        )
+    )
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-2",
+            source_name="trendyol-lever",
+            company_name="Trendyol",
+            source_type="lever",
+            title="Data Engineer",
+            canonical_url="https://jobs.lever.co/trendyol/data-engineer-001",
+            source_job_id="data-engineer-001",
+        )
+    )
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-3",
+            source_name="trendyol-lever",
+            company_name="Trendyol",
+            source_type="lever",
+            title="Backend Engineer",
+            canonical_url="https://jobs.lever.co/trendyol/backend-engineer-001",
+            source_job_id="backend-engineer-001",
+        )
+    )
+
+    repository.mark_missing_jobs_inactive(
+        source_name="trendyol-lever",
+        seen_fingerprints=["fp-2"],
+        updated_at="2026-04-03T13:00:00Z",
+    )
+
+    counts = repository.get_job_counts()
+
+    assert counts == {
+        "total_jobs": 3,
+        "active_jobs": 2,
+        "inactive_jobs": 1,
+    }
+
+
+def test_summary_rows_group_by_source_and_company(
+    repository: HiringRadarRepository,
+) -> None:
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-1",
+            source_name="corelight-greenhouse",
+            company_name="Corelight",
+            source_type="greenhouse",
+            title="Security Engineer",
+            canonical_url="https://boards.greenhouse.io/corelight/jobs/7751102",
+            source_job_id="7751102",
+        )
+    )
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-2",
+            source_name="trendyol-lever",
+            company_name="Trendyol",
+            source_type="lever",
+            title="Data Engineer",
+            canonical_url="https://jobs.lever.co/trendyol/data-engineer-001",
+            source_job_id="data-engineer-001",
+        )
+    )
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-3",
+            source_name="trendyol-lever",
+            company_name="Trendyol",
+            source_type="lever",
+            title="Backend Engineer",
+            canonical_url="https://jobs.lever.co/trendyol/backend-engineer-001",
+            source_job_id="backend-engineer-001",
+        )
+    )
+
+    repository.mark_missing_jobs_inactive(
+        source_name="trendyol-lever",
+        seen_fingerprints=["fp-2"],
+        updated_at="2026-04-03T13:05:00Z",
+    )
+
+    source_rows = repository.get_source_summary_rows()
+    company_rows = repository.get_company_summary_rows()
+
+    assert source_rows == [
+        {
+            "source_name": "corelight-greenhouse",
+            "source_type": "greenhouse",
+            "total_jobs": 1,
+            "active_jobs": 1,
+            "inactive_jobs": 0,
+        },
+        {
+            "source_name": "trendyol-lever",
+            "source_type": "lever",
+            "total_jobs": 2,
+            "active_jobs": 1,
+            "inactive_jobs": 1,
+        },
+    ]
+
+    assert company_rows == [
+        {
+            "company_name": "Corelight",
+            "total_jobs": 1,
+            "active_jobs": 1,
+            "inactive_jobs": 0,
+        },
+        {
+            "company_name": "Trendyol",
+            "total_jobs": 2,
+            "active_jobs": 1,
+            "inactive_jobs": 1,
+        },
+    ]

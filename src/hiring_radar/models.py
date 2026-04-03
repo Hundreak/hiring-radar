@@ -45,3 +45,27 @@ class CrawlRun:
     notes: str | None = None
 
     id: int | None = None
+
+
+@dataclass(slots=True, kw_only=True)
+class CrawlSourceResult:
+    """
+    Result summary for one source crawl execution.
+
+    This is the service-layer output that higher layers (CLI, later dashboard,
+    email digest, etc.) can consume without knowing repository details.
+    """
+
+    source_name: str
+    source_type: str
+    started_at: str
+    finished_at: str
+    success: bool
+
+    total_parsed_jobs: int = 0
+    new_jobs: int = 0
+    updated_jobs: int = 0
+    deactivated_jobs: int = 0
+
+    crawl_run_id: int | None = None
+    error_message: str | None = None

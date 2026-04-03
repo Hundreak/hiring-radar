@@ -4,7 +4,7 @@ import sqlite3
 from collections.abc import Iterable
 from typing import Any
 
-from hiring_radar.models import CrawlRun, JobRecord
+from hiring_radar.models import CrawlRun, JobRecord, Subscriber
 
 
 def _row_to_job_record(row: sqlite3.Row) -> JobRecord:
@@ -41,9 +41,21 @@ def _row_to_crawl_run(row: sqlite3.Row) -> CrawlRun:
     )
 
 
+def _row_to_subscriber(row: sqlite3.Row) -> Subscriber:
+    return Subscriber(
+        id=row["id"],
+        email=row["email"],
+        full_name=row["full_name"],
+        is_active=bool(row["is_active"]),
+        digest_enabled=bool(row["digest_enabled"]),
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
 class HiringRadarRepository:
     """
-    Persistence layer for crawl runs and normalized jobs.
+    Persistence layer for crawl runs, normalized jobs, and subscribers.
     """
 
     def __init__(self, connection: sqlite3.Connection) -> None:
@@ -269,6 +281,254 @@ class HiringRadarRepository:
             }
             for row in rows
         ]
+
+    def list_jobs_first_seen_since(
+        self,
+        since: str,
+        source_name: str | None = None,
+    ) -> list[JobRecord]:
+        """
+        List jobs whose first_seen_at is greater than or equal to `since`.
+
+        Notes:
+        - This is intended for digest/notification flows.
+        - It returns jobs regardless of active/inactive status because the
+          first digest iteration focuses on "newly discovered" postings.
+        """
+        if source_name is None:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    source_name,
+                    title,
+                    company_name,
+                    location,
+                    canonical_url,
+                    source_type,
+                    source_job_id,
+                    raw_posted_at,
+                    posted_at,
+                    fingerprint,
+                    first_seen_at,
+                    last_seen_at,
+                    is_active,
+                    scraped_at
+                FROM jobs
+                WHERE first_seen_at >= ?
+                ORDER BY first_seen_at, company_name, source_name, title, canonical_url
+                """,
+                (since,),
+            )
+        else:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    source_name,
+                    title,
+                    company_name,
+                    location,
+                    canonical_url,
+                    source_type,
+                    source_job_id,
+                    raw_posted_at,
+                    posted_at,
+                    fingerprint,
+                    first_seen_at,
+                    last_seen_at,
+                    is_active,
+                    scraped_at
+                FROM jobs
+                WHERE first_seen_at >= ? AND source_name = ?
+                ORDER BY first_seen_at, company_name, source_name, title, canonical_url
+                """,
+                (since, source_name),
+            )
+
+        rows = cursor.fetchall()
+        return [_row_to_job_record(row) for row in rows]
+
+    def get_subscriber_by_email(self, email: str) -> Subscriber | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                email,
+                full_name,
+                is_active,
+                digest_enabled,
+                created_at,
+                updated_at
+            FROM subscribers
+            WHERE email = ?
+            """,
+            (email,),
+        )
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return _row_to_subscriber(row)
+
+    def upsert_subscriber(
+        self,
+        *,
+        email: str,
+        full_name: str | None,
+        updated_at: str,
+    ) -> tuple[Subscriber, bool]:
+        """
+        Insert a new subscriber or reactivate/update an existing one.
+
+        Returns:
+            (subscriber, created)
+        """
+        existing = self.get_subscriber_by_email(email)
+
+        if existing is None:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    INSERT INTO subscribers (
+                        email,
+                        full_name,
+                        is_active,
+                        digest_enabled,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        email,
+                        full_name,
+                        1,
+                        1,
+                        updated_at,
+                        updated_at,
+                    ),
+                )
+
+            subscriber = self.get_subscriber_by_email(email)
+            if subscriber is None:
+                raise RuntimeError("Subscriber insert succeeded but record could not be reloaded.")
+
+            return subscriber, True
+
+        effective_full_name = full_name if full_name is not None else existing.full_name
+
+        with self.connection:
+            self.connection.execute(
+                """
+                UPDATE subscribers
+                SET
+                    full_name = ?,
+                    is_active = 1,
+                    digest_enabled = 1,
+                    updated_at = ?
+                WHERE email = ?
+                """,
+                (
+                    effective_full_name,
+                    updated_at,
+                    email,
+                ),
+            )
+
+        subscriber = self.get_subscriber_by_email(email)
+        if subscriber is None:
+            raise RuntimeError("Subscriber update succeeded but record could not be reloaded.")
+
+        return subscriber, False
+
+    def list_subscribers(self) -> list[Subscriber]:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                email,
+                full_name,
+                is_active,
+                digest_enabled,
+                created_at,
+                updated_at
+            FROM subscribers
+            ORDER BY email
+            """
+        )
+        rows = cursor.fetchall()
+        return [_row_to_subscriber(row) for row in rows]
+
+    def list_digest_enabled_subscribers(self) -> list[Subscriber]:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                email,
+                full_name,
+                is_active,
+                digest_enabled,
+                created_at,
+                updated_at
+            FROM subscribers
+            WHERE is_active = 1 AND digest_enabled = 1
+            ORDER BY email
+            """
+        )
+        rows = cursor.fetchall()
+        return [_row_to_subscriber(row) for row in rows]
+
+    def set_subscriber_active(
+        self,
+        *,
+        email: str,
+        is_active: bool,
+        updated_at: str,
+    ) -> bool:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                UPDATE subscribers
+                SET
+                    is_active = ?,
+                    updated_at = ?
+                WHERE email = ?
+                """,
+                (
+                    int(is_active),
+                    updated_at,
+                    email,
+                ),
+            )
+
+        return cursor.rowcount > 0
+
+    def set_subscriber_digest_enabled(
+        self,
+        *,
+        email: str,
+        digest_enabled: bool,
+        updated_at: str,
+    ) -> bool:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                UPDATE subscribers
+                SET
+                    digest_enabled = ?,
+                    updated_at = ?
+                WHERE email = ?
+                """,
+                (
+                    int(digest_enabled),
+                    updated_at,
+                    email,
+                ),
+            )
+
+        return cursor.rowcount > 0
 
     def list_active_jobs(self, source_name: str | None = None) -> list[JobRecord]:
         if source_name is None:

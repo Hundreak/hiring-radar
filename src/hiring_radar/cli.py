@@ -7,9 +7,11 @@ from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.db.sqlite import close_connection, initialize_database
 from hiring_radar.models import CrawlSourceResult
 from hiring_radar.services.crawl import run_multi_source_crawl
+from hiring_radar.services.export import ExportResult, export_jobs_to_csv
 
 DEFAULT_COMPANIES_CONFIG_PATH = "config/companies.example.yml"
 DEFAULT_DB_PATH = "data/hiring_radar.db"
+DEFAULT_EXPORT_DIR = "data/exports"
 
 app = typer.Typer(no_args_is_help=True, help="Hiring Radar CLI")
 
@@ -44,6 +46,12 @@ def _print_crawl_summary(results: list[CrawlSourceResult]) -> None:
     typer.echo(
         f"  new_jobs={total_new} updated_jobs={total_updated} deactivated_jobs={total_deactivated}"
     )
+
+
+def _print_export_result(result: ExportResult) -> None:
+    typer.secho("Export completed", fg="green", bold=True)
+    typer.echo(f"  rows={result.row_count}")
+    typer.echo(f"  output={result.output_path}")
 
 
 @app.command()
@@ -92,7 +100,26 @@ def crawl(
 @app.command()
 def export() -> None:
     """Export stored jobs to CSV."""
-    typer.echo("TODO: export command will be implemented in a later step.")
+    connection = None
+
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+
+        jobs = repository.list_jobs()
+        result = export_jobs_to_csv(
+            jobs=jobs,
+            output_dir=DEFAULT_EXPORT_DIR,
+        )
+
+        _print_export_result(result)
+
+    except Exception as exc:
+        typer.secho(f"Unexpected export error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=1) from exc
+
+    finally:
+        close_connection(connection)
 
 
 @app.command()

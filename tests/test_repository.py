@@ -157,3 +157,68 @@ def test_mark_missing_jobs_inactive_marks_only_missing_jobs_for_source(
     assert job_2 is not None and job_2.is_active is False
     assert job_3 is not None and job_3.is_active is True
     assert [job.fingerprint for job in active_greenhouse_jobs] == ["fp-1"]
+
+
+def test_list_jobs_returns_all_jobs_including_inactive_in_sorted_order(
+    repository: HiringRadarRepository,
+) -> None:
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-b",
+            source_name="demo-lever",
+            source_type="lever",
+            company_name="Alpha Company",
+            title="Site Reliability Engineer",
+            canonical_url="https://jobs.lever.co/demo/sre-001",
+            source_job_id="sre-001",
+        )
+    )
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-a",
+            source_name="demo-greenhouse",
+            source_type="greenhouse",
+            company_name="Alpha Company",
+            title="Backend Engineer",
+            canonical_url="https://boards.greenhouse.io/demo/jobs/123",
+            source_job_id="123",
+        )
+    )
+    repository.upsert_job(
+        make_job(
+            fingerprint="fp-c",
+            source_name="demo-custom-static",
+            source_type="custom_static",
+            company_name="Beta Company",
+            title="Data Analyst",
+            canonical_url="https://example.com/careers/data-analyst-001",
+            source_job_id="data-analyst-001",
+        )
+    )
+
+    updated_count = repository.mark_missing_jobs_inactive(
+        source_name="demo-custom-static",
+        seen_fingerprints=[],
+        updated_at="2026-04-03T12:30:00Z",
+    )
+
+    jobs = repository.list_jobs()
+
+    assert updated_count == 1
+    assert len(jobs) == 3
+    assert [job.company_name for job in jobs] == [
+        "Alpha Company",
+        "Alpha Company",
+        "Beta Company",
+    ]
+    assert [job.source_name for job in jobs] == [
+        "demo-greenhouse",
+        "demo-lever",
+        "demo-custom-static",
+    ]
+    assert [job.title for job in jobs] == [
+        "Backend Engineer",
+        "Site Reliability Engineer",
+        "Data Analyst",
+    ]
+    assert [job.is_active for job in jobs] == [True, True, False]

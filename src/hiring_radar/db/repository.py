@@ -124,6 +124,65 @@ class HiringRadarRepository:
 
         return _row_to_job_record(row)
 
+    def list_jobs(self, source_name: str | None = None) -> list[JobRecord]:
+        """
+        List all stored jobs, including inactive records.
+
+        This method is intended for export and reporting flows, so it returns
+        the full dataset rather than only active jobs.
+        """
+        if source_name is None:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    source_name,
+                    title,
+                    company_name,
+                    location,
+                    canonical_url,
+                    source_type,
+                    source_job_id,
+                    raw_posted_at,
+                    posted_at,
+                    fingerprint,
+                    first_seen_at,
+                    last_seen_at,
+                    is_active,
+                    scraped_at
+                FROM jobs
+                ORDER BY company_name, source_name, title, canonical_url
+                """
+            )
+        else:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    source_name,
+                    title,
+                    company_name,
+                    location,
+                    canonical_url,
+                    source_type,
+                    source_job_id,
+                    raw_posted_at,
+                    posted_at,
+                    fingerprint,
+                    first_seen_at,
+                    last_seen_at,
+                    is_active,
+                    scraped_at
+                FROM jobs
+                WHERE source_name = ?
+                ORDER BY company_name, source_name, title, canonical_url
+                """,
+                (source_name,),
+            )
+
+        rows = cursor.fetchall()
+        return [_row_to_job_record(row) for row in rows]
+
     def list_active_jobs(self, source_name: str | None = None) -> list[JobRecord]:
         if source_name is None:
             cursor = self.connection.execute(

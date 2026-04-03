@@ -44,3 +44,6 @@ logs/*
 *.sqlite3
 *.csv
 *.log
+
+
+config/companies.local.yml

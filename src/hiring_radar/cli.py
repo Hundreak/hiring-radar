@@ -24,7 +24,7 @@ def _print_crawl_result(result: CrawlSourceResult) -> None:
         f"new={result.new_jobs} "
         f"updated={result.updated_jobs} "
         f"deactivated={result.deactivated_jobs}"
-)
+    )
 
     if result.error_message:
         typer.secho(f"  error={result.error_message}", fg="red")
@@ -47,15 +47,22 @@ def _print_crawl_summary(results: list[CrawlSourceResult]) -> None:
 
 
 @app.command()
-def crawl() -> None:
+def crawl(
+    config_path: str = typer.Option(
+        DEFAULT_COMPANIES_CONFIG_PATH,
+        "--config-path",
+        help="Path to the YAML source configuration file.",
+    ),
+) -> None:
     """Run configured job source crawls."""
     try:
-        source_configs = load_source_configs(DEFAULT_COMPANIES_CONFIG_PATH)
+        source_configs = load_source_configs(config_path)
     except ConfigError as exc:
-        typer.secho(f"Config error: {exc}", fg="red", err=True)
+        typer.secho(f"Config error ({config_path}): {exc}", fg="red", err=True)
         raise typer.Exit(code=2) from exc
 
     connection = None
+    results: list[CrawlSourceResult] = []
 
     try:
         connection = initialize_database(DEFAULT_DB_PATH)

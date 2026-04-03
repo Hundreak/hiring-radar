@@ -54,6 +54,8 @@ def make_digest(*, total_new_jobs: int, since: str) -> DigestResult:
 
 def test_crawl_and_notify_uses_fallback_window_when_checkpoint_is_missing(monkeypatch) -> None:
     checkpoint_updates: list[tuple[str, str, str]] = []
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
 
     class FakeRepository:
         def list_digest_enabled_subscribers(self):
@@ -71,6 +73,28 @@ def test_crawl_and_notify_uses_fallback_window_when_checkpoint_is_missing(monkey
             updated_at: str,
         ):
             checkpoint_updates.append((checkpoint_key, last_processed_at, updated_at))
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 201
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "load_source_configs", lambda config_path: ["fake-source"])
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
@@ -127,6 +151,23 @@ def test_crawl_and_notify_uses_fallback_window_when_checkpoint_is_missing(monkey
     assert result.exit_code == 0
     assert captured_since["since"] == "2026-04-03T18:00:00Z"
     assert len(captured_payloads) == 1
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            "2026-04-03T18:00:00Z",
+        )
+    ]
+    assert notification_finishes == [
+        (
+            201,
+            "sent",
+            1,
+            1,
+            "Hiring Radar Digest: 1 new job since 2026-04-03T18:00:00Z",
+            None,
+        )
+    ]
     assert checkpoint_updates == [
         (
             cli.DIGEST_EMAIL_CHECKPOINT_KEY,
@@ -138,6 +179,8 @@ def test_crawl_and_notify_uses_fallback_window_when_checkpoint_is_missing(monkey
 
 def test_crawl_and_notify_uses_existing_checkpoint(monkeypatch) -> None:
     checkpoint_updates: list[tuple[str, str, str]] = []
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
 
     class FakeRepository:
         def list_digest_enabled_subscribers(self):
@@ -169,6 +212,28 @@ def test_crawl_and_notify_uses_existing_checkpoint(monkeypatch) -> None:
             updated_at: str,
         ):
             checkpoint_updates.append((checkpoint_key, last_processed_at, updated_at))
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 202
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "load_source_configs", lambda config_path: ["fake-source"])
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
@@ -226,6 +291,23 @@ def test_crawl_and_notify_uses_existing_checkpoint(monkeypatch) -> None:
     assert captured_since["since"] == "2026-04-03T21:00:00Z"
     assert len(captured_payloads) == 1
     assert captured_payloads[0].to == "alice@example.com"
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            "2026-04-03T21:00:00Z",
+        )
+    ]
+    assert notification_finishes == [
+        (
+            202,
+            "sent",
+            1,
+            1,
+            "Hiring Radar Digest: 1 new job since 2026-04-03T21:00:00Z",
+            None,
+        )
+    ]
     assert checkpoint_updates == [
         (
             cli.DIGEST_EMAIL_CHECKPOINT_KEY,
@@ -237,6 +319,8 @@ def test_crawl_and_notify_uses_existing_checkpoint(monkeypatch) -> None:
 
 def test_crawl_and_notify_updates_checkpoint_when_empty_digest_is_skipped(monkeypatch) -> None:
     checkpoint_updates: list[tuple[str, str, str]] = []
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
 
     class FakeRepository:
         def get_notification_checkpoint(self, checkpoint_key: str):
@@ -253,6 +337,28 @@ def test_crawl_and_notify_updates_checkpoint_when_empty_digest_is_skipped(monkey
 
         def list_digest_enabled_subscribers(self):
             raise AssertionError("subscriber list should not be used when empty digest is skipped")
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 203
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "load_source_configs", lambda config_path: ["fake-source"])
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
@@ -302,6 +408,23 @@ def test_crawl_and_notify_updates_checkpoint_when_empty_digest_is_skipped(monkey
     assert result.exit_code == 0
     assert "Digest email skipped" in result.output
     assert "reason=no new jobs in this window" in result.output
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            "2026-04-03T18:00:00Z",
+        )
+    ]
+    assert notification_finishes == [
+        (
+            203,
+            "skipped",
+            0,
+            0,
+            None,
+            "no new jobs in this window",
+        )
+    ]
     assert checkpoint_updates == [
         (
             cli.DIGEST_EMAIL_CHECKPOINT_KEY,
@@ -312,6 +435,9 @@ def test_crawl_and_notify_updates_checkpoint_when_empty_digest_is_skipped(monkey
 
 
 def test_crawl_and_notify_skips_digest_when_all_crawls_fail(monkeypatch) -> None:
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
+
     class FakeRepository:
         def get_notification_checkpoint(self, checkpoint_key: str):
             raise AssertionError("checkpoint should not be read when all crawls fail")
@@ -321,6 +447,28 @@ def test_crawl_and_notify_skips_digest_when_all_crawls_fail(monkeypatch) -> None
 
         def list_digest_enabled_subscribers(self):
             raise AssertionError("subscriber list should not be used when all crawls fail")
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 204
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "load_source_configs", lambda config_path: ["fake-source"])
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
@@ -363,10 +511,29 @@ def test_crawl_and_notify_skips_digest_when_all_crawls_fail(monkeypatch) -> None
     assert result.exit_code == 1
     assert "Digest email skipped" in result.output
     assert "reason=no successful crawl sources" in result.output
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            None,
+        )
+    ]
+    assert notification_finishes == [
+        (
+            204,
+            "skipped",
+            0,
+            0,
+            None,
+            "no successful crawl sources",
+        )
+    ]
 
 
 def test_crawl_and_notify_sends_digest_on_partial_success_and_returns_nonzero(monkeypatch) -> None:
     checkpoint_updates: list[tuple[str, str, str]] = []
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
 
     class FakeRepository:
         def list_digest_enabled_subscribers(self):
@@ -406,6 +573,28 @@ def test_crawl_and_notify_sends_digest_on_partial_success_and_returns_nonzero(mo
             updated_at: str,
         ):
             checkpoint_updates.append((checkpoint_key, last_processed_at, updated_at))
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 205
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "load_source_configs", lambda config_path: ["fake-source"])
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
@@ -478,6 +667,23 @@ def test_crawl_and_notify_sends_digest_on_partial_success_and_returns_nonzero(mo
     assert [payload.to for payload in captured_payloads] == [
         "alice@example.com",
         "bob@example.com",
+    ]
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            "2026-04-03T21:00:00Z",
+        )
+    ]
+    assert notification_finishes == [
+        (
+            205,
+            "sent",
+            2,
+            1,
+            "Hiring Radar Digest: 1 new job since 2026-04-03T21:00:00Z",
+            None,
+        )
     ]
     assert checkpoint_updates == [
         (

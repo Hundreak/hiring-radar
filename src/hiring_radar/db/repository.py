@@ -4,7 +4,13 @@ import sqlite3
 from collections.abc import Iterable
 from typing import Any
 
-from hiring_radar.models import CrawlRun, JobRecord, NotificationCheckpoint, Subscriber
+from hiring_radar.models import (
+    CrawlRun,
+    JobRecord,
+    NotificationCheckpoint,
+    NotificationRun,
+    Subscriber,
+)
 
 
 def _row_to_job_record(row: sqlite3.Row) -> JobRecord:
@@ -61,6 +67,20 @@ def _row_to_notification_checkpoint(row: sqlite3.Row) -> NotificationCheckpoint:
         updated_at=row["updated_at"],
     )
 
+
+def _row_to_notification_run(row: sqlite3.Row) -> NotificationRun:
+    return NotificationRun(
+        id=row["id"],
+        notification_type=row["notification_type"],
+        started_at=row["started_at"],
+        finished_at=row["finished_at"],
+        status=row["status"],
+        recipient_count=int(row["recipient_count"]),
+        new_jobs_count=int(row["new_jobs_count"]),
+        since=row["since"],
+        subject=row["subject"],
+        error_message=row["error_message"],
+    )
 
 class HiringRadarRepository:
     """
@@ -381,6 +401,154 @@ class HiringRadarRepository:
             return None
 
         return _row_to_notification_checkpoint(row)
+
+
+    def start_notification_run(
+        self,
+        *,
+        notification_type: str,
+        started_at: str,
+        since: str | None,
+    ) -> int:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                INSERT INTO notification_runs (
+                    notification_type,
+                    started_at,
+                    status,
+                    recipient_count,
+                    new_jobs_count,
+                    since
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    notification_type,
+                    started_at,
+                    "running",
+                    0,
+                    0,
+                    since,
+                ),
+            )
+
+        return int(cursor.lastrowid)
+
+    def finish_notification_run(
+        self,
+        run_id: int,
+        *,
+        finished_at: str,
+        status: str,
+        recipient_count: int = 0,
+        new_jobs_count: int = 0,
+        subject: str | None = None,
+        error_message: str | None = None,
+    ) -> bool:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                UPDATE notification_runs
+                SET
+                    finished_at = ?,
+                    status = ?,
+                    recipient_count = ?,
+                    new_jobs_count = ?,
+                    subject = ?,
+                    error_message = ?
+                WHERE id = ?
+                """,
+                (
+                    finished_at,
+                    status,
+                    recipient_count,
+                    new_jobs_count,
+                    subject,
+                    error_message,
+                    run_id,
+                ),
+            )
+
+        return cursor.rowcount > 0
+
+    def get_notification_run(self, run_id: int) -> NotificationRun | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                notification_type,
+                started_at,
+                finished_at,
+                status,
+                recipient_count,
+                new_jobs_count,
+                since,
+                subject,
+                error_message
+            FROM notification_runs
+            WHERE id = ?
+            """,
+            (run_id,),
+        )
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return _row_to_notification_run(row)
+
+    def list_notification_runs(
+        self,
+        *,
+        notification_type: str | None = None,
+        limit: int = 50,
+    ) -> list[NotificationRun]:
+        if notification_type is None:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    notification_type,
+                    started_at,
+                    finished_at,
+                    status,
+                    recipient_count,
+                    new_jobs_count,
+                    since,
+                    subject,
+                    error_message
+                FROM notification_runs
+                ORDER BY started_at DESC, id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+        else:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    notification_type,
+                    started_at,
+                    finished_at,
+                    status,
+                    recipient_count,
+                    new_jobs_count,
+                    since,
+                    subject,
+                    error_message
+                FROM notification_runs
+                WHERE notification_type = ?
+                ORDER BY started_at DESC, id DESC
+                LIMIT ?
+                """,
+                (notification_type, limit),
+            )
+
+        rows = cursor.fetchall()
+        return [_row_to_notification_run(row) for row in rows]
+
 
     def upsert_notification_checkpoint(
         self,

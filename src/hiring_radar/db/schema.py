@@ -70,6 +70,24 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
         updated_at TEXT NOT NULL
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS notification_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        notification_type TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        status TEXT NOT NULL,
+        recipient_count INTEGER NOT NULL DEFAULT 0,
+        new_jobs_count INTEGER NOT NULL DEFAULT 0,
+        since TEXT,
+        subject TEXT,
+        error_message TEXT
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_notification_runs_type_started_at
+    ON notification_runs (notification_type, started_at)
+    """,
 )
  
 

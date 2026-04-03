@@ -8,7 +8,7 @@ from hiring_radar.config import ConfigError, load_source_configs
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.db.sqlite import close_connection, initialize_database
 from hiring_radar.email_config import EmailConfigError, load_smtp_settings
-from hiring_radar.models import CrawlSourceResult, Subscriber
+from hiring_radar.models import CrawlSourceResult, NotificationRun, Subscriber
 from hiring_radar.services.crawl import run_multi_source_crawl
 from hiring_radar.services.digest import (
     DigestResult,
@@ -29,6 +29,7 @@ DEFAULT_DB_PATH = "data/hiring_radar.db"
 DEFAULT_EXPORT_DIR = "data/exports"
 DEFAULT_ENV_PATH = ".env"
 DIGEST_EMAIL_CHECKPOINT_KEY = "digest_email"
+NOTIFICATION_TYPE_DIGEST_EMAIL = "digest_email"
 
 app = typer.Typer(no_args_is_help=True, help="Hiring Radar CLI")
 
@@ -74,6 +75,30 @@ def _advance_digest_checkpoint(
         updated_at=processed_at,
     )
 
+
+def _finish_notification_run(
+    *,
+    repository: HiringRadarRepository | None,
+    run_id: int | None,
+    finished_at: str,
+    status: str,
+    recipient_count: int = 0,
+    new_jobs_count: int = 0,
+    subject: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    if repository is None or run_id is None:
+        return
+
+    repository.finish_notification_run(
+        run_id,
+        finished_at=finished_at,
+        status=status,
+        recipient_count=recipient_count,
+        new_jobs_count=new_jobs_count,
+        subject=subject,
+        error_message=error_message,
+    )
 
 def _resolve_digest_recipients(
     *,
@@ -241,6 +266,28 @@ def _print_subscribers(subscribers: list[Subscriber]) -> None:
         )
 
 
+def _print_notification_runs(runs: list[NotificationRun]) -> None:
+    typer.secho("Notification History", bold=True)
+
+    if not runs:
+        typer.echo("  no notification runs")
+        return
+
+    for run in runs:
+        typer.echo(
+            f"  id={run.id} type={run.notification_type} status={run.status}"
+        )
+        typer.echo(f"    started_at={run.started_at}")
+        typer.echo(f"    finished_at={run.finished_at or '-'}")
+        typer.echo(
+            f"    recipient_count={run.recipient_count} "
+            f"new_jobs_count={run.new_jobs_count}"
+        )
+        typer.echo(f"    since={run.since or '-'}")
+        typer.echo(f"    subject={run.subject or '-'}")
+        if run.error_message:
+            typer.echo(f"    error={run.error_message}")
+
 @app.command()
 def crawl(
     config_path: str = typer.Option(
@@ -324,7 +371,9 @@ def crawl_and_notify(
         raise typer.Exit(code=2) from exc
 
     connection = None
+    repository: HiringRadarRepository | None = None
     results: list[CrawlSourceResult] = []
+    notification_run_id: int | None = None
 
     try:
         connection = initialize_database(DEFAULT_DB_PATH)
@@ -344,6 +393,18 @@ def crawl_and_notify(
         generated_at = _utc_now_iso()
 
         if not successful_results:
+            notification_run_id = repository.start_notification_run(
+                notification_type=NOTIFICATION_TYPE_DIGEST_EMAIL,
+                started_at=generated_at,
+                since=None,
+            )
+            _finish_notification_run(
+                repository=repository,
+                run_id=notification_run_id,
+                finished_at=_utc_now_iso(),
+                status="skipped",
+                error_message="no successful crawl sources",
+            )
             typer.secho("Digest email skipped", fg="yellow", bold=True)
             typer.echo("  reason=no successful crawl sources")
         else:
@@ -353,6 +414,12 @@ def crawl_and_notify(
                 window_hours=window_hours,
             )
 
+            notification_run_id = repository.start_notification_run(
+                notification_type=NOTIFICATION_TYPE_DIGEST_EMAIL,
+                started_at=generated_at,
+                since=since,
+            )
+
             digest = build_digest(
                 repository,
                 since=since,
@@ -360,6 +427,15 @@ def crawl_and_notify(
             )
 
             if digest.total_new_jobs == 0 and not send_empty:
+                _finish_notification_run(
+                    repository=repository,
+                    run_id=notification_run_id,
+                    finished_at=_utc_now_iso(),
+                    status="skipped",
+                    recipient_count=0,
+                    new_jobs_count=0,
+                    error_message="no new jobs in this window",
+                )
                 typer.secho("Digest email skipped", fg="yellow", bold=True)
                 typer.echo("  reason=no new jobs in this window")
                 typer.echo(f"  since={digest.since}")
@@ -374,6 +450,15 @@ def crawl_and_notify(
                     env_path=env_path,
                     explicit_to=to,
                 )
+                _finish_notification_run(
+                    repository=repository,
+                    run_id=notification_run_id,
+                    finished_at=_utc_now_iso(),
+                    status="sent",
+                    recipient_count=recipient_count,
+                    new_jobs_count=digest.total_new_jobs,
+                    subject=subject,
+                )
                 typer.secho("Digest emails sent", fg="green", bold=True)
                 typer.echo(f"  recipient_count={recipient_count}")
                 typer.echo(f"  new_jobs={digest.total_new_jobs}")
@@ -384,14 +469,35 @@ def crawl_and_notify(
                 )
 
     except EmailConfigError as exc:
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="failed",
+            error_message=str(exc),
+        )
         typer.secho(f"Email config error: {exc}", fg="red", err=True)
         raise typer.Exit(code=2) from exc
 
     except EmailDeliveryError as exc:
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="failed",
+            error_message=str(exc),
+        )
         typer.secho(f"Email delivery error: {exc}", fg="red", err=True)
         raise typer.Exit(code=1) from exc
 
     except Exception as exc:
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="failed",
+            error_message=str(exc),
+        )
         typer.secho(f"Unexpected crawl-and-notify error: {exc}", fg="red", err=True)
         raise typer.Exit(code=1) from exc
 
@@ -400,7 +506,6 @@ def crawl_and_notify(
 
     if any(not result.success for result in results):
         raise typer.Exit(code=1)
-
 
 @app.command()
 def export() -> None:
@@ -482,18 +587,36 @@ def send_digest(
 ) -> None:
     """Send a digest email for newly discovered jobs since a given timestamp."""
     connection = None
+    repository: HiringRadarRepository | None = None
+    notification_run_id: int | None = None
 
     try:
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
 
+        started_at = _utc_now_iso()
+        notification_run_id = repository.start_notification_run(
+            notification_type=NOTIFICATION_TYPE_DIGEST_EMAIL,
+            started_at=started_at,
+            since=since,
+        )
+
         digest = build_digest(
             repository,
             since=since,
-            generated_at=_utc_now_iso(),
+            generated_at=started_at,
         )
 
         if digest.total_new_jobs == 0 and not send_empty:
+            _finish_notification_run(
+                repository=repository,
+                run_id=notification_run_id,
+                finished_at=_utc_now_iso(),
+                status="skipped",
+                recipient_count=0,
+                new_jobs_count=0,
+                error_message="no new jobs in this window",
+            )
             typer.secho("Digest email skipped", fg="yellow", bold=True)
             typer.echo("  reason=no new jobs in this window")
             typer.echo(f"  since={digest.since}")
@@ -506,20 +629,51 @@ def send_digest(
             explicit_to=to,
         )
 
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="sent",
+            recipient_count=recipient_count,
+            new_jobs_count=digest.total_new_jobs,
+            subject=subject,
+        )
+
         typer.secho("Digest emails sent", fg="green", bold=True)
         typer.echo(f"  recipient_count={recipient_count}")
         typer.echo(f"  new_jobs={digest.total_new_jobs}")
         typer.echo(f"  subject={subject}")
 
     except EmailConfigError as exc:
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="failed",
+            error_message=str(exc),
+        )
         typer.secho(f"Email config error: {exc}", fg="red", err=True)
         raise typer.Exit(code=2) from exc
 
     except EmailDeliveryError as exc:
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="failed",
+            error_message=str(exc),
+        )
         typer.secho(f"Email delivery error: {exc}", fg="red", err=True)
         raise typer.Exit(code=1) from exc
 
     except Exception as exc:
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="failed",
+            error_message=str(exc),
+        )
         typer.secho(f"Unexpected send-digest error: {exc}", fg="red", err=True)
         raise typer.Exit(code=1) from exc
 
@@ -755,6 +909,48 @@ def enable_digest(
 
     except Exception as exc:
         typer.secho(f"Unexpected enable-digest error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=1) from exc
+
+    finally:
+        close_connection(connection)
+
+
+@app.command(name="notification-history")
+def notification_history(
+    notification_type: str | None = typer.Option(
+        None,
+        "--notification-type",
+        help="Optional notification type filter, for example digest_email.",
+    ),
+    limit: int = typer.Option(
+        20,
+        "--limit",
+        help="Maximum number of notification runs to display.",
+    ),
+) -> None:
+    """Show recent notification run history."""
+    if limit < 1:
+        typer.secho("Invalid limit: must be >= 1", fg="red", err=True)
+        raise typer.Exit(code=2)
+
+    connection = None
+
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+
+        runs = repository.list_notification_runs(
+            notification_type=notification_type,
+            limit=limit,
+        )
+        _print_notification_runs(runs)
+
+    except Exception as exc:
+        typer.secho(
+            f"Unexpected notification-history error: {exc}",
+            fg="red",
+            err=True,
+        )
         raise typer.Exit(code=1) from exc
 
     finally:

@@ -51,6 +51,19 @@ class NotificationCheckpoint:
 
 
 @dataclass(slots=True, frozen=True)
+class NotificationRun:
+    id: int | None = None
+    notification_type: str = ""
+    started_at: str = ""
+    finished_at: str | None = None
+    status: str = ""
+    recipient_count: int = 0
+    new_jobs_count: int = 0
+    since: str | None = None
+    subject: str | None = None
+    error_message: str | None = None
+
+@dataclass(slots=True, frozen=True)
 class CrawlSourceResult:
     source_name: str = ""
     source_type: str = ""

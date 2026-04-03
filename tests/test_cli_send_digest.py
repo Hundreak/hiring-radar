@@ -53,9 +53,34 @@ def make_digest(*, total_new_jobs: int) -> DigestResult:
 
 
 def test_send_digest_sends_email_when_explicit_recipient_is_provided(monkeypatch) -> None:
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
+
     class FakeRepository:
         def list_digest_enabled_subscribers(self):
             raise AssertionError("subscriber list should not be used when --to is provided")
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 101
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
     monkeypatch.setattr(cli, "close_connection", lambda connection: None)
@@ -95,6 +120,24 @@ def test_send_digest_sends_email_when_explicit_recipient_is_provided(monkeypatch
     assert "recipient_count=1" in result.output
     assert "new_jobs=1" in result.output
 
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            "2026-04-03T15:00:00Z",
+        )
+    ]
+    assert notification_finishes == [
+        (
+            101,
+            "sent",
+            1,
+            1,
+            "Hiring Radar Digest: 1 new job since 2026-04-03T15:00:00Z",
+            None,
+        )
+    ]
+
     assert len(captured_payloads) == 1
     payload = captured_payloads[0]
     assert payload.to == "recipient@example.com"
@@ -103,6 +146,9 @@ def test_send_digest_sends_email_when_explicit_recipient_is_provided(monkeypatch
 
 
 def test_send_digest_uses_digest_enabled_subscribers_when_to_is_omitted(monkeypatch) -> None:
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
+
     class FakeRepository:
         def list_digest_enabled_subscribers(self):
             return [
@@ -125,6 +171,28 @@ def test_send_digest_uses_digest_enabled_subscribers_when_to_is_omitted(monkeypa
                     updated_at="2026-04-04T10:00:00Z",
                 ),
             ]
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 102
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
     monkeypatch.setattr(cli, "close_connection", lambda connection: None)
@@ -165,12 +233,54 @@ def test_send_digest_uses_digest_enabled_subscribers_when_to_is_omitted(monkeypa
         "alice@example.com",
         "bob@example.com",
     ]
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            "2026-04-03T15:00:00Z",
+        )
+    ]
+    assert notification_finishes == [
+        (
+            102,
+            "sent",
+            2,
+            1,
+            "Hiring Radar Digest: 1 new job since 2026-04-03T15:00:00Z",
+            None,
+        )
+    ]
 
 
 def test_send_digest_falls_back_to_default_recipient_when_no_subscribers(monkeypatch) -> None:
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
+
     class FakeRepository:
         def list_digest_enabled_subscribers(self):
             return []
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 103
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
     monkeypatch.setattr(cli, "close_connection", lambda connection: None)
@@ -207,12 +317,54 @@ def test_send_digest_falls_back_to_default_recipient_when_no_subscribers(monkeyp
     assert "recipient_count=1" in result.output
     assert len(captured_payloads) == 1
     assert captured_payloads[0].to == "default@example.com"
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            "2026-04-03T15:00:00Z",
+        )
+    ]
+    assert notification_finishes == [
+        (
+            103,
+            "sent",
+            1,
+            1,
+            "Hiring Radar Digest: 1 new job since 2026-04-03T15:00:00Z",
+            None,
+        )
+    ]
 
 
 def test_send_digest_skips_empty_digest_when_send_empty_is_false(monkeypatch) -> None:
+    notification_runs: list[tuple[str, str, str | None]] = []
+    notification_finishes: list[tuple[int, str, int, int, str | None, str | None]] = []
+
     class FakeRepository:
         def list_digest_enabled_subscribers(self):
             raise AssertionError("subscriber list should not be queried for skipped empty digest")
+
+        def start_notification_run(
+            self, *, notification_type: str, started_at: str, since: str | None
+        ):
+            notification_runs.append((notification_type, started_at, since))
+            return 104
+
+        def finish_notification_run(
+            self,
+            run_id: int,
+            *,
+            finished_at: str,
+            status: str,
+            recipient_count: int = 0,
+            new_jobs_count: int = 0,
+            subject: str | None = None,
+            error_message: str | None = None,
+        ):
+            notification_finishes.append(
+                (run_id, status, recipient_count, new_jobs_count, subject, error_message)
+            )
+            return True
 
     monkeypatch.setattr(cli, "initialize_database", lambda _: object())
     monkeypatch.setattr(cli, "close_connection", lambda connection: None)
@@ -241,3 +393,20 @@ def test_send_digest_skips_empty_digest_when_send_empty_is_false(monkeypatch) ->
     assert result.exit_code == 0
     assert "Digest email skipped" in result.output
     assert "reason=no new jobs in this window" in result.output
+    assert notification_runs == [
+        (
+            cli.NOTIFICATION_TYPE_DIGEST_EMAIL,
+            "2026-04-04T00:00:00Z",
+            "2026-04-03T15:00:00Z",
+        )
+    ]
+    assert notification_finishes == [
+        (
+            104,
+            "skipped",
+            0,
+            0,
+            None,
+            "no new jobs in this window",
+        )
+    ]

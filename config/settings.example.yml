@@ -12,3 +12,11 @@ storage:
 
 crawl:
   retry_count: 2
+
+# Keyword filtering
+keyword_filter:
+  include_keywords: []
+  exclude_keywords: []
+  match_title: true
+  match_location: true
+  match_company_name: true

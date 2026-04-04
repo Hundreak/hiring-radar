@@ -1,0 +1,216 @@
+from __future__ import annotations
+
+from typer.testing import CliRunner
+
+from hiring_radar import cli
+from hiring_radar.config import ConfigError
+from hiring_radar.filtering.models import KeywordFilterSettings
+from hiring_radar.models import JobRecord
+from hiring_radar.services.export import ExportResult
+from hiring_radar.settings import AppSettings
+
+runner = CliRunner()
+
+
+class FakeRepository:
+    def __init__(
+        self,
+        *,
+        all_jobs: list[JobRecord],
+        active_jobs: list[JobRecord] | None = None,
+    ) -> None:
+        self._all_jobs = all_jobs
+        self._active_jobs = active_jobs if active_jobs is not None else all_jobs
+
+    def list_jobs(self) -> list[JobRecord]:
+        return self._all_jobs
+
+    def list_active_jobs(self) -> list[JobRecord]:
+        return self._active_jobs
+
+
+def _job(
+    *,
+    title: str,
+    company_name: str,
+    location: str | None,
+    canonical_url: str,
+    is_active: bool = True,
+) -> JobRecord:
+    return JobRecord(
+        id=None,
+        source_name="example-source",
+        title=title,
+        company_name=company_name,
+        location=location,
+        canonical_url=canonical_url,
+        source_type="lever",
+        source_job_id=canonical_url.rsplit("/", maxsplit=1)[-1],
+        raw_posted_at=None,
+        posted_at=None,
+        fingerprint=canonical_url,
+        first_seen_at="2026-04-04T10:00:00Z",
+        last_seen_at="2026-04-04T10:00:00Z",
+        is_active=is_active,
+        scraped_at="2026-04-04T10:00:00Z",
+    )
+
+
+def test_export_uses_all_jobs_by_default(monkeypatch) -> None:
+    repository = FakeRepository(
+        all_jobs=[
+            _job(
+                title="Senior Python Engineer",
+                company_name="Trendyol",
+                location="Istanbul",
+                canonical_url="https://example.com/jobs/1",
+                is_active=True,
+            ),
+            _job(
+                title="Backend Engineer",
+                company_name="ExampleCo",
+                location="Ankara",
+                canonical_url="https://example.com/jobs/2",
+                is_active=False,
+            ),
+        ]
+    )
+
+    captured: dict[str, object] = {}
+
+    def fake_export_jobs_to_csv(
+        *,
+        jobs,
+        output_dir,
+        filename_prefix="jobs_export",
+        timestamp_factory=None,
+    ):
+        captured["jobs"] = jobs
+        captured["output_dir"] = output_dir
+        return ExportResult(
+            output_path="data/exports/jobs_export_test.csv",
+            row_count=len(jobs),
+        )
+
+    monkeypatch.setattr(cli, "initialize_database", lambda path: object())
+    monkeypatch.setattr(cli, "close_connection", lambda connection: None)
+    monkeypatch.setattr(cli, "HiringRadarRepository", lambda connection: repository)
+    monkeypatch.setattr(cli, "export_jobs_to_csv", fake_export_jobs_to_csv)
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "export",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Export Scope" in result.output
+    assert "jobs_scope=all_jobs" in result.output
+    assert "filter_applied=False" in result.output
+    assert "total_selected_jobs=2" in result.output
+    assert "rows=2" in result.output
+
+    exported_jobs = captured["jobs"]
+    assert isinstance(exported_jobs, list)
+    assert len(exported_jobs) == 2
+
+
+def test_export_applies_keyword_filter_when_requested(monkeypatch) -> None:
+    active_jobs = [
+        _job(
+            title="Senior Python Engineer",
+            company_name="Trendyol",
+            location="Istanbul",
+            canonical_url="https://example.com/jobs/1",
+            is_active=True,
+        ),
+        _job(
+            title="Python Intern",
+            company_name="ExampleCo",
+            location="Remote",
+            canonical_url="https://example.com/jobs/2",
+            is_active=True,
+        ),
+    ]
+    repository = FakeRepository(
+        all_jobs=active_jobs,
+        active_jobs=active_jobs,
+    )
+
+    captured: dict[str, object] = {}
+
+    def fake_export_jobs_to_csv(
+        *,
+        jobs,
+        output_dir,
+        filename_prefix="jobs_export",
+        timestamp_factory=None,
+    ):
+        captured["jobs"] = jobs
+        captured["output_dir"] = output_dir
+        return ExportResult(
+            output_path="data/exports/jobs_export_test.csv",
+            row_count=len(jobs),
+        )
+
+    monkeypatch.setattr(
+        cli,
+        "load_app_settings",
+        lambda path: AppSettings(
+            keyword_filter=KeywordFilterSettings(
+                include_keywords=("python",),
+                exclude_keywords=("intern",),
+                match_title=True,
+                match_location=False,
+                match_company_name=False,
+            )
+        ),
+    )
+    monkeypatch.setattr(cli, "initialize_database", lambda path: object())
+    monkeypatch.setattr(cli, "close_connection", lambda connection: None)
+    monkeypatch.setattr(cli, "HiringRadarRepository", lambda connection: repository)
+    monkeypatch.setattr(cli, "export_jobs_to_csv", fake_export_jobs_to_csv)
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "export",
+            "--apply-filter",
+            "--active-only",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "jobs_scope=active_only" in result.output
+    assert "filter_applied=True" in result.output
+    assert "total_selected_jobs=2" in result.output
+    assert "exported_jobs=1" in result.output
+    assert "filtered_out_jobs=1" in result.output
+    assert "rows=1" in result.output
+    assert "include_keywords=['python']" in result.output
+    assert "exclude_keywords=['intern']" in result.output
+
+    exported_jobs = captured["jobs"]
+    assert isinstance(exported_jobs, list)
+    assert len(exported_jobs) == 1
+    assert exported_jobs[0].title == "Senior Python Engineer"
+
+
+def test_export_returns_exit_code_2_on_settings_config_error(monkeypatch) -> None:
+    def raise_config_error(path: str):
+        raise ConfigError("bad settings file")
+
+    monkeypatch.setattr(cli, "load_app_settings", raise_config_error)
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "export",
+            "--apply-filter",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "Config error" in result.output
+    assert "bad settings file" in result.output

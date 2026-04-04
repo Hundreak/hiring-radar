@@ -8,11 +8,18 @@ from hiring_radar.config import ConfigError, load_source_configs
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.db.sqlite import close_connection, initialize_database
 from hiring_radar.email_config import EmailConfigError, load_smtp_settings
+from hiring_radar.filtering import (
+    JobFilterDecision,
+    JobFilterResult,
+    filter_jobs_by_keyword_settings,
+)
 from hiring_radar.models import CrawlSourceResult, NotificationRun, Subscriber
 from hiring_radar.services.crawl import run_multi_source_crawl
 from hiring_radar.services.digest import (
+    DigestFilterResult,
     DigestResult,
     build_digest,
+    filter_digest_result_by_keyword_settings,
     render_digest_subject,
     render_digest_text,
 )
@@ -23,8 +30,10 @@ from hiring_radar.services.email import (
 )
 from hiring_radar.services.export import ExportResult, export_jobs_to_csv
 from hiring_radar.services.summary import SummaryResult, build_summary
+from hiring_radar.settings import AppSettings, load_app_settings
 
 DEFAULT_COMPANIES_CONFIG_PATH = "config/companies.example.yml"
+DEFAULT_SETTINGS_CONFIG_PATH = "config/settings.example.yml"
 DEFAULT_DB_PATH = "data/hiring_radar.db"
 DEFAULT_EXPORT_DIR = "data/exports"
 DEFAULT_ENV_PATH = ".env"
@@ -218,11 +227,90 @@ def _merge_notification_detail(
 
     return f"{primary_detail}; {secondary_detail}"
 
+
+def _filter_digest_result_if_requested(
+    *,
+    digest: DigestResult,
+    apply_filter: bool,
+    settings: AppSettings | None,
+) -> DigestFilterResult:
+    if not apply_filter:
+        return DigestFilterResult(
+            original_total_new_jobs=digest.total_new_jobs,
+            filtered_total_new_jobs=digest.total_new_jobs,
+            filtered_out_jobs=0,
+            digest=digest,
+        )
+
+    if settings is None:
+        raise RuntimeError("Digest filter settings are required when apply_filter=True.")
+
+    return filter_digest_result_by_keyword_settings(
+        digest,
+        settings=settings.keyword_filter,
+    )
+
+
+def _print_digest_filter_summary(
+    *,
+    filter_result: DigestFilterResult,
+    settings: AppSettings,
+) -> None:
+    keyword_filter = settings.keyword_filter
+
+    typer.echo("")
+    typer.secho("Digest Filter", bold=True)
+    typer.echo(f"  total_new_jobs_before_filter={filter_result.original_total_new_jobs}")
+    typer.echo(f"  total_new_jobs_after_filter={filter_result.filtered_total_new_jobs}")
+    typer.echo(f"  filtered_out_jobs={filter_result.filtered_out_jobs}")
+    typer.echo(f"  include_keywords={list(keyword_filter.include_keywords)}")
+    typer.echo(f"  exclude_keywords={list(keyword_filter.exclude_keywords)}")
+    typer.echo(f"  active_fields={list(keyword_filter.active_fields())}")
+
+
+def _build_digest_skip_reason(
+    *,
+    filter_applied: bool,
+    filter_result: DigestFilterResult,
+) -> str:
+    if (
+        filter_applied
+        and filter_result.original_total_new_jobs > 0
+        and filter_result.filtered_total_new_jobs == 0
+    ):
+        return "no jobs matched the active keyword filter"
+
+    return "no new jobs in this window"
+
 def _print_export_result(result: ExportResult) -> None:
     typer.secho("Export completed", fg="green", bold=True)
     typer.echo(f"  rows={result.row_count}")
     typer.echo(f"  output={result.output_path}")
 
+
+def _print_export_scope_summary(
+    *,
+    total_selected_jobs: int,
+    exported_jobs: int,
+    filter_applied: bool,
+    active_only: bool,
+    settings: AppSettings | None,
+) -> None:
+    typer.secho("Export Scope", bold=True)
+    typer.echo(f"  jobs_scope={'active_only' if active_only else 'all_jobs'}")
+    typer.echo(f"  filter_applied={filter_applied}")
+    typer.echo(f"  total_selected_jobs={total_selected_jobs}")
+
+    if filter_applied:
+        filtered_out_jobs = total_selected_jobs - exported_jobs
+        typer.echo(f"  exported_jobs={exported_jobs}")
+        typer.echo(f"  filtered_out_jobs={filtered_out_jobs}")
+
+        keyword_filter = settings.keyword_filter if settings is not None else None
+        if keyword_filter is not None:
+            typer.echo(f"  include_keywords={list(keyword_filter.include_keywords)}")
+            typer.echo(f"  exclude_keywords={list(keyword_filter.exclude_keywords)}")
+            typer.echo(f"  active_fields={list(keyword_filter.active_fields())}")
 
 def _print_summary_result(result: SummaryResult) -> None:
     typer.secho("Summary", bold=True)
@@ -377,6 +465,104 @@ def _print_ops_status(
         if latest_notification_run.error_message:
             typer.echo(f"  detail={latest_notification_run.error_message}")
 
+
+def _print_keyword_filter_config(settings: AppSettings) -> None:
+    keyword_filter = settings.keyword_filter
+
+    typer.secho("Keyword Filter Config", bold=True)
+    typer.echo(f"  enabled={keyword_filter.is_enabled()}")
+    typer.echo(f"  include_keywords={list(keyword_filter.include_keywords)}")
+    typer.echo(f"  exclude_keywords={list(keyword_filter.exclude_keywords)}")
+    typer.echo(f"  active_fields={list(keyword_filter.active_fields())}")
+
+
+
+
+def _format_keyword_field_matches(decisions) -> str:
+    if not decisions:
+        return "-"
+
+    return ", ".join(
+        f"{match.field_name}:{match.keyword}"
+        for match in decisions
+    )
+
+
+def _print_filter_decision_samples(
+    *,
+    heading: str,
+    decisions: tuple[JobFilterDecision, ...],
+    sample_limit: int,
+) -> None:
+    typer.echo("")
+    typer.secho(heading, bold=True)
+
+    if not decisions:
+        typer.echo("  none")
+        return
+
+    for decision in decisions[:sample_limit]:
+        job = decision.job
+        location = job.location or "Unknown location"
+
+        typer.echo(f"  - {job.title} | {job.company_name} | {location}")
+        typer.echo(
+            "    "
+            f"include_matches="
+            f"{_format_keyword_field_matches(decision.evaluation.include_matches)}"
+        )
+        typer.echo(
+            "    "
+            f"exclude_matches="
+            f"{_format_keyword_field_matches(decision.evaluation.exclude_matches)}"
+        )
+        typer.echo(f"    canonical_url={job.canonical_url}")
+
+    remaining = len(decisions) - sample_limit
+    if remaining > 0:
+        typer.echo(f"  ... {remaining} more")
+
+
+def _print_filter_preview_result(
+    *,
+    result: JobFilterResult,
+    settings: AppSettings,
+    all_jobs: bool,
+    sample_limit: int,
+) -> None:
+    keyword_filter = settings.keyword_filter
+
+    typer.secho("Filter Preview", bold=True)
+
+    typer.echo("")
+    typer.secho("Scope", bold=True)
+    typer.echo(f"  jobs_scope={'all_jobs' if all_jobs else 'active_only'}")
+    typer.echo(f"  total_jobs={result.total_jobs}")
+
+    typer.echo("")
+    typer.secho("Filter", bold=True)
+    typer.echo(f"  enabled={keyword_filter.is_enabled()}")
+    typer.echo(f"  include_keywords={list(keyword_filter.include_keywords)}")
+    typer.echo(f"  exclude_keywords={list(keyword_filter.exclude_keywords)}")
+    typer.echo(f"  active_fields={list(keyword_filter.active_fields())}")
+
+    typer.echo("")
+    typer.secho("Summary", bold=True)
+    typer.echo(f"  passed_jobs={result.passed_count}")
+    typer.echo(f"  rejected_jobs={result.rejected_count}")
+
+    _print_filter_decision_samples(
+        heading="Passed Samples",
+        decisions=result.passed_decisions,
+        sample_limit=sample_limit,
+    )
+    _print_filter_decision_samples(
+        heading="Rejected Samples",
+        decisions=result.rejected_decisions,
+        sample_limit=sample_limit,
+    )
+
+
 @app.command()
 def crawl(
     config_path: str = typer.Option(
@@ -448,6 +634,16 @@ def crawl_and_notify(
         "--send-empty",
         help="Send the digest even when there are no new jobs in the selected window.",
     ),
+    settings_path: str = typer.Option(
+        DEFAULT_SETTINGS_CONFIG_PATH,
+        "--settings-path",
+        help="Path to the application settings YAML file.",
+    ),
+    apply_filter: bool = typer.Option(
+        False,
+        "--apply-filter",
+        help="Apply the keyword filter settings before sending the digest.",
+    ),
 ) -> None:
     """Run crawl and then send a digest using the notification checkpoint."""
     if window_hours < 1:
@@ -464,8 +660,12 @@ def crawl_and_notify(
     repository: HiringRadarRepository | None = None
     results: list[CrawlSourceResult] = []
     notification_run_id: int | None = None
+    settings: AppSettings | None = None
 
     try:
+        if apply_filter:
+            settings = load_app_settings(settings_path)
+
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
 
@@ -517,8 +717,24 @@ def crawl_and_notify(
                 since=since,
                 generated_at=generated_at,
             )
+            filter_result = _filter_digest_result_if_requested(
+                digest=digest,
+                apply_filter=apply_filter,
+                settings=settings,
+            )
+            digest_to_send = filter_result.digest
 
-            if digest.total_new_jobs == 0 and not send_empty:
+            if apply_filter and settings is not None:
+                _print_digest_filter_summary(
+                    filter_result=filter_result,
+                    settings=settings,
+                )
+
+            if digest_to_send.total_new_jobs == 0 and not send_empty:
+                skip_reason = _build_digest_skip_reason(
+                    filter_applied=apply_filter,
+                    filter_result=filter_result,
+                )
                 _finish_notification_run(
                     repository=repository,
                     run_id=notification_run_id,
@@ -527,14 +743,14 @@ def crawl_and_notify(
                     recipient_count=0,
                     new_jobs_count=0,
                     error_message=_merge_notification_detail(
-                        "no new jobs in this window",
+                        skip_reason,
                         partial_crawl_failure_detail,
                     ),
                 )
 
                 typer.secho("Digest email skipped", fg="yellow", bold=True)
-                typer.echo("  reason=no new jobs in this window")
-                typer.echo(f"  since={digest.since}")
+                typer.echo(f"  reason={skip_reason}")
+                typer.echo(f"  since={digest_to_send.since}")
                 _advance_digest_checkpoint(
                     repository=repository,
                     processed_at=generated_at,
@@ -542,7 +758,7 @@ def crawl_and_notify(
             else:
                 recipient_count, subject = _send_digest_emails(
                     repository=repository,
-                    digest=digest,
+                    digest=digest_to_send,
                     env_path=env_path,
                     explicit_to=to,
                 )
@@ -552,18 +768,29 @@ def crawl_and_notify(
                     finished_at=_utc_now_iso(),
                     status="sent",
                     recipient_count=recipient_count,
-                    new_jobs_count=digest.total_new_jobs,
+                    new_jobs_count=digest_to_send.total_new_jobs,
                     subject=subject,
                     error_message=partial_crawl_failure_detail,
                 )
                 typer.secho("Digest emails sent", fg="green", bold=True)
                 typer.echo(f"  recipient_count={recipient_count}")
-                typer.echo(f"  new_jobs={digest.total_new_jobs}")
+                typer.echo(f"  new_jobs={digest_to_send.total_new_jobs}")
                 typer.echo(f"  subject={subject}")
                 _advance_digest_checkpoint(
                     repository=repository,
                     processed_at=generated_at,
                 )
+
+    except ConfigError as exc:
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="failed",
+            error_message=str(exc),
+        )
+        typer.secho(f"Config error ({settings_path}): {exc}", fg="red", err=True)
+        raise typer.Exit(code=2) from exc
 
     except EmailConfigError as exc:
         _finish_notification_run(
@@ -603,23 +830,73 @@ def crawl_and_notify(
 
     if any(not result.success for result in results):
         raise typer.Exit(code=1)
-
+    
 @app.command()
-def export() -> None:
+def export(
+    output_dir: str = typer.Option(
+        DEFAULT_EXPORT_DIR,
+        "--output-dir",
+        help="Directory where the CSV export file will be written.",
+    ),
+    settings_path: str = typer.Option(
+        DEFAULT_SETTINGS_CONFIG_PATH,
+        "--settings-path",
+        help="Path to the application settings YAML file.",
+    ),
+    apply_filter: bool = typer.Option(
+        False,
+        "--apply-filter",
+        help="Apply the keyword filter settings before exporting jobs.",
+    ),
+    active_only: bool = typer.Option(
+        False,
+        "--active-only",
+        help="Export only active jobs.",
+    ),
+) -> None:
     """Export stored jobs to CSV."""
     connection = None
+    settings: AppSettings | None = None
 
     try:
+        if apply_filter:
+            settings = load_app_settings(settings_path)
+
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
 
-        jobs = repository.list_jobs()
-        result = export_jobs_to_csv(
-            jobs=jobs,
-            output_dir=DEFAULT_EXPORT_DIR,
+        selected_jobs = (
+            repository.list_active_jobs()
+            if active_only
+            else repository.list_jobs()
         )
 
+        jobs_to_export = selected_jobs
+        if apply_filter:
+            filter_result = filter_jobs_by_keyword_settings(
+                jobs=selected_jobs,
+                settings=settings.keyword_filter,
+            )
+            jobs_to_export = list(filter_result.passed_jobs)
+
+        result = export_jobs_to_csv(
+            jobs=jobs_to_export,
+            output_dir=output_dir,
+        )
+
+        _print_export_scope_summary(
+            total_selected_jobs=len(selected_jobs),
+            exported_jobs=len(jobs_to_export),
+            filter_applied=apply_filter,
+            active_only=active_only,
+            settings=settings,
+        )
+        typer.echo("")
         _print_export_result(result)
+
+    except ConfigError as exc:
+        typer.secho(f"Config error ({settings_path}): {exc}", fg="red", err=True)
+        raise typer.Exit(code=2) from exc
 
     except Exception as exc:
         typer.secho(f"Unexpected export error: {exc}", fg="red", err=True)
@@ -628,7 +905,6 @@ def export() -> None:
     finally:
         close_connection(connection)
 
-
 @app.command(name="digest-preview")
 def digest_preview(
     since: str = typer.Option(
@@ -636,20 +912,50 @@ def digest_preview(
         "--since",
         help="Include jobs whose first_seen_at is greater than or equal to this UTC timestamp.",
     ),
+    settings_path: str = typer.Option(
+        DEFAULT_SETTINGS_CONFIG_PATH,
+        "--settings-path",
+        help="Path to the application settings YAML file.",
+    ),
+    apply_filter: bool = typer.Option(
+        False,
+        "--apply-filter",
+        help="Apply the keyword filter settings to the digest preview.",
+    ),
 ) -> None:
     """Preview a digest of newly discovered jobs since a given timestamp."""
     connection = None
+    settings: AppSettings | None = None
 
     try:
+        if apply_filter:
+            settings = load_app_settings(settings_path)
+
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
 
-        result = build_digest(
+        digest = build_digest(
             repository,
             since=since,
             generated_at=_utc_now_iso(),
         )
-        _print_digest_result(result)
+        filter_result = _filter_digest_result_if_requested(
+            digest=digest,
+            apply_filter=apply_filter,
+            settings=settings,
+        )
+
+        if apply_filter and settings is not None:
+            _print_digest_filter_summary(
+                filter_result=filter_result,
+                settings=settings,
+            )
+
+        _print_digest_result(filter_result.digest)
+
+    except ConfigError as exc:
+        typer.secho(f"Config error ({settings_path}): {exc}", fg="red", err=True)
+        raise typer.Exit(code=2) from exc
 
     except Exception as exc:
         typer.secho(f"Unexpected digest error: {exc}", fg="red", err=True)
@@ -657,7 +963,6 @@ def digest_preview(
 
     finally:
         close_connection(connection)
-
 
 @app.command(name="send-digest")
 def send_digest(
@@ -681,13 +986,27 @@ def send_digest(
         "--send-empty",
         help="Send the digest even when there are no new jobs in the selected window.",
     ),
+    settings_path: str = typer.Option(
+        DEFAULT_SETTINGS_CONFIG_PATH,
+        "--settings-path",
+        help="Path to the application settings YAML file.",
+    ),
+    apply_filter: bool = typer.Option(
+        False,
+        "--apply-filter",
+        help="Apply the keyword filter settings before sending the digest.",
+    ),
 ) -> None:
     """Send a digest email for newly discovered jobs since a given timestamp."""
     connection = None
     repository: HiringRadarRepository | None = None
     notification_run_id: int | None = None
+    settings: AppSettings | None = None
 
     try:
+        if apply_filter:
+            settings = load_app_settings(settings_path)
+
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
 
@@ -703,8 +1022,24 @@ def send_digest(
             since=since,
             generated_at=started_at,
         )
+        filter_result = _filter_digest_result_if_requested(
+            digest=digest,
+            apply_filter=apply_filter,
+            settings=settings,
+        )
+        digest_to_send = filter_result.digest
 
-        if digest.total_new_jobs == 0 and not send_empty:
+        if apply_filter and settings is not None:
+            _print_digest_filter_summary(
+                filter_result=filter_result,
+                settings=settings,
+            )
+
+        if digest_to_send.total_new_jobs == 0 and not send_empty:
+            skip_reason = _build_digest_skip_reason(
+                filter_applied=apply_filter,
+                filter_result=filter_result,
+            )
             _finish_notification_run(
                 repository=repository,
                 run_id=notification_run_id,
@@ -712,16 +1047,16 @@ def send_digest(
                 status="skipped",
                 recipient_count=0,
                 new_jobs_count=0,
-                error_message="no new jobs in this window",
+                error_message=skip_reason,
             )
             typer.secho("Digest email skipped", fg="yellow", bold=True)
-            typer.echo("  reason=no new jobs in this window")
-            typer.echo(f"  since={digest.since}")
+            typer.echo(f"  reason={skip_reason}")
+            typer.echo(f"  since={digest_to_send.since}")
             return
 
         recipient_count, subject = _send_digest_emails(
             repository=repository,
-            digest=digest,
+            digest=digest_to_send,
             env_path=env_path,
             explicit_to=to,
         )
@@ -732,14 +1067,25 @@ def send_digest(
             finished_at=_utc_now_iso(),
             status="sent",
             recipient_count=recipient_count,
-            new_jobs_count=digest.total_new_jobs,
+            new_jobs_count=digest_to_send.total_new_jobs,
             subject=subject,
         )
 
         typer.secho("Digest emails sent", fg="green", bold=True)
         typer.echo(f"  recipient_count={recipient_count}")
-        typer.echo(f"  new_jobs={digest.total_new_jobs}")
+        typer.echo(f"  new_jobs={digest_to_send.total_new_jobs}")
         typer.echo(f"  subject={subject}")
+
+    except ConfigError as exc:
+        _finish_notification_run(
+            repository=repository,
+            run_id=notification_run_id,
+            finished_at=_utc_now_iso(),
+            status="failed",
+            error_message=str(exc),
+        )
+        typer.secho(f"Config error ({settings_path}): {exc}", fg="red", err=True)
+        raise typer.Exit(code=2) from exc
 
     except EmailConfigError as exc:
         _finish_notification_run(
@@ -1090,6 +1436,94 @@ def ops_status() -> None:
 
     finally:
         close_connection(connection)
+
+
+@app.command(name="keyword-filter-config")
+def keyword_filter_config(
+    settings_path: str = typer.Option(
+        DEFAULT_SETTINGS_CONFIG_PATH,
+        "--settings-path",
+        help="Path to the application settings YAML file.",
+    ),
+) -> None:
+    """Show the currently loaded keyword filter settings."""
+    try:
+        settings = load_app_settings(settings_path)
+        _print_keyword_filter_config(settings)
+
+    except ConfigError as exc:
+        typer.secho(f"Config error ({settings_path}): {exc}", fg="red", err=True)
+        raise typer.Exit(code=2) from exc
+
+    except Exception as exc:
+        typer.secho(
+            f"Unexpected keyword-filter-config error: {exc}",
+            fg="red",
+            err=True,
+        )
+        raise typer.Exit(code=1) from exc
+
+
+@app.command(name="filter-preview")
+def filter_preview(
+    settings_path: str = typer.Option(
+        DEFAULT_SETTINGS_CONFIG_PATH,
+        "--settings-path",
+        help="Path to the application settings YAML file.",
+    ),
+    all_jobs: bool = typer.Option(
+        False,
+        "--all-jobs",
+        help="Include inactive jobs in the preview.",
+    ),
+    sample_limit: int = typer.Option(
+        5,
+        "--sample-limit",
+        help="Maximum number of passed/rejected sample jobs to display.",
+    ),
+) -> None:
+    """Preview how the current keyword filter affects stored jobs."""
+    if sample_limit < 1:
+        typer.secho("Invalid sample-limit: must be >= 1", fg="red", err=True)
+        raise typer.Exit(code=2)
+
+    try:
+        settings = load_app_settings(settings_path)
+    except ConfigError as exc:
+        typer.secho(f"Config error ({settings_path}): {exc}", fg="red", err=True)
+        raise typer.Exit(code=2) from exc
+
+    connection = None
+
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+
+        jobs = repository.list_jobs() if all_jobs else repository.list_active_jobs()
+        result = filter_jobs_by_keyword_settings(
+            jobs=jobs,
+            settings=settings.keyword_filter,
+        )
+
+        _print_filter_preview_result(
+            result=result,
+            settings=settings,
+            all_jobs=all_jobs,
+            sample_limit=sample_limit,
+        )
+
+    except Exception as exc:
+        typer.secho(
+            f"Unexpected filter-preview error: {exc}",
+            fg="red",
+            err=True,
+        )
+        raise typer.Exit(code=1) from exc
+
+    finally:
+        close_connection(connection)
+
+
 
 @app.command()
 def summary() -> None:

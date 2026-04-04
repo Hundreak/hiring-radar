@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from hiring_radar.db.repository import HiringRadarRepository
+from hiring_radar.filtering.engine import evaluate_job_text_against_keyword_filter
+from hiring_radar.filtering.models import FilterableJobText, KeywordFilterSettings
 from hiring_radar.models import JobRecord
 
 
@@ -33,6 +35,14 @@ class DigestResult:
     sections: list[DigestSourceSection]
 
 
+@dataclass(slots=True, frozen=True)
+class DigestFilterResult:
+    original_total_new_jobs: int
+    filtered_total_new_jobs: int
+    filtered_out_jobs: int
+    digest: DigestResult
+
+
 def _to_digest_job_item(job: JobRecord) -> DigestJobItem:
     return DigestJobItem(
         company_name=job.company_name,
@@ -42,6 +52,14 @@ def _to_digest_job_item(job: JobRecord) -> DigestJobItem:
         location=job.location,
         canonical_url=job.canonical_url,
         first_seen_at=job.first_seen_at or "",
+    )
+
+
+def _to_filterable_job_text(job: DigestJobItem) -> FilterableJobText:
+    return FilterableJobText(
+        title=job.title,
+        location=job.location,
+        company_name=job.company_name,
     )
 
 
@@ -86,6 +104,61 @@ def build_digest(
         since=since,
         total_new_jobs=len(jobs),
         sections=sections,
+    )
+
+
+def filter_digest_result_by_keyword_settings(
+    result: DigestResult,
+    *,
+    settings: KeywordFilterSettings,
+) -> DigestFilterResult:
+    if not settings.is_enabled():
+        return DigestFilterResult(
+            original_total_new_jobs=result.total_new_jobs,
+            filtered_total_new_jobs=result.total_new_jobs,
+            filtered_out_jobs=0,
+            digest=result,
+        )
+
+    filtered_sections: list[DigestSourceSection] = []
+    filtered_total_new_jobs = 0
+
+    for section in result.sections:
+        filtered_jobs = [
+            job
+            for job in section.jobs
+            if evaluate_job_text_against_keyword_filter(
+                job=_to_filterable_job_text(job),
+                settings=settings,
+            ).passed
+        ]
+
+        filtered_total_new_jobs += len(filtered_jobs)
+
+        if not filtered_jobs:
+            continue
+
+        filtered_sections.append(
+            DigestSourceSection(
+                source_name=section.source_name,
+                source_type=section.source_type,
+                new_jobs_count=len(filtered_jobs),
+                jobs=filtered_jobs,
+            )
+        )
+
+    filtered_digest = DigestResult(
+        generated_at=result.generated_at,
+        since=result.since,
+        total_new_jobs=filtered_total_new_jobs,
+        sections=filtered_sections,
+    )
+
+    return DigestFilterResult(
+        original_total_new_jobs=result.total_new_jobs,
+        filtered_total_new_jobs=filtered_total_new_jobs,
+        filtered_out_jobs=result.total_new_jobs - filtered_total_new_jobs,
+        digest=filtered_digest,
     )
 
 

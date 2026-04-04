@@ -549,6 +549,110 @@ class HiringRadarRepository:
         rows = cursor.fetchall()
         return [_row_to_notification_run(row) for row in rows]
 
+    def get_latest_crawl_run(self) -> CrawlRun | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                started_at,
+                finished_at,
+                source_name,
+                success,
+                notes
+            FROM crawl_runs
+            ORDER BY started_at DESC, id DESC
+            LIMIT 1
+            """
+        )
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return _row_to_crawl_run(row)
+
+    def get_latest_notification_run(
+        self,
+        *,
+        notification_type: str | None = None,
+    ) -> NotificationRun | None:
+        if notification_type is None:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    notification_type,
+                    started_at,
+                    finished_at,
+                    status,
+                    recipient_count,
+                    new_jobs_count,
+                    since,
+                    subject,
+                    error_message
+                FROM notification_runs
+                ORDER BY started_at DESC, id DESC
+                LIMIT 1
+                """
+            )
+        else:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    notification_type,
+                    started_at,
+                    finished_at,
+                    status,
+                    recipient_count,
+                    new_jobs_count,
+                    since,
+                    subject,
+                    error_message
+                FROM notification_runs
+                WHERE notification_type = ?
+                ORDER BY started_at DESC, id DESC
+                LIMIT 1
+                """,
+                (notification_type,),
+            )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return _row_to_notification_run(row)
+
+    def get_subscriber_counts(self) -> dict[str, int]:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                COUNT(*) AS total_subscribers,
+                COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0) AS active_subscribers,
+                COALESCE(
+                    SUM(CASE WHEN is_active = 1 AND digest_enabled = 1 THEN 1 ELSE 0 END),
+                    0
+                ) AS digest_enabled_subscribers
+            FROM subscribers
+            """
+        )
+        row = cursor.fetchone()
+
+        if row is None:
+            return {
+                "total_subscribers": 0,
+                "active_subscribers": 0,
+                "digest_enabled_subscribers": 0,
+            }
+
+        return {
+            "total_subscribers": int(row["total_subscribers"]),
+            "active_subscribers": int(row["active_subscribers"]),
+            "digest_enabled_subscribers": int(row["digest_enabled_subscribers"]),
+        }
+
+
 
     def upsert_notification_checkpoint(
         self,

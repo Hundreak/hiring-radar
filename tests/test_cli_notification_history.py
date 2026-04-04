@@ -67,7 +67,7 @@ def test_notification_history_lists_recent_runs(monkeypatch) -> None:
     assert "id=2 type=digest_email status=sent" in result.output
     assert "recipient_count=2 new_jobs_count=14" in result.output
     assert "id=1 type=digest_email status=skipped" in result.output
-    assert "error=no new jobs in this window" in result.output
+    assert "detail=no new jobs in this window" in result.output
 
 
 def test_notification_history_passes_filter_and_limit(monkeypatch) -> None:
@@ -118,7 +118,7 @@ def test_notification_history_passes_filter_and_limit(monkeypatch) -> None:
 
     assert result.exit_code == 0
     assert "id=7 type=digest_email status=failed" in result.output
-    assert "error=SMTP authentication failed" in result.output
+    assert "detail=SMTP authentication failed" in result.output
 
 
 def test_notification_history_rejects_invalid_limit() -> None:

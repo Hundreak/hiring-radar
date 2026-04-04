@@ -661,8 +661,11 @@ def test_crawl_and_notify_sends_digest_on_partial_success_and_returns_nonzero(mo
     )
 
     assert result.exit_code == 1
+    assert "Crawl warning" in result.output
+    assert "partial crawl failure: 1 source failed (corelight-greenhouse)" in result.output
     assert "Digest emails sent" in result.output
     assert "recipient_count=2" in result.output
+
     assert len(captured_payloads) == 2
     assert [payload.to for payload in captured_payloads] == [
         "alice@example.com",
@@ -682,7 +685,7 @@ def test_crawl_and_notify_sends_digest_on_partial_success_and_returns_nonzero(mo
             2,
             1,
             "Hiring Radar Digest: 1 new job since 2026-04-03T21:00:00Z",
-            None,
+            "partial crawl failure: 1 source failed (corelight-greenhouse)",
         )
     ]
     assert checkpoint_updates == [

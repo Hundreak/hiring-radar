@@ -185,6 +185,39 @@ def _print_crawl_summary(results: list[CrawlSourceResult]) -> None:
     )
 
 
+def _build_partial_crawl_failure_detail(
+    results: list[CrawlSourceResult],
+) -> str | None:
+    failed_source_names = [result.source_name for result in results if not result.success]
+    successful_source_count = sum(1 for result in results if result.success)
+
+    if not failed_source_names or successful_source_count == 0:
+        return None
+
+    noun = "source" if len(failed_source_names) == 1 else "sources"
+    joined_names = ", ".join(failed_source_names)
+    return f"partial crawl failure: {len(failed_source_names)} {noun} failed ({joined_names})"
+
+
+def _print_crawl_warning(results: list[CrawlSourceResult]) -> None:
+    detail = _build_partial_crawl_failure_detail(results)
+    if detail is None:
+        return
+
+    typer.echo("")
+    typer.secho("Crawl warning", fg="yellow", bold=True)
+    typer.echo(f"  {detail}")
+
+
+def _merge_notification_detail(
+    primary_detail: str,
+    secondary_detail: str | None,
+) -> str:
+    if secondary_detail is None:
+        return primary_detail
+
+    return f"{primary_detail}; {secondary_detail}"
+
 def _print_export_result(result: ExportResult) -> None:
     typer.secho("Export completed", fg="green", bold=True)
     typer.echo(f"  rows={result.row_count}")
@@ -286,7 +319,63 @@ def _print_notification_runs(runs: list[NotificationRun]) -> None:
         typer.echo(f"    since={run.since or '-'}")
         typer.echo(f"    subject={run.subject or '-'}")
         if run.error_message:
-            typer.echo(f"    error={run.error_message}")
+            typer.echo(f"    detail={run.error_message}")
+
+
+
+
+def _print_ops_status(
+    *,
+    latest_crawl_run,
+    latest_notification_run,
+    digest_checkpoint,
+    subscriber_counts: dict[str, int],
+) -> None:
+    typer.secho("Operations Status", bold=True)
+
+    typer.echo("")
+    typer.secho("Subscribers", bold=True)
+    typer.echo(f"  total={subscriber_counts['total_subscribers']}")
+    typer.echo(f"  active={subscriber_counts['active_subscribers']}")
+    typer.echo(f"  digest_enabled={subscriber_counts['digest_enabled_subscribers']}")
+
+    typer.echo("")
+    typer.secho("Digest Checkpoint", bold=True)
+    if digest_checkpoint is None:
+        typer.echo("  checkpoint=-")
+    else:
+        typer.echo(f"  checkpoint_key={digest_checkpoint.checkpoint_key}")
+        typer.echo(f"  last_processed_at={digest_checkpoint.last_processed_at}")
+        typer.echo(f"  updated_at={digest_checkpoint.updated_at}")
+
+    typer.echo("")
+    typer.secho("Latest Crawl Run", bold=True)
+    if latest_crawl_run is None:
+        typer.echo("  no crawl runs")
+    else:
+        typer.echo(f"  id={latest_crawl_run.id}")
+        typer.echo(f"  source_name={latest_crawl_run.source_name}")
+        typer.echo(f"  started_at={latest_crawl_run.started_at}")
+        typer.echo(f"  finished_at={latest_crawl_run.finished_at or '-'}")
+        typer.echo(f"  success={latest_crawl_run.success}")
+        typer.echo(f"  notes={latest_crawl_run.notes or '-'}")
+
+    typer.echo("")
+    typer.secho("Latest Notification Run", bold=True)
+    if latest_notification_run is None:
+        typer.echo("  no notification runs")
+    else:
+        typer.echo(f"  id={latest_notification_run.id}")
+        typer.echo(f"  type={latest_notification_run.notification_type}")
+        typer.echo(f"  status={latest_notification_run.status}")
+        typer.echo(f"  started_at={latest_notification_run.started_at}")
+        typer.echo(f"  finished_at={latest_notification_run.finished_at or '-'}")
+        typer.echo(f"  recipient_count={latest_notification_run.recipient_count}")
+        typer.echo(f"  new_jobs_count={latest_notification_run.new_jobs_count}")
+        typer.echo(f"  since={latest_notification_run.since or '-'}")
+        typer.echo(f"  subject={latest_notification_run.subject or '-'}")
+        if latest_notification_run.error_message:
+            typer.echo(f"  detail={latest_notification_run.error_message}")
 
 @app.command()
 def crawl(
@@ -319,6 +408,7 @@ def crawl(
             _print_crawl_result(result)
 
         _print_crawl_summary(results)
+        _print_crawl_warning(results)
 
     except Exception as exc:
         typer.secho(f"Unexpected crawl error: {exc}", fg="red", err=True)
@@ -388,6 +478,8 @@ def crawl_and_notify(
             _print_crawl_result(result)
 
         _print_crawl_summary(results)
+        partial_crawl_failure_detail = _build_partial_crawl_failure_detail(results)
+        _print_crawl_warning(results)
 
         successful_results = [result for result in results if result.success]
         generated_at = _utc_now_iso()
@@ -434,8 +526,12 @@ def crawl_and_notify(
                     status="skipped",
                     recipient_count=0,
                     new_jobs_count=0,
-                    error_message="no new jobs in this window",
+                    error_message=_merge_notification_detail(
+                        "no new jobs in this window",
+                        partial_crawl_failure_detail,
+                    ),
                 )
+
                 typer.secho("Digest email skipped", fg="yellow", bold=True)
                 typer.echo("  reason=no new jobs in this window")
                 typer.echo(f"  since={digest.since}")
@@ -458,6 +554,7 @@ def crawl_and_notify(
                     recipient_count=recipient_count,
                     new_jobs_count=digest.total_new_jobs,
                     subject=subject,
+                    error_message=partial_crawl_failure_detail,
                 )
                 typer.secho("Digest emails sent", fg="green", bold=True)
                 typer.echo(f"  recipient_count={recipient_count}")
@@ -956,6 +1053,43 @@ def notification_history(
     finally:
         close_connection(connection)
 
+
+
+@app.command(name="ops-status")
+def ops_status() -> None:
+    """Show a compact operational status view."""
+    connection = None
+
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+
+        latest_crawl_run = repository.get_latest_crawl_run()
+        latest_notification_run = repository.get_latest_notification_run(
+            notification_type=NOTIFICATION_TYPE_DIGEST_EMAIL,
+        )
+        digest_checkpoint = repository.get_notification_checkpoint(
+            DIGEST_EMAIL_CHECKPOINT_KEY,
+        )
+        subscriber_counts = repository.get_subscriber_counts()
+
+        _print_ops_status(
+            latest_crawl_run=latest_crawl_run,
+            latest_notification_run=latest_notification_run,
+            digest_checkpoint=digest_checkpoint,
+            subscriber_counts=subscriber_counts,
+        )
+
+    except Exception as exc:
+        typer.secho(
+            f"Unexpected ops-status error: {exc}",
+            fg="red",
+            err=True,
+        )
+        raise typer.Exit(code=1) from exc
+
+    finally:
+        close_connection(connection)
 
 @app.command()
 def summary() -> None:

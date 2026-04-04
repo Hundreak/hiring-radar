@@ -15,8 +15,13 @@ crawl:
 
 # Keyword filtering
 keyword_filter:
-  include_keywords: []
-  exclude_keywords: []
+  include_keywords:
+    - engineer
+  exclude_keywords:
+    - intern
   match_title: true
-  match_location: true
-  match_company_name: true
+  match_location: false
+  match_company_name: false
+
+notifications:
+  apply_keyword_filter_to_digest: true

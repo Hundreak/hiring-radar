@@ -19,10 +19,22 @@ _KEYWORD_FILTER_ALLOWED_KEYS = frozenset(
     }
 )
 
+_NOTIFICATIONS_ALLOWED_KEYS = frozenset(
+    {
+        "apply_keyword_filter_to_digest",
+    }
+)
+
+
+@dataclass(slots=True, frozen=True)
+class NotificationsSettings:
+    apply_keyword_filter_to_digest: bool = False
+
 
 @dataclass(slots=True, frozen=True)
 class AppSettings:
     keyword_filter: KeywordFilterSettings = field(default_factory=KeywordFilterSettings)
+    notifications: NotificationsSettings = field(default_factory=NotificationsSettings)
 
 
 def _read_settings_document(config_path: str) -> dict[str, Any]:
@@ -138,6 +150,21 @@ def _load_keyword_filter_settings(raw_section: dict[str, Any]) -> KeywordFilterS
         raise ConfigError(str(exc)) from exc
 
 
+def _load_notifications_settings(raw_section: dict[str, Any]) -> NotificationsSettings:
+    unknown_keys = sorted(set(raw_section) - _NOTIFICATIONS_ALLOWED_KEYS)
+    if unknown_keys:
+        joined = ", ".join(unknown_keys)
+        raise ConfigError(f"Unknown notifications setting(s): {joined}")
+
+    return NotificationsSettings(
+        apply_keyword_filter_to_digest=_coerce_bool(
+            field_name="notifications.apply_keyword_filter_to_digest",
+            value=raw_section.get("apply_keyword_filter_to_digest"),
+            default=False,
+        )
+    )
+
+
 def load_app_settings(config_path: str) -> AppSettings:
     raw = _read_settings_document(config_path)
 
@@ -145,7 +172,12 @@ def load_app_settings(config_path: str) -> AppSettings:
         section_name="keyword_filter",
         value=raw.get("keyword_filter"),
     )
+    raw_notifications = _require_mapping(
+        section_name="notifications",
+        value=raw.get("notifications"),
+    )
 
     return AppSettings(
         keyword_filter=_load_keyword_filter_settings(raw_keyword_filter),
+        notifications=_load_notifications_settings(raw_notifications),
     )

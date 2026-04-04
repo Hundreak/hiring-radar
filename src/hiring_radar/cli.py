@@ -228,6 +228,50 @@ def _merge_notification_detail(
     return f"{primary_detail}; {secondary_detail}"
 
 
+def _resolve_digest_filter_policy(
+    *,
+    settings_path: str,
+    apply_filter: bool,
+    no_apply_filter: bool,
+) -> tuple[bool, AppSettings | None, str]:
+    if apply_filter and no_apply_filter:
+        raise ConfigError("Use only one of --apply-filter or --no-apply-filter.")
+
+    if no_apply_filter:
+        return False, None, "cli_override"
+
+    settings = load_app_settings(settings_path)
+
+    if apply_filter:
+        return True, settings, "cli_override"
+
+    return (
+        settings.notifications.apply_keyword_filter_to_digest,
+        settings,
+        "settings.notifications.apply_keyword_filter_to_digest",
+    )
+
+
+def _print_digest_filter_policy(
+    *,
+    resolved_apply_filter: bool,
+    policy_source: str,
+    settings: AppSettings | None,
+) -> None:
+    typer.echo("")
+    typer.secho("Digest Filter Policy", bold=True)
+    typer.echo(f"  resolved_apply_filter={resolved_apply_filter}")
+    typer.echo(f"  policy_source={policy_source}")
+
+    if settings is None:
+        typer.echo("  settings_apply_keyword_filter_to_digest=-")
+        return
+
+    typer.echo(
+        "  settings_apply_keyword_filter_to_digest="
+        f"{settings.notifications.apply_keyword_filter_to_digest}"
+    )
+
 def _filter_digest_result_if_requested(
     *,
     digest: DigestResult,
@@ -475,7 +519,12 @@ def _print_keyword_filter_config(settings: AppSettings) -> None:
     typer.echo(f"  exclude_keywords={list(keyword_filter.exclude_keywords)}")
     typer.echo(f"  active_fields={list(keyword_filter.active_fields())}")
 
-
+    typer.echo("")
+    typer.secho("Notification Policy", bold=True)
+    typer.echo(
+        "  apply_keyword_filter_to_digest="
+        f"{settings.notifications.apply_keyword_filter_to_digest}"
+    )
 
 
 def _format_keyword_field_matches(decisions) -> str:
@@ -642,7 +691,12 @@ def crawl_and_notify(
     apply_filter: bool = typer.Option(
         False,
         "--apply-filter",
-        help="Apply the keyword filter settings before sending the digest.",
+        help="Force-apply the keyword filter before sending the digest.",
+    ),
+    no_apply_filter: bool = typer.Option(
+        False,
+        "--no-apply-filter",
+        help="Force-disable the keyword filter before sending the digest.",
     ),
 ) -> None:
     """Run crawl and then send a digest using the notification checkpoint."""
@@ -663,8 +717,11 @@ def crawl_and_notify(
     settings: AppSettings | None = None
 
     try:
-        if apply_filter:
-            settings = load_app_settings(settings_path)
+        resolved_apply_filter, settings, policy_source = _resolve_digest_filter_policy(
+            settings_path=settings_path,
+            apply_filter=apply_filter,
+            no_apply_filter=no_apply_filter,
+        )
 
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
@@ -719,12 +776,18 @@ def crawl_and_notify(
             )
             filter_result = _filter_digest_result_if_requested(
                 digest=digest,
-                apply_filter=apply_filter,
+                apply_filter=resolved_apply_filter,
                 settings=settings,
             )
             digest_to_send = filter_result.digest
 
-            if apply_filter and settings is not None:
+            _print_digest_filter_policy(
+                resolved_apply_filter=resolved_apply_filter,
+                policy_source=policy_source,
+                settings=settings,
+            )
+
+            if resolved_apply_filter and settings is not None:
                 _print_digest_filter_summary(
                     filter_result=filter_result,
                     settings=settings,
@@ -732,7 +795,7 @@ def crawl_and_notify(
 
             if digest_to_send.total_new_jobs == 0 and not send_empty:
                 skip_reason = _build_digest_skip_reason(
-                    filter_applied=apply_filter,
+                    filter_applied=resolved_apply_filter,
                     filter_result=filter_result,
                 )
                 _finish_notification_run(
@@ -920,7 +983,12 @@ def digest_preview(
     apply_filter: bool = typer.Option(
         False,
         "--apply-filter",
-        help="Apply the keyword filter settings to the digest preview.",
+        help="Force-apply the keyword filter to the digest preview.",
+    ),
+    no_apply_filter: bool = typer.Option(
+        False,
+        "--no-apply-filter",
+        help="Force-disable the keyword filter for the digest preview.",
     ),
 ) -> None:
     """Preview a digest of newly discovered jobs since a given timestamp."""
@@ -928,8 +996,11 @@ def digest_preview(
     settings: AppSettings | None = None
 
     try:
-        if apply_filter:
-            settings = load_app_settings(settings_path)
+        resolved_apply_filter, settings, policy_source = _resolve_digest_filter_policy(
+            settings_path=settings_path,
+            apply_filter=apply_filter,
+            no_apply_filter=no_apply_filter,
+        )
 
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
@@ -941,11 +1012,17 @@ def digest_preview(
         )
         filter_result = _filter_digest_result_if_requested(
             digest=digest,
-            apply_filter=apply_filter,
+            apply_filter=resolved_apply_filter,
             settings=settings,
         )
 
-        if apply_filter and settings is not None:
+        _print_digest_filter_policy(
+            resolved_apply_filter=resolved_apply_filter,
+            policy_source=policy_source,
+            settings=settings,
+        )
+
+        if resolved_apply_filter and settings is not None:
             _print_digest_filter_summary(
                 filter_result=filter_result,
                 settings=settings,
@@ -994,7 +1071,12 @@ def send_digest(
     apply_filter: bool = typer.Option(
         False,
         "--apply-filter",
-        help="Apply the keyword filter settings before sending the digest.",
+        help="Force-apply the keyword filter before sending the digest.",
+    ),
+    no_apply_filter: bool = typer.Option(
+        False,
+        "--no-apply-filter",
+        help="Force-disable the keyword filter before sending the digest.",
     ),
 ) -> None:
     """Send a digest email for newly discovered jobs since a given timestamp."""
@@ -1004,8 +1086,11 @@ def send_digest(
     settings: AppSettings | None = None
 
     try:
-        if apply_filter:
-            settings = load_app_settings(settings_path)
+        resolved_apply_filter, settings, policy_source = _resolve_digest_filter_policy(
+            settings_path=settings_path,
+            apply_filter=apply_filter,
+            no_apply_filter=no_apply_filter,
+        )
 
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
@@ -1024,12 +1109,18 @@ def send_digest(
         )
         filter_result = _filter_digest_result_if_requested(
             digest=digest,
-            apply_filter=apply_filter,
+            apply_filter=resolved_apply_filter,
             settings=settings,
         )
         digest_to_send = filter_result.digest
 
-        if apply_filter and settings is not None:
+        _print_digest_filter_policy(
+            resolved_apply_filter=resolved_apply_filter,
+            policy_source=policy_source,
+            settings=settings,
+        )
+
+        if resolved_apply_filter and settings is not None:
             _print_digest_filter_summary(
                 filter_result=filter_result,
                 settings=settings,
@@ -1037,7 +1128,7 @@ def send_digest(
 
         if digest_to_send.total_new_jobs == 0 and not send_empty:
             skip_reason = _build_digest_skip_reason(
-                filter_applied=apply_filter,
+                filter_applied=resolved_apply_filter,
                 filter_result=filter_result,
             )
             _finish_notification_run(
@@ -1122,7 +1213,6 @@ def send_digest(
 
     finally:
         close_connection(connection)
-
 
 @app.command(name="add-subscriber")
 def add_subscriber(

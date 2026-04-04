@@ -4,6 +4,7 @@ set -Eeuo pipefail
 readonly REPO_DIR="/home/remzi/projects/hiring-radar"
 readonly CLI_BIN="$REPO_DIR/.venv/bin/hiring-radar"
 readonly CONFIG_PATH="$REPO_DIR/config/companies.local.yml"
+readonly SETTINGS_PATH="${HIRING_RADAR_SETTINGS_PATH:-$REPO_DIR/config/settings.example.yml}"
 readonly ENV_PATH="$REPO_DIR/.env"
 readonly LOG_DIR="$REPO_DIR/logs"
 readonly LOG_FILE="$LOG_DIR/crawl.log"
@@ -70,6 +71,10 @@ if [ ! -f "$CONFIG_PATH" ]; then
   fail "missing config file at $CONFIG_PATH"
 fi
 
+if [ ! -f "$SETTINGS_PATH" ]; then
+  fail "missing settings file at $SETTINGS_PATH"
+fi
+
 if [ ! -w "$LOG_FILE" ]; then
   printf '%s\n' "log file is not writable: $LOG_FILE" >&2
   exit 1
@@ -92,12 +97,13 @@ cleanup() {
 trap cleanup EXIT
 
 log_line \
-  "crawl-and-notify start repo_dir=$REPO_DIR config_path=$CONFIG_PATH env_path=$ENV_PATH window_hours=$WINDOW_HOURS"
+  "crawl-and-notify start repo_dir=$REPO_DIR config_path=$CONFIG_PATH settings_path=$SETTINGS_PATH env_path=$ENV_PATH window_hours=$WINDOW_HOURS"
 
 cd "$REPO_DIR" || fail "failed to cd into $REPO_DIR"
 
 if "$CLI_BIN" crawl-and-notify \
   --config-path "$CONFIG_PATH" \
+  --settings-path "$SETTINGS_PATH" \
   --env-path "$ENV_PATH" \
   --window-hours "$WINDOW_HOURS" >> "$LOG_FILE" 2>&1; then
   log_line "crawl-and-notify end status=0"

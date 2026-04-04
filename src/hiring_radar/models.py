@@ -43,6 +43,17 @@ class Subscriber:
     updated_at: str | None = None
 
 
+
+@dataclass(slots=True, frozen=True)
+class SubscriberMagicLinkToken:
+    id: int | None = None
+    subscriber_id: int = 0
+    token_hash: str = ""
+    expires_at: str = ""
+    consumed_at: str | None = None
+    created_at: str | None = None
+
+    
 @dataclass(slots=True, frozen=True)
 class NotificationCheckpoint:
     checkpoint_key: str = ""

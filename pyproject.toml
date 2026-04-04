@@ -48,3 +48,4 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/hiring_radar/api/routers/admin_shell.py" = ["E501"]
+"src/hiring_radar/api/routers/user_shell.py" = ["E501"]

@@ -10,6 +10,7 @@ from hiring_radar.models import (
     NotificationCheckpoint,
     NotificationRun,
     Subscriber,
+    SubscriberMagicLinkToken,
 )
 
 
@@ -1056,6 +1057,434 @@ class HiringRadarRepository:
             cursor = self.connection.execute(query, params)
 
         return cursor.rowcount
+
+
+
+    def get_subscriber_by_id(self, subscriber_id: int) -> Subscriber | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                email,
+                full_name,
+                is_active,
+                digest_enabled,
+                created_at,
+                updated_at
+            FROM subscribers
+            WHERE id = ?
+            """,
+            (subscriber_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_subscriber(row)
+    
+
+
+    def create_subscriber_magic_link(
+        self,
+        *,
+        subscriber_id: int,
+        token_hash: str,
+        expires_at: str,
+        created_at: str,
+    ) -> SubscriberMagicLinkToken:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                INSERT INTO subscriber_magic_links (
+                    subscriber_id,
+                    token_hash,
+                    expires_at,
+                    consumed_at,
+                    created_at
+                )
+                VALUES (?, ?, ?, NULL, ?)
+                """,
+                (
+                    subscriber_id,
+                    token_hash,
+                    expires_at,
+                    created_at,
+                ),
+            )
+
+        return SubscriberMagicLinkToken(
+            id=int(cursor.lastrowid),
+            subscriber_id=subscriber_id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+            consumed_at=None,
+            created_at=created_at,
+        )
+
+    def get_subscriber_magic_link_by_hash(
+        self,
+        token_hash: str,
+    ) -> SubscriberMagicLinkToken | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                subscriber_id,
+                token_hash,
+                expires_at,
+                consumed_at,
+                created_at
+            FROM subscriber_magic_links
+            WHERE token_hash = ?
+            """,
+            (token_hash,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+
+        return SubscriberMagicLinkToken(
+            id=row["id"],
+            subscriber_id=row["subscriber_id"],
+            token_hash=row["token_hash"],
+            expires_at=row["expires_at"],
+            consumed_at=row["consumed_at"],
+            created_at=row["created_at"],
+        )
+
+    def consume_subscriber_magic_link(
+        self,
+        link_id: int,
+        *,
+        consumed_at: str,
+    ) -> bool:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                UPDATE subscriber_magic_links
+                SET consumed_at = ?
+                WHERE id = ?
+                  AND consumed_at IS NULL
+                """,
+                (consumed_at, link_id),
+            )
+        return cursor.rowcount > 0    
+
+    def list_jobs_paginated(
+        self,
+        *,
+        q: str | None = None,
+        source_name: str | None = None,
+        company_name: str | None = None,
+        is_active: bool | None = None,
+        page: int = 1,
+        page_size: int = 25,
+    ) -> tuple[list[JobRecord], int]:
+        where_clauses: list[str] = []
+        params: list[Any] = []
+
+        normalized_q = q.strip() if q else ""
+        if normalized_q:
+            pattern = f"%{normalized_q}%"
+            where_clauses.append(
+                """
+                (
+                    title LIKE ?
+                    OR company_name LIKE ?
+                    OR COALESCE(location, '') LIKE ?
+                    OR canonical_url LIKE ?
+                )
+                """
+            )
+            params.extend([pattern, pattern, pattern, pattern])
+
+        if source_name:
+            where_clauses.append("source_name = ?")
+            params.append(source_name)
+
+        if company_name:
+            where_clauses.append("company_name = ?")
+            params.append(company_name)
+
+        if is_active is not None:
+            where_clauses.append("is_active = ?")
+            params.append(int(is_active))
+
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
+
+        count_cursor = self.connection.execute(
+            f"""
+            SELECT COUNT(*) AS total_items
+            FROM jobs
+            {where_sql}
+            """,
+            tuple(params),
+        )
+        count_row = count_cursor.fetchone()
+        total_items = 0 if count_row is None else int(count_row["total_items"])
+
+        offset = (page - 1) * page_size
+        cursor = self.connection.execute(
+            f"""
+            SELECT
+                id,
+                source_name,
+                title,
+                company_name,
+                location,
+                canonical_url,
+                source_type,
+                source_job_id,
+                raw_posted_at,
+                posted_at,
+                fingerprint,
+                first_seen_at,
+                last_seen_at,
+                is_active,
+                scraped_at
+            FROM jobs
+            {where_sql}
+            ORDER BY first_seen_at DESC, id DESC
+            LIMIT ? OFFSET ?
+            """,
+            (*params, page_size, offset),
+        )
+
+        return ([_row_to_job_record(row) for row in cursor.fetchall()], total_items)
+
+    def list_crawl_runs_paginated(
+        self,
+        *,
+        source_name: str | None = None,
+        success: bool | None = None,
+        page: int = 1,
+        page_size: int = 25,
+    ) -> tuple[list[CrawlRun], int]:
+        where_clauses: list[str] = []
+        params: list[Any] = []
+
+        if source_name:
+            where_clauses.append("source_name = ?")
+            params.append(source_name)
+
+        if success is not None:
+            where_clauses.append("success = ?")
+            params.append(int(success))
+
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
+
+        count_cursor = self.connection.execute(
+            f"""
+            SELECT COUNT(*) AS total_items
+            FROM crawl_runs
+            {where_sql}
+            """,
+            tuple(params),
+        )
+        count_row = count_cursor.fetchone()
+        total_items = 0 if count_row is None else int(count_row["total_items"])
+
+        offset = (page - 1) * page_size
+        cursor = self.connection.execute(
+            f"""
+            SELECT
+                id,
+                started_at,
+                finished_at,
+                source_name,
+                success,
+                notes
+            FROM crawl_runs
+            {where_sql}
+            ORDER BY started_at DESC, id DESC
+            LIMIT ? OFFSET ?
+            """,
+            (*params, page_size, offset),
+        )
+
+        return ([_row_to_crawl_run(row) for row in cursor.fetchall()], total_items)
+
+    def list_notification_runs_paginated(
+        self,
+        *,
+        notification_type: str | None = None,
+        status: str | None = None,
+        page: int = 1,
+        page_size: int = 25,
+    ) -> tuple[list[NotificationRun], int]:
+        where_clauses: list[str] = []
+        params: list[Any] = []
+
+        if notification_type:
+            where_clauses.append("notification_type = ?")
+            params.append(notification_type)
+
+        if status:
+            where_clauses.append("status = ?")
+            params.append(status)
+
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
+
+        count_cursor = self.connection.execute(
+            f"""
+            SELECT COUNT(*) AS total_items
+            FROM notification_runs
+            {where_sql}
+            """,
+            tuple(params),
+        )
+        count_row = count_cursor.fetchone()
+        total_items = 0 if count_row is None else int(count_row["total_items"])
+
+        offset = (page - 1) * page_size
+        cursor = self.connection.execute(
+            f"""
+            SELECT
+                id,
+                notification_type,
+                started_at,
+                finished_at,
+                status,
+                recipient_count,
+                new_jobs_count,
+                since,
+                subject,
+                error_message
+            FROM notification_runs
+            {where_sql}
+            ORDER BY started_at DESC, id DESC
+            LIMIT ? OFFSET ?
+            """,
+            (*params, page_size, offset),
+        )
+
+        return ([_row_to_notification_run(row) for row in cursor.fetchall()], total_items)
+
+    def list_subscribers_paginated(
+        self,
+        *,
+        email_query: str | None = None,
+        is_active: bool | None = None,
+        digest_enabled: bool | None = None,
+        page: int = 1,
+        page_size: int = 25,
+    ) -> tuple[list[Subscriber], int]:
+        where_clauses: list[str] = []
+        params: list[Any] = []
+
+        normalized_query = email_query.strip() if email_query else ""
+        if normalized_query:
+            pattern = f"%{normalized_query}%"
+            where_clauses.append(
+                """
+                (
+                    email LIKE ?
+                    OR COALESCE(full_name, '') LIKE ?
+                )
+                """
+            )
+            params.extend([pattern, pattern])
+
+        if is_active is not None:
+            where_clauses.append("is_active = ?")
+            params.append(int(is_active))
+
+        if digest_enabled is not None:
+            where_clauses.append("digest_enabled = ?")
+            params.append(int(digest_enabled))
+
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
+
+        count_cursor = self.connection.execute(
+            f"""
+            SELECT COUNT(*) AS total_items
+            FROM subscribers
+            {where_sql}
+            """,
+            tuple(params),
+        )
+        count_row = count_cursor.fetchone()
+        total_items = 0 if count_row is None else int(count_row["total_items"])
+
+        offset = (page - 1) * page_size
+        cursor = self.connection.execute(
+            f"""
+            SELECT
+                id,
+                email,
+                full_name,
+                is_active,
+                digest_enabled,
+                created_at,
+                updated_at
+            FROM subscribers
+            {where_sql}
+            ORDER BY updated_at DESC, email ASC
+            LIMIT ? OFFSET ?
+            """,
+            (*params, page_size, offset),
+        )
+
+        return ([_row_to_subscriber(row) for row in cursor.fetchall()], total_items)
+
+    def update_subscriber_fields_by_id(
+        self,
+        subscriber_id: int,
+        *,
+        fields: dict[str, Any],
+        updated_at: str,
+    ) -> Subscriber | None:
+        if not fields:
+            raise ValueError("fields must not be empty.")
+
+        allowed_keys = {"full_name", "is_active", "digest_enabled"}
+        unknown_keys = sorted(set(fields) - allowed_keys)
+        if unknown_keys:
+            joined = ", ".join(unknown_keys)
+            raise ValueError(f"Unknown subscriber update field(s): {joined}")
+
+        assignments: list[str] = []
+        params: list[Any] = []
+
+        if "full_name" in fields:
+            assignments.append("full_name = ?")
+            params.append(fields["full_name"])
+
+        if "is_active" in fields:
+            assignments.append("is_active = ?")
+            params.append(int(fields["is_active"]))
+
+        if "digest_enabled" in fields:
+            assignments.append("digest_enabled = ?")
+            params.append(int(fields["digest_enabled"]))
+
+        assignments.append("updated_at = ?")
+        params.append(updated_at)
+        params.append(subscriber_id)
+
+        with self.connection:
+            cursor = self.connection.execute(
+                f"""
+                UPDATE subscribers
+                SET {", ".join(assignments)}
+                WHERE id = ?
+                """,
+                tuple(params),
+            )
+
+        if cursor.rowcount == 0:
+            return None
+
+        return self.get_subscriber_by_id(subscriber_id)
+
+
 
     def close(self) -> None:
         self.connection.close()

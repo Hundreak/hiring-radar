@@ -16,6 +16,14 @@ from hiring_radar.api.security import (
 )
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.db.sqlite import close_connection, initialize_database
+from hiring_radar.services.user_auth import (
+    USER_SESSION_COOKIE_NAME,
+    UserAuthError,
+    UserAuthSettings,
+    UserSession,
+    decode_user_session_token,
+    load_user_auth_settings,
+)
 from hiring_radar.settings import AppSettings, load_app_settings
 
 
@@ -49,6 +57,10 @@ def get_admin_auth_settings() -> AdminAuthSettings:
     return load_admin_auth_settings(get_env_path())
 
 
+def get_user_auth_settings() -> UserAuthSettings:
+    return load_user_auth_settings(get_env_path())
+
+
 AdminSessionCookie = Annotated[
     str | None,
     Cookie(alias=ADMIN_SESSION_COOKIE_NAME),
@@ -57,6 +69,16 @@ AdminSessionCookie = Annotated[
 AdminAuthSettingsDep = Annotated[
     AdminAuthSettings,
     Depends(get_admin_auth_settings),
+]
+
+UserSessionCookie = Annotated[
+    str | None,
+    Cookie(alias=USER_SESSION_COOKIE_NAME),
+]
+
+UserAuthSettingsDep = Annotated[
+    UserAuthSettings,
+    Depends(get_user_auth_settings),
 ]
 
 
@@ -76,4 +98,23 @@ def get_current_admin_session(
             settings=auth_settings,
         )
     except AdminAuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+def get_current_user_session(
+    user_session_cookie: UserSessionCookie = None,
+    auth_settings: UserAuthSettingsDep = None,
+) -> UserSession:
+    if auth_settings is None:
+        raise HTTPException(status_code=500, detail="User auth settings are unavailable.")
+
+    if not user_session_cookie:
+        raise HTTPException(status_code=401, detail="Not authenticated.")
+
+    try:
+        return decode_user_session_token(
+            token=user_session_cookie,
+            settings=auth_settings,
+        )
+    except UserAuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc

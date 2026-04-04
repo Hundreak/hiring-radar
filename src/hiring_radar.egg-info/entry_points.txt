@@ -1,2 +1,3 @@
 [console_scripts]
 hiring-radar = hiring_radar.cli:app
+hiring-radar-api = hiring_radar.api.serve:main

@@ -1,0 +1,1 @@
+"""Hiring Radar API package."""

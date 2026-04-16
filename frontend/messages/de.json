@@ -1,0 +1,447 @@
+{
+  "common": {
+    "login": "Anmelden",
+    "signup": "Registrieren",
+    "appNavigation": {
+      "jobs": "Jobs",
+      "matches": "Matches",
+      "saved": "Gespeichert"
+    }
+  },
+  "landing": {
+    "hero": {
+      "badge": "KI-gestützte Jobsuche",
+      "titlePrefix": "Finde passende Stellen",
+      "titleAccent": "automatisch.",
+      "description": "CoreSift scannt den Markt, vergleicht Rollen mit deinem Profil und bringt die stärksten Chancen nach vorne. So suchst du klarer, schneller und strategischer.",
+      "primaryCta": "Kostenlos starten",
+      "secondaryCta": "So funktioniert es",
+      "trustCopy": "2.400+ Menschen haben diese Woche ihre Suche beschleunigt",
+      "uploadTitle": "Lade deinen Lebenslauf hoch",
+      "uploadDescription": "PDF oder Word — das System liest ihn, strukturiert dein Profil und verbessert die Match-Qualität.",
+      "uploadButton": "Lebenslauf hochladen",
+      "parsedTitle": "Aus deinem Profil erkannte Signale",
+      "parsedChips": [
+        "React",
+        "TypeScript",
+        "5 Jahre Erfahrung",
+        "Istanbul",
+        "Remote",
+        "Englisch"
+      ],
+      "scoreTitle": "Profil-Vollständigkeit",
+      "scoreRows": {
+        "identity": "Grunddaten",
+        "skills": "Fähigkeiten",
+        "experience": "Erfahrungsdetails",
+        "preferences": "Präferenzen"
+      },
+      "scoreStatus": {
+        "done": "Fertig",
+        "missing": "Fehlt"
+      },
+      "jobsTitle": "Empfohlene Stellen",
+      "jobsLive": "Live",
+      "panelNote": "Je stärker dein Profil, desto präziser werden die Übereinstimmungen."
+    },
+    "stats": {
+      "activeJobs": "Aktive Stellen",
+      "matchAccuracy": "Matching-Genauigkeit",
+      "fasterApplies": "Schnellere Bewerbungen",
+      "integrations": "Plattform-Integrationen"
+    },
+    "features": {
+      "items": [
+        {
+          "title": "Alle Plattformen an einem Ort durchsuchen",
+          "description": "LinkedIn, Jobbörsen und weitere Quellen werden in einer Oberfläche gebündelt statt auf viele Tabs verteilt."
+        },
+        {
+          "title": "Intelligentes Matching auf Profilbasis",
+          "description": "Das System versteht deinen Lebenslauf, deine Fähigkeiten und Präferenzen und priorisiert starke Rollen mit klarem Score."
+        },
+        {
+          "title": "Lücken erkennen, Profil stärken",
+          "description": "Sieh sofort, welche Informationen fehlen oder schwach sind, und verbessere dein Profil für bessere Treffer."
+        }
+      ]
+    },
+    "how": {
+      "label": "So funktioniert es",
+      "title": "Dein Hiring-Radar in 4 Schritten",
+      "description": "Profil erstellen, Suche starten, die besten Matches sehen und schneller bewerben.",
+      "steps": [
+        {
+          "title": "Profil erstellen",
+          "description": "Lade deinen Lebenslauf hoch oder trage deine wichtigsten Fähigkeiten ein."
+        },
+        {
+          "title": "Plattformen scannen",
+          "description": "40+ Quellen werden automatisch durchsucht und in einem strukturierten Feed zusammengeführt."
+        },
+        {
+          "title": "Matches prüfen",
+          "description": "Jede Stelle wird mit einem Fit-Score bewertet, damit du zuerst die besten Chancen siehst."
+        },
+        {
+          "title": "Schneller bewerben",
+          "description": "Gehe mit mehr Klarheit und weniger Reibung durch den Bewerbungsprozess."
+        }
+      ]
+    },
+    "testimonials": {
+      "label": "Nutzerstimmen",
+      "title": "Was Jobsuchende sagen",
+      "items": [
+        {
+          "quote": "\"Ich musste nicht mehr 12 Plattformen einzeln prüfen und hatte in 3 Wochen 2 Interviews.\"",
+          "name": "Ahmet K.",
+          "role": "Frontend Developer"
+        },
+        {
+          "quote": "\"Der Fit-Score ist wirklich hilfreich. Bei jeder Stelle über 80% kam ich durch die erste Auswahl.\"",
+          "name": "Merve B.",
+          "role": "Data Analyst"
+        },
+        {
+          "quote": "\"Durch die Profil-Lücken wusste ich genau, woran ich arbeiten muss. In einem Monat bekam ich 3 Angebote.\"",
+          "name": "Can E.",
+          "role": "DevOps Engineer"
+        }
+      ]
+    },
+    "cta": {
+      "badge": "Kostenlos, klar und professionell",
+      "titlePrefix": "Verliere dich nicht mehr",
+      "titleAccent": "im Stellenmarkt.",
+      "description": "Erstelle dein Profil, aktiviere deinen Radar und lass dir von CoreSift die passendsten Chancen strukturierter anzeigen.",
+      "button": "Jetzt starten — kostenlos",
+      "notes": [
+        "Keine Kreditkarte",
+        "Kein Setup",
+        "In Minuten bereit"
+      ]
+    }
+  },
+  "auth": {
+    "loginProductBadge": "Eine Anmeldeoberfläche, die auch das Produkt erklärt",
+    "loginHeadline": "Du meldest dich nicht nur an – du betrittst einen fokussierten Arbeitsbereich für bessere Opportunity Discovery.",
+    "loginDescription": "Die Seite balanciert Produktkommunikation und Authentifizierung. Das Theme bleibt oben rechts, der Wert des Produkts im Vordergrund.",
+    "loginTitle": "Bei deinem Konto anmelden",
+    "loginSubtext": "Mit Passwort anmelden oder Magic-Link anfordern.",
+    "passwordLogin": "Mit Passwort anmelden",
+    "magicLinkLogin": "Anmeldelink senden",
+    "createAccount": "Noch kein Konto? Registrieren",
+    "forgotPassword": "Passwort vergessen",
+    "or": "oder",
+    "signupBadge": "Registrierungsfluss für starke Conversion",
+    "signupHeadline": "Erstelle dein Profil, bestehe eine einfache Human-Prüfung und starte mit besseren Matches.",
+    "signupDescription": "Die Registrierung bleibt einfach und vertrauenswürdig: Basisdaten, Human Challenge, Passwort und erste Präferenzen.",
+    "signupTitle": "Neues Konto erstellen",
+    "signupSubtext": "In dieser Phase steht die UI. Die API-Anbindung folgt im nächsten Schritt.",
+    "signupCta": "Konto erstellen",
+    "haveAccount": "Hast du bereits ein Konto? Anmelden",
+    "humanChallengeLabel": "Bestätigungscode",
+    "fields": {
+      "email": "E-Mail",
+      "password": "Passwort",
+      "magicLinkEmail": "Deine E-Mail",
+      "fullName": "Vollständiger Name",
+      "challenge": "Code oben eingeben"
+    },
+    "marketing": {
+      "signal": {
+        "title": "Alle Chancen an einem Ort",
+        "description": "Nutzer sehen zuerst den gesamten Markt; Matching bleibt eine zusätzliche Intelligenzschicht."
+      },
+      "clarity": {
+        "title": "Klarere Informationshierarchie",
+        "description": "Suche, Theme, Sprache und Kernaktionen bleiben in einem vorhersagbaren Header."
+      },
+      "control": {
+        "title": "Einstellungen wie in einem echten Produkt",
+        "description": "Profile, Security, Preferences und Notifications laufen als getrennte Routen."
+      },
+      "multilingual": {
+        "title": "TR / EN / DE bereit",
+        "description": "Mehrsprachigkeit ist von Anfang an Teil des Produkts und kein späterer Zusatz."
+      }
+    }
+  },
+  "jobs": {
+    "title": "Jobs Explorer",
+    "description": "Das ist die vollständige Marktansicht. Suche, filtere, vergleiche und erkenne trotzdem, was am besten zu dir passt.",
+    "searchPlaceholder": "Jobs, Firmen, Skills oder Städte suchen...",
+    "filtersTitle": "Schnellfilter",
+    "resetFilters": "Filter zurücksetzen",
+    "quickFilters": "Priorisierte Filter",
+    "matchedOnly": "Nur Matches",
+    "remote": "Remote",
+    "engineering": "Engineering",
+    "liveFeed": "Live-Feed",
+    "resultCount": "{count} Rollen",
+    "matchedForYou": "Für dich passend · {score}%",
+    "viewDetails": "Details öffnen",
+    "locationFilter": "Standort",
+    "companyFilter": "Unternehmen",
+    "loadingJobs": "Stellen werden geladen...",
+    "noJobs": "Keine Stellen für die aktuellen Filter gefunden.",
+    "newListings": "Neue Stellen",
+    "fullTime": "Vollzeit",
+    "partTime": "Teilzeit",
+    "internship": "Praktikum",
+    "activeFilters": "Aktive Filter"
+  },
+  "matches": {
+    "title": "Für dich passende Jobs",
+    "description": "Deine Skills, Erfahrung und Präferenzen wurden analysiert, um die besten Rollen zu bewerten.",
+    "scoreSummary": "{count} Rollen mit hoher Passung",
+    "heroTitle": "{count} passende Rollen für dich gefunden",
+    "liveEngine": "Live-Matching-Engine aktiv",
+    "matched": "Passend",
+    "highest": "Höchste",
+    "newToday": "Neu heute",
+    "profileAlert": "Vervollständige dein Profil um 15%, um mehr Matches freizuschalten.",
+    "completeProfile": "Profil vervollständigen →",
+    "sortHighest": "Beste Passung",
+    "sortNewest": "Neueste",
+    "sortSkill": "Skill-Passung",
+    "matchedCount": "{count} Rollen passen",
+    "skillMatch": "Skill-Match",
+    "detail": "Details",
+    "apply": "Bewerben →",
+    "insightsTitle": "Match-Einblicke",
+    "gapsTitle": "Skills, die dich zurückhalten",
+    "gapsJobs": "{count} Rollen warten",
+    "sortLabel": "Sortieren",
+    "loading": "Ergebnisse werden geladen...",
+    "noMatches": "Noch keine passenden Stellen. Vervollständige dein Profil für bessere Ergebnisse.",
+    "strengthTitle": "{keyword} ist stark",
+    "strengthSub": "{pct}%+ Passung in {count} Stellen.",
+    "remoteTitle": "Remote-Vorteil",
+    "remoteSub": "{remote} von {total} Treffern sind remote."
+  },
+  "saved": {
+    "title": "Gespeicherte Jobs",
+    "description": "Jobs speichern, Bewerbungsstatus selbst aktualisieren. CoreSift hilft bei der Vorbereitung.",
+    "howTitle": "Wie funktioniert es?",
+    "howText": "CoreSift ist nicht direkt mit Unternehmen verbunden — du verfolgst Bewerbungsergebnisse selbst. Wenn du eine Einladung zum Vorstellungsgespräch erhältst, markiere es selbst.",
+    "tabAll": "Alle",
+    "tabReviewing": "Prüfung",
+    "tabApplied": "Beworben",
+    "tabInterview": "Vorstellungsgespräch",
+    "tabArchive": "Archiv",
+    "sortLatest": "Zuletzt hinzugefügt",
+    "addJob": "+ Job hinzufügen",
+    "colReviewing": "Prüfung",
+    "colApplied": "Beworben",
+    "colInterview": "Vorstellungsgespräch / Angebot",
+    "notApplied": "Nicht beworben",
+    "notAppliedHint": "Bewerbungsfrist nähert sich.",
+    "urgentApply": "Dringend bewerben →",
+    "applyAction": "Bewerben →",
+    "waitingResponse": "Warte auf Antwort",
+    "updateStatus": "Status aktualisieren:",
+    "updateResult": "Ergebnis aktualisieren:",
+    "statusApplied": "Beworben",
+    "statusInterview": "Einladung erhalten",
+    "statusRejected": "Abgelehnt",
+    "statusNoResponse": "Keine Antwort",
+    "statusOffer": "Angebot erhalten ✓",
+    "statusSecondInterview": "2. Vorstellungsgespräch",
+    "addNote": "Notiz hinzufügen",
+    "editNote": "Notiz bearbeiten",
+    "saveNote": "Notiz speichern",
+    "noteModalTitle": "Notizen",
+    "noteModalPlaceholder": "Schreibe eine Notiz zu diesem Job\u2026",
+    "noNotes": "Noch keine Notizen.",
+    "daysLeft": "{count} Tage übrig",
+    "deadlinesTitle": "Dringende Fristen",
+    "activityTitle": "Letzte Aktivitäten",
+    "aiTitle": "KI-Karriereberater",
+    "aiPlaceholder": "Frage stellen\u2026",
+    "emptyColumn": "Wenn du eine Einladung zum Vorstellungsgespräch erhältst, drücke den Button \"Einladung erhalten\".",
+    "prepTitle": "CoreSift Vorbereitungstipps",
+    "interviewDate": "Datum des Vorstellungsgesprächs",
+    "savedCount": "Gespeichert",
+    "appliedCount": "Beworben",
+    "interviewCount": "Vorstellungsgespräch",
+    "restoreReviewing": "Zur Prüfung verschieben",
+    "restoreApplied": "Zu Beworben verschieben",
+    "loading": "Gespeicherte Jobs werden geladen\u2026",
+    "cancel": "Abbrechen",
+    "openNotes": "Notizen öffnen",
+    "openNotesCount": "{count} Notizen öffnen",
+    "interviewPrep": "KI-Vorbereitung",
+    "interviewPrepPrompt": "Hilf mir, mich auf ein Vorstellungsgespräch bei {company} für die Position {title} vorzubereiten. Was sollte ich erwarten? Welche Fragen könnten gestellt werden? Wie sollte ich mich vorbereiten?"
+  },
+  "profile": {
+    "completion": {
+      "title": "Profilvollständigkeit",
+      "description": "Je vollständiger dein Profil ist, desto bessere Matches können wir liefern."
+    },
+    "checklist": {
+      "name": "Anzeigename",
+      "digest": "Digest-Einstellung",
+      "account": "Aktiver Kontostatus",
+      "keywords": "Matching-Schlüsselwörter"
+    }
+  },
+  "settings": {
+    "pageTitle": "Einstellungen",
+    "pageDescription": "Verwalte Profil, Sicherheit, Präferenzen und Benachrichtigungen über route-basierte Einstellungen.",
+    "navTitle": "Einstellungsmenü",
+    "tabs": {
+      "profile": "Profil",
+      "security": "Sicherheit",
+      "preferences": "Präferenzen",
+      "notifications": "Benachrichtigungen"
+    },
+    "profile": {
+      "title": "Profildaten",
+      "description": "Grundlegende Identitäts-, Kontakt- und Bildungsdaten gehören hierhin.",
+      "fields": {
+        "fullName": {
+          "label": "Anzeigename"
+        },
+        "email": {
+          "label": "E-Mail",
+          "hint": "In späteren Phasen bleibt dies die verifizierte Konto-E-Mail."
+        },
+        "phone": {
+          "label": "Telefonnummer",
+          "hint": "Kann Kontosicherheit und optionale Benachrichtigungskanäle unterstützen."
+        },
+        "headline": {
+          "label": "Berufliche Kurzbeschreibung",
+          "hint": "Beispiel: Senior Frontend Engineer / Security Analyst",
+          "placeholder": "Kurze professionelle Überschrift schreiben"
+        }
+      },
+      "education": {
+        "title": "Ausbildung",
+        "description": "Bildungshistorie soll Teil des Matching-Profils werden.",
+        "add": "Ausbildung hinzufügen"
+      }
+    },
+    "security": {
+      "title": "Sicherheit",
+      "description": "Passwort, Sitzungen, Zwei-Faktor-Authentifizierung und Kontosicherheit verwalten.",
+      "passwordSection": "Passwort aktualisieren",
+      "passwordSectionDesc": "Ein starkes Passwort schützt Ihr Konto vor unbefugtem Zugriff.",
+      "fields": {
+        "currentPassword": "Aktuelles Passwort",
+        "newPassword": "Neues Passwort",
+        "confirmPassword": "Neues Passwort bestätigen"
+      },
+      "passwordHint": "Großbuchstaben, Zahlen und Sonderzeichen verwenden.",
+      "updatePassword": "Passwort aktualisieren",
+      "cancel": "Abbrechen",
+      "loginMethodsTitle": "Anmeldemethoden",
+      "loginMethodsDesc": "Magic-Link und Zwei-Faktor-Authentifizierung verwalten.",
+      "magicLinkTitle": "Magic-Link-Anmeldung",
+      "magicLinkDescription": "Anmeldung per E-Mail-Link zusätzlich zum Passwort.",
+      "twoFactorTitle": "Zwei-Faktor-Authentifizierung (2FA)",
+      "twoFactorDescription": "Google Authenticator oder ähnliche App für zusätzliche Verifizierung bei jeder Anmeldung.",
+      "newDeviceTitle": "Benachrichtigung bei neuem Gerät",
+      "newDeviceDescription": "E-Mail-Benachrichtigung bei Anmeldung von einem unbekannten Gerät.",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "new2fa": "Neue 2FA",
+      "disable": "Deaktivieren",
+      "sessionsTitle": "Aktive Sitzungen",
+      "sessionsDesc": "Alle angemeldeten Geräte anzeigen und verwalten.",
+      "thisDevice": "Dieses Gerät",
+      "endSession": "Sitzung beenden",
+      "endAllSessions": "Alle anderen Sitzungen beenden",
+      "noSessions": "Keine aktiven Sitzungen gefunden.",
+      "loginHistoryTitle": "Anmeldeverlauf",
+      "loginHistoryDesc": "Die letzten 10 Anmelde- und Sicherheitsereignisse.",
+      "successfulLogin": "Erfolgreiche Anmeldung",
+      "failedLogin": "Fehlgeschlagener Anmeldeversuch",
+      "passwordChanged": "Passwort geändert",
+      "loginMagicLink": "Magic-Link-Anmeldung",
+      "emailChanged": "E-Mail geändert",
+      "noHistory": "Noch kein Anmeldeverlauf vorhanden.",
+      "dangerZone": "Gefahrenzone",
+      "dangerZoneDesc": "Diese Aktionen können nicht rückgängig gemacht werden.",
+      "changeEmail": "E-Mail-Adresse ändern",
+      "changeEmailDesc": "Eine Bestätigungs-E-Mail wird an die neue Adresse gesendet.",
+      "changeEmailBtn": "E-Mail aktualisieren",
+      "terminateAll": "Alle Sitzungen beenden",
+      "terminateAllDesc": "Alle aktiven Sitzungen einschließlich dieses Geräts werden beendet.",
+      "terminateAllBtn": "Alle beenden",
+      "deleteAccount": "Konto dauerhaft löschen",
+      "deleteAccountDesc": "Alle Daten, Profil und Matches werden dauerhaft gelöscht.",
+      "deleteAccountBtn": "Konto löschen",
+      "deleteModalTitle": "Konto löschen?",
+      "deleteModalDesc": "Diese Aktion ist dauerhaft. Alle Daten, Profil und Matches werden gelöscht.",
+      "deleteModalReason": "Warum verlassen Sie uns? (optional)",
+      "deleteModalPassword": "Passwort zur Bestätigung eingeben",
+      "deleteModalConfirm": "Konto dauerhaft löschen",
+      "emailModalTitle": "E-Mail-Adresse ändern",
+      "emailModalDesc": "Wir senden einen 6-stelligen Code an Ihre neue E-Mail. Geben Sie ihn hier ein.",
+      "emailModalNewEmail": "Neue E-Mail-Adresse",
+      "emailModalPassword": "Aktuelles Passwort",
+      "emailModalPasswordHint": "Zur Sicherheit Identität bestätigen.",
+      "emailModalSendCode": "Bestätigungscode senden",
+      "emailModalCodeSent": "Ein Bestätigungscode wurde an die neue Adresse gesendet.",
+      "emailModalCode": "Bestätigungscode eingeben",
+      "emailModalConfirm": "E-Mail-Änderung bestätigen",
+      "totpSetupTitle": "Zwei-Faktor-Authentifizierung einrichten",
+      "totpSetupDesc": "Scannen Sie diesen Code mit Ihrer Authenticator-App und geben Sie den 6-stelligen Code ein.",
+      "totpSetupCode": "6-stelliger Bestätigungscode",
+      "totpSetupConfirm": "Verifizieren und 2FA aktivieren",
+      "totpSecretLabel": "Geheimer Schlüssel",
+      "passwordUpdated": "Passwort erfolgreich aktualisiert.",
+      "sessionStarted": "Angemeldet",
+      "unknownDevice": "Unbekanntes Gerät",
+      "timeJustNow": "gerade eben",
+      "timeMinutesAgo": "vor {count} Min.",
+      "timeHoursAgo": "vor {count} Std.",
+      "timeDaysAgo": "vor {count} T.",
+      "close": "Schließen"
+    },
+    "preferences": {
+      "title": "Matching-Präferenzen",
+      "description": "Keywords, Orte, Jobtyp und weitere Signale laufen hier zusammen.",
+      "skillsLabel": "Skills / Keywords",
+      "skillsHint": "Werte durch Kommas oder Zeilenumbrüche trennen.",
+      "skillsPlaceholder": "React, Python, Security, Embedded...",
+      "locationsLabel": "Bevorzugte Orte",
+      "locationsPlaceholder": "Istanbul, Berlin, Remote...",
+      "matchingHelp": "Diese Eingaben sind nicht nur Filter, sondern Grundlagen für bessere und erklärbare Matches.",
+      "saveButton": "Präferenzen speichern"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "description": "Digest, Match-Alerts und Ruhezeiten werden hier verwaltet.",
+      "digest": "E-Mail-Digest",
+      "matches": "Neue Match-Benachrichtigungen",
+      "quietHours": "Ruhezeiten",
+      "saveButton": "Benachrichtigungen speichern"
+    }
+  },
+  "footer": {
+    "description": "CoreSift ist eine moderne Karriereplattform, die Kandidaten mit stärkeren Profilsignalen zu besseren Chancen führt.",
+    "supportTitle": "Support",
+    "sections": {
+      "company": "Unternehmen",
+      "legal": "Richtlinien"
+    },
+    "links": {
+      "about": "Über uns",
+      "principles": "Grundsätze",
+      "faq": "FAQ",
+      "contact": "Kontakt",
+      "privacy": "Datenschutz",
+      "terms": "Nutzungsbedingungen",
+      "cookies": "Cookie-Richtlinie",
+      "support": "Support"
+    },
+    "copyright": "© 2026 CoreSift. Alle Rechte vorbehalten.",
+    "noteSecurity": "Sicherheitsorientierter Produktansatz",
+    "notePrivacy": "Datenschutzorientierte Produkterfahrung",
+    "noteSupport": "Offizieller Support: destek@coresift.com"
+  }
+}

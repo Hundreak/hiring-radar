@@ -54,9 +54,7 @@ class KeywordFilterSettings:
         )
 
         if not self.active_fields():
-            raise ValueError(
-                "KeywordFilterSettings requires at least one enabled match field."
-            )
+            raise ValueError("KeywordFilterSettings requires at least one enabled match field.")
 
     def is_enabled(self) -> bool:
         return bool(self.include_keywords or self.exclude_keywords)
@@ -96,10 +94,7 @@ class FilterableJobText:
             "company_name": self.company_name,
         }
 
-        return {
-            field_name: values[field_name]
-            for field_name in _VALID_MATCH_FIELDS
-        }
+        return {field_name: values[field_name] for field_name in _VALID_MATCH_FIELDS}
 
     def selected_field_values(
         self,

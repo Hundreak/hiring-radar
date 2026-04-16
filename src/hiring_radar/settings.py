@@ -55,9 +55,7 @@ def _read_settings_document(config_path: str) -> dict[str, Any]:
         return {}
 
     if not isinstance(raw, dict):
-        raise ConfigError(
-            f"Settings config must contain a top-level mapping: {config_path}"
-        )
+        raise ConfigError(f"Settings config must contain a top-level mapping: {config_path}")
 
     return raw
 

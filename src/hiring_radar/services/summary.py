@@ -1,4 +1,5 @@
 """Placeholder module for the bootstrap phase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

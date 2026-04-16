@@ -125,8 +125,7 @@ def test_export_jobs_to_csv_writes_header_for_empty_dataset(tmp_path: Path) -> N
 
     assert len(content) == 1
     assert (
-        content[0]
-        == "id,source_name,company_name,source_type,title,location,canonical_url,"
+        content[0] == "id,source_name,company_name,source_type,title,location,canonical_url,"
         "source_job_id,raw_posted_at,posted_at,fingerprint,first_seen_at,last_seen_at,"
         "is_active,scraped_at"
     )

@@ -10,6 +10,19 @@ from hiring_radar.api.schemas.jobs import (
     AdminJobListItemResponse,
     AdminJobListResponse,
 )
+from hiring_radar.api.schemas.keyword_preferences import (
+    KeywordPreferenceFieldMatchResponse,
+    KeywordPreferenceSampleResponse,
+    SubscriberKeywordPreferencePreviewRequest,
+    SubscriberKeywordPreferencePreviewResponse,
+    SubscriberKeywordPreferenceResponse,
+    SubscriberKeywordPreferenceUpdateRequest,
+)
+from hiring_radar.api.schemas.public_auth import (
+    PublicSignupChallengeResponse,
+    PublicSignupRequest,
+    PublicSignupResponse,
+)
 from hiring_radar.api.schemas.runs import (
     AdminCrawlRunListItemResponse,
     AdminCrawlRunListResponse,
@@ -38,6 +51,10 @@ from hiring_radar.api.schemas.user_auth import (
     UserConsumeMagicLinkRequest,
     UserRequestMagicLinkRequest,
     UserRequestMagicLinkResponse,
+)
+from hiring_radar.api.schemas.user_jobs import (
+    UserJobListItemResponse,
+    UserJobListResponse,
 )
 from hiring_radar.api.schemas.user_me import (
     UserFilterPolicyResponse,
@@ -72,6 +89,12 @@ __all__ = [
     "DashboardLatestRunResponse",
     "DashboardSubscriberCountsResponse",
     "DashboardSummaryResponse",
+    "KeywordPreferenceFieldMatchResponse",
+    "KeywordPreferenceSampleResponse",
+    "SubscriberKeywordPreferencePreviewRequest",
+    "SubscriberKeywordPreferencePreviewResponse",
+    "SubscriberKeywordPreferenceResponse",
+    "SubscriberKeywordPreferenceUpdateRequest",
     "UserAuthMeResponse",
     "UserConsumeMagicLinkRequest",
     "UserFilterPolicyResponse",
@@ -79,4 +102,9 @@ __all__ = [
     "UserPreferencesUpdateRequest",
     "UserRequestMagicLinkRequest",
     "UserRequestMagicLinkResponse",
+    "UserJobListItemResponse",
+    "UserJobListResponse",
+    "PublicSignupChallengeResponse",
+    "PublicSignupRequest",
+    "PublicSignupResponse",
 ]

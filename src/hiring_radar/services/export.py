@@ -34,9 +34,15 @@ class ExportResult:
 
 
 def _utc_now_for_filename() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat().replace(":", "-").replace(
-        "+00:00",
-        "Z",
+    return (
+        datetime.now(UTC)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace(":", "-")
+        .replace(
+            "+00:00",
+            "Z",
+        )
     )
 
 

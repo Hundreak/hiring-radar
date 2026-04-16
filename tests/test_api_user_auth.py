@@ -75,8 +75,7 @@ class FakeRepository:
 
 def _make_user_auth_settings() -> UserAuthSettings:
     return UserAuthSettings(
-        app_base_url="http://127.0.0.1:8000",
-        session_secret="user-session-secret",
+        secret_key="user-session-secret",
         session_ttl_seconds=3600,
         magic_link_ttl_seconds=900,
     )
@@ -132,10 +131,10 @@ def test_request_magic_link_returns_generic_response(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "ok": True,
-        "message": "If that email is eligible, a sign-in link has been sent.",
+        "message": "If that address is eligible, we have sent a secure sign-in link.",
     }
     assert len(sent_payloads) == 1
-    assert sent_payloads[0].subject == "Your Hiring Radar sign-in link"
+    assert sent_payloads[0].subject == "CoreSift giriş bağlantın"
 
 
 def test_consume_magic_link_sets_user_session_cookie() -> None:

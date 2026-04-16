@@ -186,9 +186,7 @@ def render_digest_text(result: DigestResult) -> str:
         return "\n".join(lines)
 
     for section in result.sections:
-        lines.append(
-            f"  {section.source_name} ({section.source_type}): {section.new_jobs_count}"
-        )
+        lines.append(f"  {section.source_name} ({section.source_type}): {section.new_jobs_count}")
 
         for job in section.jobs:
             location = job.location or "Unknown location"

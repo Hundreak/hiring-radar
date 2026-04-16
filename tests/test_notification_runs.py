@@ -23,9 +23,7 @@ def test_initialize_database_creates_notification_runs_table(
 
         assert table_row is not None
 
-        columns = connection.execute(
-            "PRAGMA table_info(notification_runs)"
-        ).fetchall()
+        columns = connection.execute("PRAGMA table_info(notification_runs)").fetchall()
         column_names = [column[1] for column in columns]
 
         assert column_names == [

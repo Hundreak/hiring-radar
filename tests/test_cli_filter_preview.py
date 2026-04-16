@@ -144,9 +144,7 @@ def test_filter_preview_uses_all_jobs_when_requested(monkeypatch) -> None:
     monkeypatch.setattr(
         cli,
         "load_app_settings",
-        lambda path: AppSettings(
-            keyword_filter=KeywordFilterSettings()
-        ),
+        lambda path: AppSettings(keyword_filter=KeywordFilterSettings()),
     )
     monkeypatch.setattr(cli, "initialize_database", lambda path: object())
     monkeypatch.setattr(cli, "close_connection", lambda connection: None)

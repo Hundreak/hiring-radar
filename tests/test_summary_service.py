@@ -111,7 +111,6 @@ def test_build_summary_returns_expected_overall_source_and_company_counts(
     assert summary.by_source[1].active_jobs == 1
     assert summary.by_source[1].inactive_jobs == 1
 
-    
     assert summary.by_source[0].source_name == "corelight-greenhouse"
     assert summary.by_source[0].source_type == "greenhouse"
     assert summary.by_source[0].total_jobs == 1

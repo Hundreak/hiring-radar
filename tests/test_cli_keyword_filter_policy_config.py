@@ -21,9 +21,7 @@ def test_keyword_filter_config_prints_notification_policy(monkeypatch) -> None:
                 match_location=False,
                 match_company_name=True,
             ),
-            notifications=NotificationsSettings(
-                apply_keyword_filter_to_digest=True
-            ),
+            notifications=NotificationsSettings(apply_keyword_filter_to_digest=True),
         ),
     )
 

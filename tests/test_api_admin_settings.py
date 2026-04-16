@@ -163,9 +163,7 @@ def test_admin_update_settings_writes_and_returns_saved_settings(monkeypatch) ->
     assert saved_settings.keyword_filter.match_company_name is False
     assert saved_settings.notifications.apply_keyword_filter_to_digest is False
 
-    assert response.json()["notifications"] == {
-        "apply_keyword_filter_to_digest": False
-    }
+    assert response.json()["notifications"] == {"apply_keyword_filter_to_digest": False}
 
 
 def test_admin_filter_preview_returns_summary_and_samples() -> None:

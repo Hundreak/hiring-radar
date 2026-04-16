@@ -105,9 +105,7 @@ def test_digest_preview_uses_settings_policy_when_override_is_omitted(monkeypatc
     assert result.exit_code == 0
     assert "Digest Filter Policy" in result.output
     assert "resolved_apply_filter=True" in result.output
-    assert "policy_source=settings.notifications.apply_keyword_filter_to_digest" in (
-        result.output
-    )
+    assert "policy_source=settings.notifications.apply_keyword_filter_to_digest" in (result.output)
     assert "Digest Filter" in result.output
     assert "total_new_jobs_before_filter=2" in result.output
     assert "total_new_jobs_after_filter=1" in result.output

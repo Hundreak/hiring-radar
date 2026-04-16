@@ -75,6 +75,10 @@ button.ghost {
   color: var(--text-muted);
   border: 1px solid var(--border);
 }
+button.small {
+  padding: 9px 12px;
+  font-size: 13px;
+}
 input, textarea {
   width: 100%;
   border-radius: 14px;
@@ -86,6 +90,10 @@ input, textarea {
 }
 input::placeholder, textarea::placeholder { color: var(--text-muted); }
 label { display: block; font-weight: 700; margin-bottom: 8px; }
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
 .badge {
   display: inline-flex;
   align-items: center;
@@ -127,7 +135,7 @@ label { display: block; font-weight: 700; margin-bottom: 8px; }
 .hero-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: 1.08fr 0.92fr;
 }
 .hero-side {
   padding: 48px;
@@ -205,12 +213,12 @@ label { display: block; font-weight: 700; margin-bottom: 8px; }
 .status.ok { color: var(--success-text); }
 .status.error { color: var(--danger-text); }
 .app-wrap {
-  max-width: 1120px;
+  max-width: 1160px;
   margin: 0 auto;
 }
 .app-grid {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 340px 1fr;
   gap: 20px;
 }
 .card {
@@ -304,13 +312,87 @@ label { display: block; font-weight: 700; margin-bottom: 8px; }
   color: var(--text-muted);
   font-size: 13px;
 }
-@media (max-width: 960px) {
+.split-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 20px;
+}
+.checkbox-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.checkbox-row label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 700;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.summary-pill {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+}
+.summary-pill .label {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.summary-pill .value {
+  font-size: 20px;
+  font-weight: 800;
+}
+.preview-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+}
+.preview-list {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  min-height: 120px;
+}
+.preview-item {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.preview-item:last-child { border-bottom: none; }
+.keyword-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.keyword-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+}
+@media (max-width: 1040px) {
   .hero-shell { grid-template-columns: 1fr; }
   .app-grid { grid-template-columns: 1fr; }
+  .split-grid { grid-template-columns: 1fr; }
+  .preview-columns { grid-template-columns: 1fr; }
   .shell { padding: 18px; }
   .hero-side, .panel-side { padding: 22px; }
 }
 """
+
 
 def _theme_script() -> str:
     return """
@@ -348,6 +430,7 @@ function setupThemeControls() {
 }
 """
 
+
 def _theme_control_html() -> str:
     return """
 <div class="theme-toggle">
@@ -356,6 +439,7 @@ def _theme_control_html() -> str:
   <button id="theme-dark" class="secondary" type="button">Dark</button>
 </div>
 """
+
 
 def _render_page(*, title: str, body_html: str, script: str) -> HTMLResponse:
     html = f"""
@@ -418,10 +502,10 @@ def user_login_page() -> HTMLResponse:
       </div>
 
       <div class="hero-copy">
-        <h1>Control your job alerts in a clean, modern space.</h1>
+        <h1>Control your job alerts in a calm, modern workspace.</h1>
         <p>
           Sign in with a secure email link, switch between light and dark mode,
-          and manage your digest preferences without needing admin help.
+          and shape your own matching profile with a clean, product-grade experience.
         </p>
       </div>
 
@@ -429,28 +513,28 @@ def user_login_page() -> HTMLResponse:
         <div class="mini-card">
           <div class="mini-label">Secure access</div>
           <div class="mini-value">Magic Link</div>
-          <div class="muted">Passwordless sign-in with short-lived tokens.</div>
+          <div class="muted">Passwordless sign-in with short-lived secure tokens.</div>
         </div>
         <div class="mini-card">
           <div class="mini-label">Personal control</div>
           <div class="mini-value">Self-Service</div>
-          <div class="muted">Update your profile and digest settings anytime.</div>
+          <div class="muted">Manage your digest settings without admin support.</div>
         </div>
         <div class="mini-card">
           <div class="mini-label">Readable UI</div>
           <div class="mini-value">Light / Dark</div>
-          <div class="muted">Theme-aware surfaces and comfortable spacing.</div>
+          <div class="muted">Balanced color tokens and premium panel surfaces.</div>
         </div>
         <div class="mini-card">
-          <div class="mini-label">Transparent policy</div>
-          <div class="mini-value">Filter Aware</div>
-          <div class="muted">See how the global digest filter affects results.</div>
+          <div class="mini-label">Personal matching</div>
+          <div class="mini-value">Keyword Profile</div>
+          <div class="muted">Preview what your own keyword profile would match today.</div>
         </div>
       </div>
     </div>
 
     <div class="footer-note">
-      Built to feel trustworthy, calm, and easy to use across light and dark themes.
+      Designed to feel approachable, modern, and comfortable in both themes.
     </div>
   </section>
 
@@ -570,8 +654,8 @@ def user_preferences_page() -> HTMLResponse:
             <div class="kpi-value" id="kpi-digest-status">-</div>
           </div>
           <div class="kpi-box">
-            <div class="kpi-label">Profile name</div>
-            <div class="kpi-value" id="kpi-profile-name" style="font-size:16px;">-</div>
+            <div class="kpi-label">Match profile</div>
+            <div class="kpi-value" id="kpi-profile-mode">-</div>
           </div>
           <div class="kpi-box">
             <div class="kpi-label">Email</div>
@@ -591,7 +675,7 @@ def user_preferences_page() -> HTMLResponse:
         <div class="toggle-row">
           <div class="toggle-copy">
             <strong>Account active</strong>
-            <span>Pause all activity tied to your subscriber record.</span>
+            <span>Pause or resume your subscriber record.</span>
           </div>
           <button id="toggle-active" class="secondary" type="button">
             <span id="toggle-active-indicator" class="switch"></span>
@@ -609,17 +693,102 @@ def user_preferences_page() -> HTMLResponse:
         </div>
 
         <div class="form-actions">
-          <button type="button" onclick="savePreferences()">Save changes</button>
+          <button type="button" onclick="savePreferences()">Save account settings</button>
         </div>
         <div class="status" id="save-status"></div>
       </div>
     </div>
 
+    <div class="split-grid">
+      <div class="card">
+        <h2>Your matching profile</h2>
+        <p class="muted">
+          Save your own include and exclude keywords. Preview lets you see what would match today.
+        </p>
+
+        <div class="form-row">
+          <label for="pref_include_keywords">Include keywords</label>
+          <textarea id="pref_include_keywords" placeholder="One keyword per line"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="pref_exclude_keywords">Exclude keywords</label>
+          <textarea id="pref_exclude_keywords" placeholder="One keyword per line"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label>Match fields</label>
+          <div class="checkbox-row">
+            <label><input type="checkbox" id="pref_match_title"> Title</label>
+            <label><input type="checkbox" id="pref_match_location"> Location</label>
+            <label><input type="checkbox" id="pref_match_company_name"> Company name</label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Preview options</label>
+          <div class="checkbox-row">
+            <label><input type="checkbox" id="pref_preview_active_only" checked> Active jobs only</label>
+            <label>Sample limit <input type="number" id="pref_sample_limit" min="1" max="50" value="5" style="width:90px;"></label>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" onclick="saveKeywordPreferences()">Save matching profile</button>
+          <button type="button" class="secondary" onclick="previewKeywordPreferences()">Preview matches</button>
+        </div>
+        <div class="status" id="keyword-save-status"></div>
+      </div>
+
+      <div class="card">
+        <h2>Preview summary</h2>
+        <div class="summary-grid">
+          <div class="summary-pill">
+            <div class="label">Profile state</div>
+            <div class="value" id="pref-summary-enabled">-</div>
+          </div>
+          <div class="summary-pill">
+            <div class="label">Active fields</div>
+            <div class="value" id="pref-summary-fields" style="font-size:14px;">-</div>
+          </div>
+          <div class="summary-pill">
+            <div class="label">Passed jobs</div>
+            <div class="value" id="pref-summary-passed">-</div>
+          </div>
+          <div class="summary-pill">
+            <div class="label">Rejected jobs</div>
+            <div class="value" id="pref-summary-rejected">-</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="muted" id="pref-summary-meta">Run a preview to inspect your current profile.</div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="keyword-chip-row" id="pref-chip-row">
+            <span class="keyword-chip">No saved keywords yet</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-columns">
+      <div class="card">
+        <h2>Passed samples</h2>
+        <div class="preview-list" id="pref-preview-passed">No preview run yet.</div>
+      </div>
+      <div class="card">
+        <h2>Rejected samples</h2>
+        <div class="preview-list" id="pref-preview-rejected">No preview run yet.</div>
+      </div>
+    </div>
+
     <div class="card" style="margin-top: 20px;">
-      <h2>Current filter policy</h2>
+      <h2>Current global filter policy</h2>
       <div class="policy-list">
         <div class="policy-item">
-          <div class="title">Digest filter mode</div>
+          <div class="title">Digest default</div>
           <div class="meta" id="policy-digest-default">-</div>
         </div>
         <div class="policy-item">
@@ -636,7 +805,7 @@ def user_preferences_page() -> HTMLResponse:
         </div>
       </div>
       <div class="footer-note">
-        This policy is managed globally by the system administrator and shown here for transparency.
+        This global policy is managed by the administrator. Your own keyword profile is stored separately.
       </div>
     </div>
   </div>
@@ -654,6 +823,87 @@ function setSwitchVisual(elementId, isOn) {
   node.className = isOn ? "switch on" : "switch";
 }
 
+function keywordsToText(values) {
+  return values.join("\\n");
+}
+
+function textToKeywords(value) {
+  return value
+    .split(/\\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function keywordPreferencePayload() {
+  return {
+    include_keywords: textToKeywords(document.getElementById("pref_include_keywords").value),
+    exclude_keywords: textToKeywords(document.getElementById("pref_exclude_keywords").value),
+    match_title: document.getElementById("pref_match_title").checked,
+    match_location: document.getElementById("pref_match_location").checked,
+    match_company_name: document.getElementById("pref_match_company_name").checked,
+  };
+}
+
+function keywordPreviewPayload() {
+  return {
+    keyword_preference: keywordPreferencePayload(),
+    active_only: document.getElementById("pref_preview_active_only").checked,
+    sample_limit: Number(document.getElementById("pref_sample_limit").value || "5"),
+  };
+}
+
+function renderKeywordChips(data) {
+  const row = document.getElementById("pref-chip-row");
+  row.innerHTML = "";
+
+  const chips = [
+    ...data.include_keywords.map((keyword) => `+ ${keyword}`),
+    ...data.exclude_keywords.map((keyword) => `- ${keyword}`),
+  ];
+
+  if (!chips.length) {
+    row.innerHTML = '<span class="keyword-chip">No saved keywords yet</span>';
+    return;
+  }
+
+  for (const chip of chips) {
+    const node = document.createElement("span");
+    node.className = "keyword-chip";
+    node.textContent = chip;
+    row.appendChild(node);
+  }
+}
+
+function renderPreviewList(containerId, samples) {
+  const container = document.getElementById(containerId);
+
+  if (!samples.length) {
+    container.textContent = "No samples.";
+    return;
+  }
+
+  container.innerHTML = "";
+  for (const sample of samples) {
+    const includeMatches = sample.include_matches.length
+      ? sample.include_matches.map((item) => `${item.field_name}:${item.keyword}`).join(", ")
+      : "-";
+    const excludeMatches = sample.exclude_matches.length
+      ? sample.exclude_matches.map((item) => `${item.field_name}:${item.keyword}`).join(", ")
+      : "-";
+
+    const node = document.createElement("div");
+    node.className = "preview-item";
+    node.innerHTML = `
+      <div><strong>${sample.title}</strong></div>
+      <div class="muted">${sample.company_name} | ${sample.location || "-"}</div>
+      <div>include: ${includeMatches}</div>
+      <div>exclude: ${excludeMatches}</div>
+      <div><a href="${sample.canonical_url}" target="_blank" rel="noreferrer">Open job</a></div>
+    `;
+    container.appendChild(node);
+  }
+}
+
 function paintProfile(profile) {
   preferenceState.id = profile.id;
   preferenceState.is_active = profile.is_active;
@@ -664,7 +914,6 @@ function paintProfile(profile) {
     profile.is_active ? "Active" : "Paused";
   document.getElementById("kpi-digest-status").textContent =
     profile.digest_enabled ? "Enabled" : "Disabled";
-  document.getElementById("kpi-profile-name").textContent = profile.full_name || "Not set";
   document.getElementById("kpi-email").textContent = profile.email;
   document.getElementById("profile-updated-at").textContent =
     `Updated at: ${profile.updated_at || "-"}`;
@@ -688,13 +937,32 @@ function paintPolicy(policy) {
     policy.active_fields.length ? policy.active_fields.join(", ") : "No active fields";
 }
 
-async function loadPreferences() {
+function paintKeywordPreference(preference) {
+  document.getElementById("pref_include_keywords").value =
+    keywordsToText(preference.include_keywords);
+  document.getElementById("pref_exclude_keywords").value =
+    keywordsToText(preference.exclude_keywords);
+  document.getElementById("pref_match_title").checked = preference.match_title;
+  document.getElementById("pref_match_location").checked = preference.match_location;
+  document.getElementById("pref_match_company_name").checked = preference.match_company_name;
+
+  document.getElementById("kpi-profile-mode").textContent =
+    preference.enabled ? "Active" : "Idle";
+  document.getElementById("pref-summary-enabled").textContent =
+    preference.enabled ? "Active" : "Idle";
+  document.getElementById("pref-summary-fields").textContent =
+    preference.active_fields.length ? preference.active_fields.join(", ") : "-";
+  renderKeywordChips(preference);
+}
+
+async function loadPreferencesPage() {
   const me = await ensureUserSession();
   if (!me) return;
 
-  const [profileResponse, policyResponse] = await Promise.all([
+  const [profileResponse, policyResponse, keywordResponse] = await Promise.all([
     fetch("/api/user/me", { credentials: "same-origin" }),
     fetch("/api/user/me/filter-policy", { credentials: "same-origin" }),
+    fetch("/api/user/me/keyword-preferences", { credentials: "same-origin" }),
   ]);
 
   if (!profileResponse.ok) {
@@ -709,6 +977,11 @@ async function loadPreferences() {
   if (policyResponse.ok) {
     const policy = await policyResponse.json();
     paintPolicy(policy);
+  }
+
+  if (keywordResponse.ok) {
+    const keywordPreference = await keywordResponse.json();
+    paintKeywordPreference(keywordPreference);
   }
 }
 
@@ -737,7 +1010,64 @@ async function savePreferences() {
   const profile = await response.json();
   paintProfile(profile);
   document.getElementById("save-status").className = "status ok";
-  document.getElementById("save-status").textContent = "Preferences saved successfully.";
+  document.getElementById("save-status").textContent = "Account settings saved successfully.";
+}
+
+async function saveKeywordPreferences() {
+  const response = await fetch("/api/user/me/keyword-preferences", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(keywordPreferencePayload()),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ detail: "Save failed." }));
+    document.getElementById("keyword-save-status").className = "status error";
+    document.getElementById("keyword-save-status").textContent =
+      data.detail || "Save failed.";
+    return;
+  }
+
+  const preference = await response.json();
+  paintKeywordPreference(preference);
+  document.getElementById("keyword-save-status").className = "status ok";
+  document.getElementById("keyword-save-status").textContent =
+    "Matching profile saved successfully.";
+}
+
+async function previewKeywordPreferences() {
+  const response = await fetch("/api/user/me/keyword-preferences/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(keywordPreviewPayload()),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ detail: "Preview failed." }));
+    document.getElementById("keyword-save-status").className = "status error";
+    document.getElementById("keyword-save-status").textContent =
+      data.detail || "Preview failed.";
+    return;
+  }
+
+  const preview = await response.json();
+  document.getElementById("pref-summary-enabled").textContent =
+    preview.filter_enabled ? "Active" : "Idle";
+  document.getElementById("pref-summary-fields").textContent =
+    preview.active_fields.length ? preview.active_fields.join(", ") : "-";
+  document.getElementById("pref-summary-passed").textContent = String(preview.passed_jobs);
+  document.getElementById("pref-summary-rejected").textContent = String(preview.rejected_jobs);
+  document.getElementById("pref-summary-meta").textContent =
+    `Preview scope: ${preview.jobs_scope} | Total jobs inspected: ${preview.total_jobs}`;
+
+  renderPreviewList("pref-preview-passed", preview.passed_samples);
+  renderPreviewList("pref-preview-rejected", preview.rejected_samples);
+
+  document.getElementById("keyword-save-status").className = "status ok";
+  document.getElementById("keyword-save-status").textContent =
+    "Preview refreshed successfully.";
 }
 
 document.getElementById("toggle-active").addEventListener("click", () => {
@@ -754,7 +1084,7 @@ document.getElementById("toggle-digest").addEventListener("click", () => {
     preferenceState.digest_enabled ? "Enabled" : "Disabled";
 });
 
-loadPreferences();
+loadPreferencesPage();
 """
     return _render_page(
         title="Hiring Radar Preferences",

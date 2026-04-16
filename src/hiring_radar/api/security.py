@@ -167,8 +167,10 @@ def decode_admin_session_token(
     subject = payload.get("sub")
     issued_at = payload.get("iat")
     expires_at = payload.get("exp")
-    if not isinstance(subject, str) or not isinstance(issued_at, str) or not isinstance(
-        expires_at, str
+    if (
+        not isinstance(subject, str)
+        or not isinstance(issued_at, str)
+        or not isinstance(expires_at, str)
     ):
         raise AdminAuthError("Invalid admin session payload.")
 

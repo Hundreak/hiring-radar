@@ -1,0 +1,452 @@
+{
+  "common": {
+    "login": "Giriş yap",
+    "signup": "Kayıt ol",
+    "appNavigation": {
+      "jobs": "İşler",
+      "matches": "Eşleşmeler",
+      "saved": "Kaydedilenler"
+    }
+  },
+  "landing": {
+    "hero": {
+      "badge": "Yapay zeka destekli iş arama",
+      "titlePrefix": "Sana uygun ilanları",
+      "titleAccent": "otomatik bul.",
+      "description": "CoreSift, tüm iş platformlarını tarar, profilinle karşılaştırır ve en yüksek uyumlu fırsatları sana önce gösterir. Başvurularını daha net, daha hızlı ve daha stratejik yönet.",
+      "primaryCta": "Ücretsiz başla",
+      "secondaryCta": "Nasıl çalışır?",
+      "trustCopy": "2.400+ kişi bu hafta iş arama sürecini hızlandırdı",
+      "uploadTitle": "CV'ni buraya yükle",
+      "uploadDescription": "PDF veya Word — sistem otomatik okur, profilini yapılandırır ve daha güçlü eşleşmeler üretir.",
+      "uploadButton": "CV Yükle",
+      "parsedTitle": "Profilinden çekilen veriler",
+      "parsedChips": [
+        "React",
+        "TypeScript",
+        "5 yıl deneyim",
+        "İstanbul",
+        "Uzaktan",
+        "İngilizce"
+      ],
+      "scoreTitle": "Profil tamamlanma skoru",
+      "scoreRows": {
+        "identity": "Temel bilgiler",
+        "skills": "Beceriler",
+        "experience": "Deneyim detayları",
+        "preferences": "Beklentiler & tercihler"
+      },
+      "scoreStatus": {
+        "done": "Tamamlandı",
+        "missing": "Eksik"
+      },
+      "jobsTitle": "Senin için önerilen ilanlar",
+      "jobsLive": "Canlı",
+      "panelNote": "Profilini geliştirdikçe sistem daha isabetli eşleşmeler üretir."
+    },
+    "stats": {
+      "activeJobs": "Aktif ilan",
+      "matchAccuracy": "Eşleşme doğruluğu",
+      "fasterApplies": "Daha hızlı başvuru",
+      "integrations": "Platform entegrasyonu"
+    },
+    "features": {
+      "items": [
+        {
+          "title": "Tüm platformları tek yerden tara",
+          "description": "LinkedIn, kariyer siteleri ve farklı kaynaklardan gelen ilanları tek üründe birleştir. Ayrı ayrı sekmelerde kaybolmadan tüm fırsatları gör."
+        },
+        {
+          "title": "Profiline göre akıllı eşleştirme",
+          "description": "CV'ni, becerilerini ve tercihlerini anlayan sistem; uyum puanıyla en güçlü fırsatları öne çıkarır ve odaklanmanı kolaylaştırır."
+        },
+        {
+          "title": "Eksikleri gör, profili güçlendir",
+          "description": "Hangi bilgi eksik, hangi sinyal zayıf; net biçimde gör. Profil kaliten arttıkça daha güçlü ve daha açıklanabilir eşleşmeler üret."
+        }
+      ]
+    },
+    "how": {
+      "label": "Nasıl çalışır?",
+      "title": "4 adımda işe alım radarın devrede",
+      "description": "Profilini oluştur, taramayı başlat, en iyi eşleşmeleri gör ve başvur.",
+      "steps": [
+        {
+          "title": "Profilini oluştur",
+          "description": "CV'ni yükle veya becerilerini elle gir. Sistem seni anlamaya başlasın."
+        },
+        {
+          "title": "Platformları tara",
+          "description": "40+ iş platformu ve kaynak otomatik olarak taranır; fırsatlar tek akışta toplanır."
+        },
+        {
+          "title": "Eşleşmeleri gör",
+          "description": "Her ilan uyum puanıyla sıralanır. En iyi fırsatları önce görür, zamanını daha iyi yönetirsin."
+        },
+        {
+          "title": "Hızlıca başvur",
+          "description": "Doğru ilanlara daha hızlı ilerle; başvuru sürecini veriye dayalı ve daha stratejik yönet."
+        }
+      ]
+    },
+    "testimonials": {
+      "label": "Kullanıcı yorumları",
+      "title": "İş arayanlar ne diyor?",
+      "items": [
+        {
+          "quote": "\"3 haftada 12 platform yerine tek yerden baktım ve 2 mülakat aldım. Çok daha az zaman harcadım.\"",
+          "name": "Ahmet K.",
+          "role": "Frontend Developer"
+        },
+        {
+          "quote": "\"Uyum puanı gerçekten işe yarıyor. %80 üzeri ilanların hepsinde ön elemeyi geçtim.\"",
+          "name": "Merve B.",
+          "role": "Data Analyst"
+        },
+        {
+          "quote": "\"Profil eksiklerimi görünce hangi becerileri geliştireceğimi anladım. 1 ayda 3 teklif aldım.\"",
+          "name": "Can E.",
+          "role": "DevOps Engineer"
+        }
+      ]
+    },
+    "cta": {
+      "badge": "Ücretsiz, güçlü ve net",
+      "titlePrefix": "Bir daha ilanların içinde",
+      "titleAccent": "kaybolma.",
+      "description": "Profilini oluştur, radarını çalıştır ve sana en uygun fırsatları daha görünür hale getir. CoreSift, iş arama sürecini daha sistematik ve profesyonel hale getirir.",
+      "button": "Hemen başla — ücretsiz",
+      "notes": [
+        "Kredi kartı yok",
+        "Kurulum yok",
+        "Dakikalar içinde hazır"
+      ]
+    }
+  },
+  "auth": {
+    "loginProductBadge": "Ürünün ne sunduğunu anlatan giriş deneyimi",
+    "loginHeadline": "Sadece giriş yapmıyorsun; daha doğru fırsatları keşfetmek için bir çalışma alanına giriyorsun.",
+    "loginDescription": "Bu ekran, pazarlama metni ile giriş formunu dengeler. Tema seçici sağ üstte kalır; asıl odak ürün değeri ve güven hissidir.",
+    "loginTitle": "Hesabına giriş yap",
+    "loginSubtext": "Şifre ile giriş yapabilir veya magic-link isteyebilirsin.",
+    "passwordLogin": "Şifre ile giriş yap",
+    "magicLinkLogin": "Giriş bağlantısı gönder",
+    "createAccount": "Hesabın yok mu? Kayıt ol",
+    "forgotPassword": "Şifremi unuttum",
+    "or": "veya",
+    "signupBadge": "Yeni kullanıcı kazanımı odaklı kayıt akışı",
+    "signupHeadline": "Profilini oluştur, insan doğrulamasını geç ve işe uygun eşleşmeleri toplamaya başla.",
+    "signupDescription": "Kayıt, sade ama güven veren biçimde ilerler: temel bilgiler, human challenge, şifre oluşturma ve başlangıç tercihleri.",
+    "signupTitle": "Yeni hesap oluştur",
+    "signupSubtext": "Bu fazda signup shell hazır. Sonraki fazda gerçek API ile bağlanacak.",
+    "signupCta": "Hesabı oluştur",
+    "haveAccount": "Zaten hesabın var mı? Giriş yap",
+    "humanChallengeLabel": "Doğrulama kodu",
+    "fields": {
+      "email": "E-posta",
+      "password": "Şifre",
+      "magicLinkEmail": "E-posta adresin",
+      "fullName": "Ad soyad",
+      "challenge": "Yukarıdaki kodu yaz"
+    },
+    "marketing": {
+      "signal": {
+        "title": "Tüm fırsatlar aynı yerde",
+        "description": "Kullanıcı önce tüm ilan havuzunu görür; eşleşme yalnızca ek bir zeka katmanı olur."
+      },
+      "clarity": {
+        "title": "Daha sade bilgi hiyerarşisi",
+        "description": "Arama, tema, dil ve ana eylemler tek header içinde net biçimde konumlanır."
+      },
+      "control": {
+        "title": "Ayarlar gerçek ürün mantığında",
+        "description": "Profile, security, preferences ve notifications ayrı route’larda çalışır."
+      },
+      "multilingual": {
+        "title": "TR / EN / DE hazır",
+        "description": "Başlangıçtan itibaren çok dilli yapı ile daha geniş kullanıcı kitlesi hedeflenir."
+      }
+    }
+  },
+  "jobs": {
+    "title": "Jobs Explorer",
+    "description": "Tüm iş ilanları burada. Arama yap, filtrele, karşılaştır ve sana uyan fırsatları ayrı bir katmanda gör.",
+    "searchPlaceholder": "İş, şirket, yetenek veya şehir ara...",
+    "filtersTitle": "Hızlı filtreler",
+    "resetFilters": "Filtreleri temizle",
+    "quickFilters": "Öncelikli filtreler",
+    "matchedOnly": "Sadece eşleşenler",
+    "remote": "Remote",
+    "engineering": "Engineering",
+    "liveFeed": "Canlı akış",
+    "resultCount": "{count} ilan",
+    "matchedForYou": "Sana göre eşleşme · {score}%",
+    "viewDetails": "Detayı aç",
+    "newListings": "Yeni ilanlar",
+    "fullTime": "Tam zamanlı",
+    "partTime": "Yarı zamanlı",
+    "internship": "Staj",
+    "activeFilters": "Aktif",
+    "locationFilter": "Konum",
+    "companyFilter": "Şirket",
+    "loadingJobs": "İlanlar yükleniyor...",
+    "noJobs": "Bu filtreler için ilan bulunamadı."
+  },
+  "matches": {
+    "title": "Eşleşmeler",
+    "description": "Profilindeki beceriler, deneyim ve tercihler analiz edilerek en uygun ilanlar puanlandı.",
+    "scoreSummary": "{count} yüksek uyumlu ilan",
+    "heroTitle": "Senin için {count} yüksek uyumlu ilan bulundu",
+    "heroSub": "Her kart neden eşleştiğini açıklar.",
+    "liveEngine": "Canlı eşleşme motoru aktif",
+    "matched": "Eşleşen",
+    "highest": "En yüksek",
+    "newToday": "Yeni bugün",
+    "profileAlert": "Profili %15 daha doldurursan eşleşme sayın artacak.",
+    "completeProfile": "Profili tamamla →",
+    "sortHighest": "En yüksek uyum",
+    "sortNewest": "En yeni",
+    "sortSkill": "Beceri uyumu",
+    "sortSalary": "Maaş",
+    "matchedCount": "{count} ilan eşleşti",
+    "skillMatch": "Beceri uyumu",
+    "missingSkills": "Eksik beceriler",
+    "detail": "Detay",
+    "apply": "Başvur →",
+    "insightsTitle": "Eşleşme içgörüleri",
+    "gapsTitle": "Seni durduran beceriler",
+    "gapsJobs": "{count} ilan bekliyor",
+    "aiTitle": "AI kariyer danışmanı",
+    "aiPlaceholder": "Bir şey sor…",
+    "sortLabel": "Sırala",
+    "loading": "Eşleşmeler yükleniyor...",
+    "noMatches": "Henüz eşleşen ilan yok. Daha iyi eşleşme için profilini tamamla.",
+    "strengthTitle": "{keyword} güçlü",
+    "strengthSub": "{count} ilanda %{pct}+ uyum sağlıyor.",
+    "remoteTitle": "Remote avantajın var",
+    "remoteSub": "{total} eşleşmenin {remote} tanesi remote."
+  },
+  "saved": {
+    "title": "Kaydedilen ilanlar",
+    "description": "İlanları kaydet, başvuru durumunu kendin güncelle. CoreSift hazırlanmana yardım eder.",
+    "howTitle": "Nasıl çalışır?",
+    "howText": "CoreSift şirketlerle doğrudan bağlantılı değil — başvuru sonuçlarını sen takip edersin. Mülakat daveti aldığında bunu kendin işaretle.",
+    "tabAll": "Tümü",
+    "tabReviewing": "Değerlendiriliyor",
+    "tabApplied": "Başvuruldu",
+    "tabInterview": "Mülakat",
+    "tabArchive": "Arşiv",
+    "sortLatest": "En son eklenen",
+    "addJob": "+ İlan ekle",
+    "colReviewing": "Değerlendiriliyor",
+    "colApplied": "Başvuruldu",
+    "colInterview": "Mülakat / Teklif",
+    "notApplied": "Başvurmadın",
+    "notAppliedHint": "Son başvuru tarihi yaklaşıyor.",
+    "urgentApply": "Acil başvur →",
+    "applyAction": "Başvur →",
+    "waitingResponse": "Yanıt bekleniyor",
+    "updateStatus": "Durumu güncelle:",
+    "updateResult": "Sonucu güncelle:",
+    "statusApplied": "Başvurdum",
+    "statusInterview": "Mülakat aldım",
+    "statusRejected": "Reddedildim",
+    "statusNoResponse": "Yanıt yok",
+    "statusOffer": "Teklif aldım ✓",
+    "statusSecondInterview": "2. mülakat",
+    "addNote": "Not ekle",
+    "editNote": "Notu düzenle",
+    "saveNote": "Notu kaydet",
+    "noteModalTitle": "Notlar",
+    "noteModalPlaceholder": "Bu iş hakkında bir not yaz…",
+    "noNotes": "Henüz not yok.",
+    "daysLeft": "{count} gün kaldı",
+    "deadlinesTitle": "Acil son tarihler",
+    "activityTitle": "Son aktiviteler",
+    "aiTitle": "AI kariyer danışmanı",
+    "aiPlaceholder": "Bir şey sor…",
+    "emptyColumn": "Mülakat daveti aldığında \"Mülakat aldım\" butonuna bas.",
+    "prepTitle": "CoreSift hazırlık önerileri",
+    "interviewDate": "Mülakat tarihi",
+    "savedCount": "Kaydedildi",
+    "appliedCount": "Başvuruldu",
+    "interviewCount": "Mülakat",
+    "restoreReviewing": "Değerlendirmeye taşı",
+    "restoreApplied": "Başvuruya taşı",
+    "loading": "Kaydedilen ilanlar yükleniyor\u2026",
+    "cancel": "İptal",
+    "openNotes": "Notu aç",
+    "openNotesCount": "{count} notu aç",
+    "interviewPrep": "AI ile hazırlan",
+    "interviewPrepPrompt": "{company} şirketindeki {title} pozisyonu için mülakata hazırlanmama yardım et. Neler beklemeliyi̇m? Hangi sorular gelebilir? Nasıl hazırlanmalıyım?"
+  },
+  "profile": {
+    "completion": {
+      "title": "Profil tamamlama",
+      "description": "Profilini ne kadar iyi doldurursan, sana o kadar kaliteli eşleşmeler sunabiliriz."
+    },
+    "checklist": {
+      "name": "Görünen ad",
+      "digest": "Digest tercihi",
+      "account": "Aktif hesap durumu",
+      "keywords": "Eşleşme anahtar kelimeleri"
+    }
+  },
+  "settings": {
+    "pageTitle": "Ayarlar",
+    "pageDescription": "Profil, güvenlik, tercih ve bildirim deneyimini route bazlı yeni yapıda yönet.",
+    "navTitle": "Ayar menüsü",
+    "tabs": {
+      "profile": "Profil",
+      "security": "Güvenlik",
+      "preferences": "Tercihler",
+      "notifications": "Bildirimler"
+    },
+    "profile": {
+      "title": "Profil bilgileri",
+      "description": "Kullanıcıya ait temel kimlik, iletişim ve eğitim verileri burada toplanır.",
+      "fields": {
+        "fullName": {
+          "label": "Görünen ad"
+        },
+        "email": {
+          "label": "E-posta",
+          "hint": "Bu alan sonraki fazlarda doğrulanmış hesap e-postası olarak korunacak."
+        },
+        "phone": {
+          "label": "Telefon numarası",
+          "hint": "Hesap güvenliği ve opsiyonel bildirim kanalları için kullanılabilir."
+        },
+        "headline": {
+          "label": "Kısa profesyonel başlık",
+          "hint": "Örnek: Senior Frontend Engineer / Security Analyst",
+          "placeholder": "Kısa profesyonel başlığını yaz"
+        }
+      },
+      "education": {
+        "title": "Eğitim bilgileri",
+        "description": "Eğitim geçmişi, eşleşme kalitesini yükseltmek için profilin parçası olacak.",
+        "add": "Eğitim ekle"
+      }
+    },
+    "security": {
+      "title": "Güvenlik",
+      "description": "Şifre, oturum, iki faktörlü doğrulama ve hesap güvenliğini buradan yönet.",
+      "passwordSection": "Şifre güncelle",
+      "passwordSectionDesc": "Güçlü bir şifre hesabını yetkisiz erişime karşı korur.",
+      "fields": {
+        "currentPassword": "Mevcut şifre",
+        "newPassword": "Yeni şifre",
+        "confirmPassword": "Yeni şifre tekrar"
+      },
+      "passwordHint": "Büyük harf, rakam ve sembol ekle.",
+      "updatePassword": "Şifreyi güncelle",
+      "cancel": "İptal",
+      "loginMethodsTitle": "Giriş yöntemleri",
+      "loginMethodsDesc": "Magic-link ve iki faktörlü doğrulama tercihlerini yönet.",
+      "magicLinkTitle": "Magic-link girişi",
+      "magicLinkDescription": "Şifreye ek olarak e-posta bağlantısıyla giriş yapabilirsin.",
+      "twoFactorTitle": "İki faktörlü doğrulama (2FA)",
+      "twoFactorDescription": "Google Authenticator veya benzer bir uygulama ile her girişte ek doğrulama iste.",
+      "newDeviceTitle": "Yeni cihaz girişinde e-posta bildirimi",
+      "newDeviceDescription": "Tanımadığın bir cihazdan giriş yapıldığında e-posta ile anında haber al.",
+      "active": "Aktif",
+      "inactive": "Pasif",
+      "new2fa": "Yeni 2FA",
+      "sessionsTitle": "Aktif oturumlar",
+      "sessionsDesc": "Hesabına giriş yapmış tüm cihazları gör ve yönet.",
+      "thisDevice": "Bu cihaz",
+      "endSession": "Sonlandır",
+      "endAllSessions": "Diğer tüm oturumları sonlandır",
+      "loginHistoryTitle": "Giriş geçmişi",
+      "loginHistoryDesc": "Son 10 giriş ve güvenlik olayını incele.",
+      "successfulLogin": "Başarılı giriş",
+      "failedLogin": "Başarısız giriş denemesi",
+      "passwordChanged": "Şifre güncellendi",
+      "dangerZone": "Tehlikeli alan",
+      "dangerZoneDesc": "Bu işlemler geri alınamaz. Dikkatli devam et.",
+      "changeEmail": "E-posta adresini değiştir",
+      "changeEmailDesc": "Yeni adrese doğrulama e-postası gönderilir.",
+      "changeEmailBtn": "E-postayı güncelle",
+      "terminateAll": "Tüm oturumları sonlandır",
+      "terminateAllDesc": "Bu cihaz dahil tüm aktif oturumlar kapatılır.",
+      "terminateAllBtn": "Tümünü sonlandır",
+      "deleteAccount": "Hesabı kalıcı olarak sil",
+      "deleteAccountDesc": "Tüm veriler, profil ve eşleşmeler kalıcı olarak silinir.",
+      "deleteAccountBtn": "Hesabı sil",
+      "deleteModalTitle": "Hesabınızı silmek istiyor musunuz?",
+      "deleteModalDesc": "Bu işlem geri alınamaz. Tüm verileriniz, profiliniz ve eşleşmeleriniz silinecektir.",
+      "deleteModalReason": "Neden ayrılıyorsunuz? (isteğe bağlı)",
+      "deleteModalPassword": "Onaylamak için şifrenizi girin",
+      "deleteModalConfirm": "Hesabımı kalıcı olarak sil",
+      "emailModalTitle": "E-posta adresini değiştir",
+      "emailModalNewEmail": "Yeni e-posta adresi",
+      "emailModalPassword": "Mevcut şifre",
+      "emailModalSendCode": "Doğrulama kodu gönder",
+      "emailModalCodeSent": "Yeni adrese doğrulama kodu gönderildi.",
+      "emailModalCode": "Doğrulama kodunu girin",
+      "emailModalConfirm": "E-posta değişikliğini onayla",
+      "totpSetupTitle": "İki faktörlü doğrulama kur",
+      "totpSetupDesc": "Bu kodu kimlik doğrulama uygulamanızla tarayın, ardından 6 haneli kodu girin.",
+      "totpSetupCode": "6 haneli doğrulama kodu",
+      "totpSetupConfirm": "Doğrula ve 2FA'yı etkinleştir",
+      "loginMagicLink": "Magic link girişi",
+      "emailChanged": "E-posta değiştirildi",
+      "close": "Kapat",
+      "disable": "Devre dışı bırak",
+      "passwordUpdated": "Şifre başarıyla güncellendi.",
+      "noSessions": "Aktif oturum bulunamadı.",
+      "noHistory": "Henüz giriş geçmişi kaydedilmedi.",
+      "emailModalDesc": "Yeni e-posta adresinize 6 haneli doğrulama kodu göndereceğiz. Değişikliği tamamlamak için kodu buraya girin.",
+      "emailModalPasswordHint": "Güvenlik için e-posta değiştirmeden önce kimliğinizi doğrulayın.",
+      "sessionStarted": "Giriş yapıldı",
+      "unknownDevice": "Bilinmeyen cihaz",
+      "totpSecretLabel": "Gizli anahtar",
+      "timeJustNow": "az önce",
+      "timeMinutesAgo": "{count} dk önce",
+      "timeHoursAgo": "{count} sa önce",
+      "timeDaysAgo": "{count} gün önce"
+    },
+    "preferences": {
+      "title": "Eşleşme tercihleri",
+      "description": "Keyword, lokasyon, iş tipi ve diğer sinyaller burada birleşecek.",
+      "skillsLabel": "Yetenekler / anahtar kelimeler",
+      "skillsHint": "Virgül veya satır sonu ile ekle.",
+      "skillsPlaceholder": "React, Python, Security, Embedded...",
+      "locationsLabel": "Tercih edilen lokasyonlar",
+      "locationsPlaceholder": "İstanbul, Berlin, Remote...",
+      "matchingHelp": "Bu alanlar yalnızca filtreleme için değil, daha doğru ve açıklanabilir eşleşmeler için de kullanılacak.",
+      "saveButton": "Tercihleri kaydet"
+    },
+    "notifications": {
+      "title": "Bildirimler",
+      "description": "Digest, match alert ve sessiz saat kuralları burada yönetilecek.",
+      "digest": "E-posta özeti",
+      "matches": "Yeni eşleşme uyarıları",
+      "quietHours": "Sessiz saatler",
+      "saveButton": "Bildirim ayarlarını kaydet"
+    }
+  },
+  "footer": {
+    "description": "CoreSift, adayların daha güçlü profil sinyalleriyle daha iyi fırsatları keşfetmesine yardımcı olan modern bir kariyer platformudur.",
+    "supportTitle": "Destek",
+    "sections": {
+      "company": "Kurumsal",
+      "legal": "Politikalar"
+    },
+    "links": {
+      "about": "Hakkımızda",
+      "principles": "Çalışma İlkelerimiz",
+      "faq": "Sıkça Sorulan Sorular",
+      "contact": "İletişim",
+      "privacy": "Gizlilik Politikası",
+      "terms": "Kullanım Şartları",
+      "cookies": "Çerez Politikası",
+      "support": "Destek"
+    },
+    "copyright": "© 2026 CoreSift. Tüm hakları saklıdır.",
+    "noteSecurity": "Kurumsal güvenlik yaklaşımı",
+    "notePrivacy": "Gizlilik odaklı ürün deneyimi",
+    "noteSupport": "Resmî destek kanalı: destek@coresift.com"
+  }
+}

@@ -140,8 +140,7 @@ def test_greenhouse_scraper_parses_branded_jobs_page() -> None:
     assert first_job.title == "Critical Accounts Program (CAP) Director"
     assert first_job.location == "North America"
     assert (
-        first_job.canonical_url
-        == "https://www.corelight.com/company/careers/open-jobs/"
+        first_job.canonical_url == "https://www.corelight.com/company/careers/open-jobs/"
         "critical-accounts-program-cap-director"
     )
     assert first_job.source_job_id == "critical-accounts-program-cap-director"

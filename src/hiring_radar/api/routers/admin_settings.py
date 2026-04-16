@@ -62,9 +62,7 @@ def _build_app_settings_from_request(
 ) -> AppSettings:
     keyword_filter = _build_keyword_filter_settings(payload.keyword_filter)
     notifications = NotificationsSettings(
-        apply_keyword_filter_to_digest=(
-            payload.notifications.apply_keyword_filter_to_digest
-        )
+        apply_keyword_filter_to_digest=(payload.notifications.apply_keyword_filter_to_digest)
     )
     return AppSettings(
         keyword_filter=keyword_filter,
@@ -116,12 +114,10 @@ def _serialize_filter_sample(
         location=decision.job.location,
         canonical_url=decision.job.canonical_url,
         include_matches=[
-            _serialize_filter_match(match)
-            for match in decision.evaluation.include_matches
+            _serialize_filter_match(match) for match in decision.evaluation.include_matches
         ],
         exclude_matches=[
-            _serialize_filter_match(match)
-            for match in decision.evaluation.exclude_matches
+            _serialize_filter_match(match) for match in decision.evaluation.exclude_matches
         ],
     )
 
@@ -184,12 +180,6 @@ def admin_filter_preview(
         passed_jobs=result.passed_count,
         rejected_jobs=result.rejected_count,
         sample_limit=payload.sample_limit,
-        passed_samples=[
-            _serialize_filter_sample(decision)
-            for decision in passed_samples
-        ],
-        rejected_samples=[
-            _serialize_filter_sample(decision)
-            for decision in rejected_samples
-        ],
+        passed_samples=[_serialize_filter_sample(decision) for decision in passed_samples],
+        rejected_samples=[_serialize_filter_sample(decision) for decision in rejected_samples],
     )

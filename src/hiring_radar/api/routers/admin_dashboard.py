@@ -81,9 +81,7 @@ def admin_dashboard_summary(
         latest_notification_run=_map_latest_notification_run(latest_notification_run),
         digest_filter_policy=DashboardDigestFilterPolicyResponse(
             filter_enabled=keyword_filter.is_enabled(),
-            apply_keyword_filter_to_digest=(
-                settings.notifications.apply_keyword_filter_to_digest
-            ),
+            apply_keyword_filter_to_digest=(settings.notifications.apply_keyword_filter_to_digest),
             include_keywords=list(keyword_filter.include_keywords),
             exclude_keywords=list(keyword_filter.exclude_keywords),
             active_fields=list(keyword_filter.active_fields()),

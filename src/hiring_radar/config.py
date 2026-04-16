@@ -32,9 +32,7 @@ def _read_yaml_file(path: str | Path) -> dict[str, Any]:
         return {}
 
     if not isinstance(raw_data, dict):
-        raise ConfigError(
-            f"Top-level YAML structure must be a mapping/object in {config_path}"
-        )
+        raise ConfigError(f"Top-level YAML structure must be a mapping/object in {config_path}")
 
     return raw_data
 

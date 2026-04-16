@@ -25,16 +25,22 @@ def _make_auth_settings() -> AdminAuthSettings:
 def test_verify_admin_credentials_requires_exact_match() -> None:
     settings = _make_auth_settings()
 
-    assert verify_admin_credentials(
-        email="admin@example.com",
-        password="super-secret",
-        settings=settings,
-    ) is True
-    assert verify_admin_credentials(
-        email="admin@example.com",
-        password="wrong-password",
-        settings=settings,
-    ) is False
+    assert (
+        verify_admin_credentials(
+            email="admin@example.com",
+            password="super-secret",
+            settings=settings,
+        )
+        is True
+    )
+    assert (
+        verify_admin_credentials(
+            email="admin@example.com",
+            password="wrong-password",
+            settings=settings,
+        )
+        is False
+    )
 
 
 def test_create_and_decode_admin_session_token_roundtrip() -> None:

@@ -449,8 +449,6 @@ def test_list_jobs_first_seen_since_can_filter_by_source(
     assert jobs[0].source_name == "corelight-greenhouse"
 
 
-
-    
 def test_upsert_subscriber_inserts_new_subscriber(
     repository: HiringRadarRepository,
 ) -> None:

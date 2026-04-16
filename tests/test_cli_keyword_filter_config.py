@@ -45,9 +45,7 @@ def test_keyword_filter_config_handles_disabled_filter(monkeypatch) -> None:
     monkeypatch.setattr(
         cli,
         "load_app_settings",
-        lambda path: AppSettings(
-            keyword_filter=KeywordFilterSettings()
-        ),
+        lambda path: AppSettings(keyword_filter=KeywordFilterSettings()),
     )
 
     result = runner.invoke(

@@ -32,4 +32,5 @@ def test_user_preferences_page_renders() -> None:
 
     assert response.status_code == 200
     assert "Your Preferences" in response.text
-    assert "Current filter policy" in response.text
+    assert "Current global filter policy" in response.text
+    assert "Your matching profile" in response.text

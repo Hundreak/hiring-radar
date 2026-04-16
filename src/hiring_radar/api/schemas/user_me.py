@@ -21,10 +21,7 @@ class UserPreferencesUpdateRequest(BaseModel):
     digest_enabled: bool | None = None
 
     def provided_update_fields(self) -> dict[str, object]:
-        return {
-            field_name: getattr(self, field_name)
-            for field_name in self.model_fields_set
-        }
+        return {field_name: getattr(self, field_name) for field_name in self.model_fields_set}
 
 
 class UserFilterPolicyResponse(BaseModel):

@@ -85,9 +85,7 @@ def test_filter_jobs_by_keyword_settings_partitions_jobs() -> None:
     assert result.total_jobs == 3
     assert result.passed_count == 1
     assert result.rejected_count == 2
-    assert tuple(job.title for job in result.passed_jobs) == (
-        "Senior Python Engineer",
-    )
+    assert tuple(job.title for job in result.passed_jobs) == ("Senior Python Engineer",)
     assert tuple(job.title for job in result.rejected_jobs) == (
         "Python Intern",
         "Frontend Engineer",

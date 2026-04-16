@@ -17,11 +17,10 @@ from hiring_radar.api.security import (
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.db.sqlite import close_connection, initialize_database
 from hiring_radar.services.user_auth import (
-    USER_SESSION_COOKIE_NAME,
-    UserAuthError,
+    SessionDecodeError,
     UserAuthSettings,
     UserSession,
-    decode_user_session_token,
+    decode_user_session,
     load_user_auth_settings,
 )
 from hiring_radar.settings import AppSettings, load_app_settings
@@ -58,7 +57,7 @@ def get_admin_auth_settings() -> AdminAuthSettings:
 
 
 def get_user_auth_settings() -> UserAuthSettings:
-    return load_user_auth_settings(get_env_path())
+    return load_user_auth_settings()
 
 
 AdminSessionCookie = Annotated[
@@ -71,6 +70,11 @@ AdminAuthSettingsDep = Annotated[
     Depends(get_admin_auth_settings),
 ]
 
+USER_SESSION_COOKIE_NAME = os.environ.get(
+    "HIRING_RADAR_SESSION_COOKIE_NAME",
+    "hiring_radar_session",
+)
+
 UserSessionCookie = Annotated[
     str | None,
     Cookie(alias=USER_SESSION_COOKIE_NAME),
@@ -80,7 +84,6 @@ UserAuthSettingsDep = Annotated[
     UserAuthSettings,
     Depends(get_user_auth_settings),
 ]
-
 
 def get_current_admin_session(
     admin_session_cookie: AdminSessionCookie = None,
@@ -112,9 +115,9 @@ def get_current_user_session(
         raise HTTPException(status_code=401, detail="Not authenticated.")
 
     try:
-        return decode_user_session_token(
-            token=user_session_cookie,
+        return decode_user_session(
+            user_session_cookie,
             settings=auth_settings,
         )
-    except UserAuthError as exc:
+    except SessionDecodeError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc

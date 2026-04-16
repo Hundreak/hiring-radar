@@ -29,6 +29,15 @@ from hiring_radar.services.email import (
     send_email_via_smtp,
 )
 from hiring_radar.services.export import ExportResult, export_jobs_to_csv
+from hiring_radar.services.retrieval.embedding_jobs import (
+    DEFAULT_EMBEDDING_MODEL,
+    DEFAULT_EMBEDDING_PROVIDER,
+    DeterministicEmbeddingProvider,
+    PROCESS_ACTION_FAILED,
+    PROCESS_ACTION_IDLE,
+    PROCESS_ACTION_PROCESSED,
+    run_embedding_job_batch,
+)
 from hiring_radar.services.summary import SummaryResult, build_summary
 from hiring_radar.settings import AppSettings, load_app_settings
 
@@ -108,6 +117,7 @@ def _finish_notification_run(
         subject=subject,
         error_message=error_message,
     )
+
 
 def _resolve_digest_recipients(
     *,
@@ -272,6 +282,7 @@ def _print_digest_filter_policy(
         f"{settings.notifications.apply_keyword_filter_to_digest}"
     )
 
+
 def _filter_digest_result_if_requested(
     *,
     digest: DigestResult,
@@ -326,6 +337,7 @@ def _build_digest_skip_reason(
 
     return "no new jobs in this window"
 
+
 def _print_export_result(result: ExportResult) -> None:
     typer.secho("Export completed", fg="green", bold=True)
     typer.echo(f"  rows={result.row_count}")
@@ -355,6 +367,43 @@ def _print_export_scope_summary(
             typer.echo(f"  include_keywords={list(keyword_filter.include_keywords)}")
             typer.echo(f"  exclude_keywords={list(keyword_filter.exclude_keywords)}")
             typer.echo(f"  active_fields={list(keyword_filter.active_fields())}")
+
+
+
+
+def _print_retrieval_embedding_batch_results(results) -> None:
+    processed = sum(1 for result in results if result.action == PROCESS_ACTION_PROCESSED)
+    failed = sum(1 for result in results if result.action == PROCESS_ACTION_FAILED)
+    idle = sum(1 for result in results if result.action == PROCESS_ACTION_IDLE)
+
+    typer.secho("Retrieval embedding batch", bold=True)
+    typer.echo(
+        f"  processed={processed} failed={failed} idle={idle} total={len(results)}"
+    )
+
+    for result in results:
+        if result.action == PROCESS_ACTION_PROCESSED and result.job is not None:
+            typer.secho(
+                f"  [processed] job_id={result.job.id} chunk_id={result.job.chunk_id}",
+                fg="green",
+            )
+            continue
+
+        if result.action == PROCESS_ACTION_FAILED:
+            job_label = "-"
+            chunk_label = "-"
+            if result.job is not None:
+                job_label = str(result.job.id)
+                chunk_label = str(result.job.chunk_id)
+            typer.secho(
+                f"  [failed] job_id={job_label} chunk_id={chunk_label} error={result.error_message or '-'}",
+                fg="red",
+                err=True,
+            )
+            continue
+
+        typer.echo(f"  [idle] reason={result.reason or '-'}")
+
 
 def _print_summary_result(result: SummaryResult) -> None:
     typer.secho("Summary", bold=True)
@@ -439,21 +488,14 @@ def _print_notification_runs(runs: list[NotificationRun]) -> None:
         return
 
     for run in runs:
-        typer.echo(
-            f"  id={run.id} type={run.notification_type} status={run.status}"
-        )
+        typer.echo(f"  id={run.id} type={run.notification_type} status={run.status}")
         typer.echo(f"    started_at={run.started_at}")
         typer.echo(f"    finished_at={run.finished_at or '-'}")
-        typer.echo(
-            f"    recipient_count={run.recipient_count} "
-            f"new_jobs_count={run.new_jobs_count}"
-        )
+        typer.echo(f"    recipient_count={run.recipient_count} new_jobs_count={run.new_jobs_count}")
         typer.echo(f"    since={run.since or '-'}")
         typer.echo(f"    subject={run.subject or '-'}")
         if run.error_message:
             typer.echo(f"    detail={run.error_message}")
-
-
 
 
 def _print_ops_status(
@@ -522,8 +564,7 @@ def _print_keyword_filter_config(settings: AppSettings) -> None:
     typer.echo("")
     typer.secho("Notification Policy", bold=True)
     typer.echo(
-        "  apply_keyword_filter_to_digest="
-        f"{settings.notifications.apply_keyword_filter_to_digest}"
+        f"  apply_keyword_filter_to_digest={settings.notifications.apply_keyword_filter_to_digest}"
     )
 
 
@@ -531,10 +572,7 @@ def _format_keyword_field_matches(decisions) -> str:
     if not decisions:
         return "-"
 
-    return ", ".join(
-        f"{match.field_name}:{match.keyword}"
-        for match in decisions
-    )
+    return ", ".join(f"{match.field_name}:{match.keyword}" for match in decisions)
 
 
 def _print_filter_decision_samples(
@@ -893,7 +931,8 @@ def crawl_and_notify(
 
     if any(not result.success for result in results):
         raise typer.Exit(code=1)
-    
+
+
 @app.command()
 def export(
     output_dir: str = typer.Option(
@@ -928,11 +967,7 @@ def export(
         connection = initialize_database(DEFAULT_DB_PATH)
         repository = HiringRadarRepository(connection)
 
-        selected_jobs = (
-            repository.list_active_jobs()
-            if active_only
-            else repository.list_jobs()
-        )
+        selected_jobs = repository.list_active_jobs() if active_only else repository.list_jobs()
 
         jobs_to_export = selected_jobs
         if apply_filter:
@@ -967,6 +1002,7 @@ def export(
 
     finally:
         close_connection(connection)
+
 
 @app.command(name="digest-preview")
 def digest_preview(
@@ -1040,6 +1076,7 @@ def digest_preview(
 
     finally:
         close_connection(connection)
+
 
 @app.command(name="send-digest")
 def send_digest(
@@ -1213,6 +1250,7 @@ def send_digest(
 
     finally:
         close_connection(connection)
+
 
 @app.command(name="add-subscriber")
 def add_subscriber(
@@ -1490,7 +1528,6 @@ def notification_history(
         close_connection(connection)
 
 
-
 @app.command(name="ops-status")
 def ops_status() -> None:
     """Show a compact operational status view."""
@@ -1613,6 +1650,56 @@ def filter_preview(
     finally:
         close_connection(connection)
 
+
+@app.command(name="process-retrieval-embeddings")
+def process_retrieval_embeddings(
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        min=1,
+        help="Maximum number of retrieval embedding jobs to process.",
+    ),
+    stop_on_error: bool = typer.Option(
+        False,
+        "--stop-on-error",
+        help="Stop the batch after the first failed retrieval embedding job.",
+    ),
+) -> None:
+    """Process queued retrieval embedding jobs."""
+    connection = None
+
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+        provider = DeterministicEmbeddingProvider(
+            provider=DEFAULT_EMBEDDING_PROVIDER,
+            model=DEFAULT_EMBEDDING_MODEL,
+        )
+        results = run_embedding_job_batch(
+            repository,
+            embedding_provider=provider,
+            provider=DEFAULT_EMBEDDING_PROVIDER,
+            model=DEFAULT_EMBEDDING_MODEL,
+            limit=limit,
+            stop_on_error=stop_on_error,
+        )
+        _print_retrieval_embedding_batch_results(results)
+
+        if any(result.action == PROCESS_ACTION_FAILED for result in results):
+            raise typer.Exit(code=1)
+
+    except typer.Exit:
+        raise
+    except Exception as exc:
+        typer.secho(
+            f"Unexpected process-retrieval-embeddings error: {exc}",
+            fg="red",
+            err=True,
+        )
+        raise typer.Exit(code=1) from exc
+
+    finally:
+        close_connection(connection)
 
 
 @app.command()

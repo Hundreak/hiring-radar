@@ -42,7 +42,6 @@ def test_lever_scraper_parses_fixture() -> None:
     assert second_job.source_job_id == "data-engineer-def456"
 
 
-
 def test_lever_scraper_ignores_apply_cta_and_uses_real_title() -> None:
     html = """
     <html>
@@ -82,8 +81,7 @@ def test_lever_scraper_ignores_apply_cta_and_uses_real_title() -> None:
     assert first_job.title == "Product Security Engineer"
     assert first_job.location == "Bethesda, Maryland"
     assert (
-        first_job.canonical_url
-        == "https://jobs.lever.co/3eco/1b69296f-f446-49e6-80d6-e73fe19f2ccc"
+        first_job.canonical_url == "https://jobs.lever.co/3eco/1b69296f-f446-49e6-80d6-e73fe19f2ccc"
     )
     assert first_job.source_job_id == "1b69296f-f446-49e6-80d6-e73fe19f2ccc"
 

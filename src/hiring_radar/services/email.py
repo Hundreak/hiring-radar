@@ -16,33 +16,27 @@ class EmailMessagePayload:
     to: str
     subject: str
     body_text: str
+    body_html: str | None = None
 
 
-def build_email_message(
-    *,
-    payload: EmailMessagePayload,
-    settings: SMTPSettings,
-) -> EmailMessage:
+def build_email_message(*, payload: EmailMessagePayload, settings: SMTPSettings) -> EmailMessage:
     message = EmailMessage()
     message["From"] = settings.email_from
     message["To"] = payload.to
     message["Subject"] = payload.subject
     message.set_content(payload.body_text)
-
+    if payload.body_html:
+        message.add_alternative(payload.body_html, subtype="html")
     return message
 
 
 def _decode_smtp_error(value: bytes | str) -> str:
-    if isinstance(value, bytes):
-        return value.decode("utf-8", errors="replace")
-
-    return str(value)
+    return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else str(value)
 
 
 def _close_smtp_server(server: smtplib.SMTP | None) -> Exception | None:
     if server is None:
         return None
-
     try:
         server.quit()
     except (OSError, TimeoutError, smtplib.SMTPException) as exc:
@@ -51,7 +45,6 @@ def _close_smtp_server(server: smtplib.SMTP | None) -> Exception | None:
         except Exception:
             pass
         return exc
-
     return None
 
 
@@ -61,19 +54,7 @@ def send_email_via_smtp(
     payload: EmailMessagePayload,
     timeout_seconds: float = 20.0,
 ) -> None:
-    """
-    Send a plain-text email using SMTP.
-
-    Notes:
-    - Uses SMTP with optional STARTTLS.
-    - Authenticates using the configured username/password.
-    - Raises EmailDeliveryError on connection, authentication, or send failures.
-    - Ignores SMTP cleanup anomalies that happen *after* a confirmed successful send.
-    """
-    message = build_email_message(
-        payload=payload,
-        settings=settings,
-    )
+    message = build_email_message(payload=payload, settings=settings)
 
     server: smtplib.SMTP | None = None
     cleanup_error: Exception | None = None
@@ -93,7 +74,6 @@ def send_email_via_smtp(
         if settings.use_tls:
             phase = "starttls"
             server.starttls()
-
             phase = "ehlo_after_starttls"
             server.ehlo()
 
@@ -104,44 +84,34 @@ def send_email_via_smtp(
         refused_recipients = server.send_message(message)
         if refused_recipients:
             refused_summary = ", ".join(sorted(refused_recipients))
-            raise EmailDeliveryError(
-                f"SMTP refused recipient(s): {refused_summary}"
-            )
+            raise EmailDeliveryError(f"SMTP refused recipient(s): {refused_summary}")
 
         message_sent = True
 
     except EmailDeliveryError:
         raise
-
     except smtplib.SMTPAuthenticationError as exc:
         raise EmailDeliveryError(
             "SMTP authentication failed "
             f"for {settings.username}: code={exc.smtp_code} "
             f"message={_decode_smtp_error(exc.smtp_error)}"
         ) from exc
-
     except smtplib.SMTPConnectError as exc:
         raise EmailDeliveryError(
             "SMTP connection failed "
             f"to {settings.host}:{settings.port}: code={exc.smtp_code} "
             f"message={_decode_smtp_error(exc.smtp_error)}"
         ) from exc
-
     except smtplib.SMTPRecipientsRefused as exc:
         refused_summary = ", ".join(sorted(exc.recipients))
-        raise EmailDeliveryError(
-            f"SMTP refused recipient(s): {refused_summary}"
-        ) from exc
-
+        raise EmailDeliveryError(f"SMTP refused recipient(s): {refused_summary}") from exc
     except smtplib.SMTPDataError as exc:
         raise EmailDeliveryError(
             "SMTP rejected message data: "
             f"code={exc.smtp_code} message={_decode_smtp_error(exc.smtp_error)}"
         ) from exc
-
     except (OSError, TimeoutError, smtplib.SMTPException) as exc:
         raise EmailDeliveryError(f"SMTP {phase} failed: {exc}") from exc
-
     finally:
         cleanup_error = _close_smtp_server(server)
 

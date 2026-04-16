@@ -52,6 +52,7 @@ code.inline { background: #f3f4f6; padding: 2px 6px; border-radius: 8px; }
 .status-error { color: #991b1b; }
 """
 
+
 def _admin_layout(*, title: str, active_nav: str, body_html: str, script: str) -> HTMLResponse:
     nav_items = [
         ("dashboard", "/admin/dashboard", "Dashboard"),
@@ -692,6 +693,14 @@ def admin_subscribers_page() -> HTMLResponse:
     <button class="secondary" id="subscriber-next">Next</button>
   </div>
 </div>
+
+<div class="card" style="margin-top:16px;">
+  <h2 style="margin-top:0;">Subscriber keyword profile</h2>
+  <div class="meta" id="subscriber-preference-meta">
+    Select a subscriber to inspect their personal keyword profile.
+  </div>
+  <pre id="subscriber-preference-json" style="background:#0f172a;color:#e2e8f0;border-radius:20px;padding:20px;overflow:auto;">No subscriber selected.</pre>
+</div>
 """
     script = """
 let subscriberState = { page: 1, totalPages: 0 };
@@ -726,6 +735,25 @@ async function patchSubscriber(subscriberId, payload) {
   }
 
   return true;
+}
+
+async function viewSubscriberKeywordProfile(subscriberId, email) {
+  const response = await fetch(`/api/admin/subscribers/${subscriberId}/keyword-preferences`, {
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ detail: "Failed to load profile." }));
+    document.getElementById("subscriber-preference-meta").textContent =
+      data.detail || "Failed to load profile.";
+    return;
+  }
+
+  const data = await response.json();
+  document.getElementById("subscriber-preference-meta").textContent =
+    `Viewing personal keyword profile for ${email}`;
+  document.getElementById("subscriber-preference-json").textContent =
+    JSON.stringify(data, null, 2);
 }
 
 async function toggleSubscriberActive(subscriberId, nextValue) {
@@ -789,6 +817,7 @@ async function loadSubscribers(page) {
       <td>
         <div class="actions">
           <button class="small secondary" onclick='editSubscriberName(${item.id}, ${JSON.stringify(item.full_name)})'>Edit Name</button>
+          <button class="small secondary" onclick='viewSubscriberKeywordProfile(${item.id}, ${JSON.stringify(item.email)})'>View Keywords</button>
           <button class="small" onclick="toggleSubscriberActive(${item.id}, ${!item.is_active})">
             ${item.is_active ? "Disable" : "Enable"}
           </button>

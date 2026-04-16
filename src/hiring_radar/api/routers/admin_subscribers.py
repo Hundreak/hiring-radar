@@ -6,6 +6,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from hiring_radar.api.dependencies import get_current_admin_session, get_repository
+from hiring_radar.api.schemas.keyword_preferences import (
+    SubscriberKeywordPreferenceResponse,
+)
 from hiring_radar.api.schemas.subscribers import (
     AdminSubscriberListItemResponse,
     AdminSubscriberListResponse,
@@ -39,6 +42,20 @@ def _map_subscriber(subscriber) -> AdminSubscriberListItemResponse:
         digest_enabled=subscriber.digest_enabled,
         created_at=subscriber.created_at,
         updated_at=subscriber.updated_at,
+    )
+
+
+def _map_keyword_preference(preference) -> SubscriberKeywordPreferenceResponse:
+    return SubscriberKeywordPreferenceResponse(
+        subscriber_id=preference.subscriber_id,
+        include_keywords=list(preference.include_keywords),
+        exclude_keywords=list(preference.exclude_keywords),
+        match_title=preference.match_title,
+        match_location=preference.match_location,
+        match_company_name=preference.match_company_name,
+        enabled=preference.is_enabled(),
+        active_fields=list(preference.active_fields()),
+        updated_at=preference.updated_at,
     )
 
 
@@ -111,3 +128,25 @@ def admin_update_subscriber(
         )
 
     return _map_subscriber(subscriber)
+
+
+@router.get(
+    "/{subscriber_id}/keyword-preferences",
+    response_model=SubscriberKeywordPreferenceResponse,
+)
+def admin_get_subscriber_keyword_preferences(
+    subscriber_id: int,
+    admin_session: AdminSessionDep,
+    repository: RepositoryDep,
+) -> SubscriberKeywordPreferenceResponse:
+    _ = admin_session
+
+    subscriber = repository.get_subscriber_by_id(subscriber_id)
+    if subscriber is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subscriber not found.",
+        )
+
+    preference = repository.get_subscriber_keyword_preference(subscriber_id)
+    return _map_keyword_preference(preference)

@@ -3,33 +3,47 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
-import json
 import os
 import secrets
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
-from hiring_radar.db.repository import HiringRadarRepository
+from itsdangerous import BadSignature, URLSafeSerializer
+
 from hiring_radar.email_config import load_env_file
-from hiring_radar.models import Subscriber
-from hiring_radar.services.email import EmailMessagePayload
-
-USER_SESSION_COOKIE_NAME = "hiring_radar_user_session"
-DEFAULT_USER_SESSION_TTL_SECONDS = 60 * 60 * 24 * 3
-DEFAULT_MAGIC_LINK_TTL_SECONDS = 60 * 15
 
 
 class UserAuthError(ValueError):
-    """Raised when user auth configuration or tokens are invalid."""
+    """Base error for user auth flows."""
+
+
+class PasswordValidationError(UserAuthError):
+    """Raised when a supplied password does not satisfy policy."""
+
+
+class SessionDecodeError(UserAuthError):
+    """Raised when a signed session payload cannot be decoded safely."""
+
+
+USER_SESSION_COOKIE_NAME = os.getenv(
+    "HIRING_RADAR_SESSION_COOKIE_NAME",
+    "hiring_radar_session",
+)
 
 
 @dataclass(slots=True, frozen=True)
 class UserAuthSettings:
-    app_base_url: str
-    session_secret: str
-    session_ttl_seconds: int = DEFAULT_USER_SESSION_TTL_SECONDS
-    magic_link_ttl_seconds: int = DEFAULT_MAGIC_LINK_TTL_SECONDS
+    secret_key: str
+    session_cookie_name: str = USER_SESSION_COOKIE_NAME
+    session_ttl_seconds: int = 60 * 60 * 24 * 14
+    magic_link_ttl_seconds: int = 60 * 30
+    password_reset_ttl_seconds: int = 60 * 30
+    signup_verification_ttl_seconds: int = 60 * 10
+    password_min_length: int = 10
+    password_pbkdf2_iterations: int = 600_000
+    session_signing_salt: str = "hiring-radar:user-session:v1"
 
 
 @dataclass(slots=True, frozen=True)
@@ -40,261 +54,382 @@ class UserSession:
     expires_at: str
 
 
-@dataclass(slots=True, frozen=True)
-class MagicLinkIssueResult:
-    subscriber: Subscriber
-    raw_token: str
-    login_url: str
-    expires_at: str
+def load_user_auth_settings(env_path: str | os.PathLike[str] = ".env") -> UserAuthSettings:
+    load_env_file(Path(env_path))
 
-
-def _coerce_positive_int(*, field_name: str, value: str | None, default: int) -> int:
-    if value is None or not value.strip():
-        return default
-
-    try:
-        parsed = int(value)
-    except ValueError as exc:
-        raise UserAuthError(f"{field_name} must be an integer, got {value!r}") from exc
-
-    if parsed < 1:
-        raise UserAuthError(f"{field_name} must be >= 1")
-
-    return parsed
-
-
-def _utc_now(now: datetime | None = None) -> datetime:
-    return now or datetime.now(UTC)
-
-
-def _to_iso(dt: datetime) -> str:
-    return dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def hash_magic_link_token(raw_token: str) -> str:
-    return hashlib.sha256(raw_token.encode()).hexdigest()
-
-
-def load_user_auth_settings(env_path: str | Path = ".env") -> UserAuthSettings:
-    load_env_file(env_path)
-
-    app_base_url = os.environ.get("HIRING_RADAR_APP_BASE_URL")
-    session_secret = os.environ.get("HIRING_RADAR_USER_SESSION_SECRET")
-
-    missing = [
-        name
-        for name, value in (
-            ("HIRING_RADAR_APP_BASE_URL", app_base_url),
-            ("HIRING_RADAR_USER_SESSION_SECRET", session_secret),
-        )
-        if not value
-    ]
-    if missing:
-        joined = ", ".join(missing)
-        raise UserAuthError(f"Missing required user auth settings: {joined}")
-
-    session_ttl_seconds = _coerce_positive_int(
-        field_name="HIRING_RADAR_USER_SESSION_TTL_SECONDS",
-        value=os.environ.get("HIRING_RADAR_USER_SESSION_TTL_SECONDS"),
-        default=DEFAULT_USER_SESSION_TTL_SECONDS,
+    secret_key = os.getenv("HIRING_RADAR_AUTH_SECRET") or os.getenv(
+        "HIRING_RADAR_SECRET_KEY"
     )
-    magic_link_ttl_seconds = _coerce_positive_int(
-        field_name="HIRING_RADAR_MAGIC_LINK_TTL_SECONDS",
-        value=os.environ.get("HIRING_RADAR_MAGIC_LINK_TTL_SECONDS"),
-        default=DEFAULT_MAGIC_LINK_TTL_SECONDS,
-    )
+    if not secret_key:
+        secret_key = "dev-user-auth-secret"
 
     return UserAuthSettings(
-        app_base_url=app_base_url.rstrip("/"),
-        session_secret=session_secret,
-        session_ttl_seconds=session_ttl_seconds,
-        magic_link_ttl_seconds=magic_link_ttl_seconds,
+        secret_key=secret_key,
+        session_cookie_name=os.getenv(
+            "HIRING_RADAR_SESSION_COOKIE_NAME",
+            USER_SESSION_COOKIE_NAME,
+        ),
+        session_ttl_seconds=int(
+            os.getenv("HIRING_RADAR_SESSION_TTL_SECONDS", str(60 * 60 * 24 * 14))
+        ),
+        magic_link_ttl_seconds=int(
+            os.getenv("HIRING_RADAR_MAGIC_LINK_TTL_SECONDS", str(60 * 30))
+        ),
+        password_reset_ttl_seconds=int(
+            os.getenv("HIRING_RADAR_PASSWORD_RESET_TTL_SECONDS", str(60 * 30))
+        ),
+        signup_verification_ttl_seconds=int(
+            os.getenv("HIRING_RADAR_SIGNUP_VERIFICATION_TTL_SECONDS", str(60 * 10))
+        ),
+        password_min_length=int(
+            os.getenv("HIRING_RADAR_PASSWORD_MIN_LENGTH", "10")
+        ),
+        password_pbkdf2_iterations=int(
+            os.getenv("HIRING_RADAR_PASSWORD_PBKDF2_ITERATIONS", "600000")
+        ),
+        session_signing_salt=os.getenv(
+            "HIRING_RADAR_SESSION_SIGNING_SALT",
+            "hiring-radar:user-session:v1",
+        ),
     )
 
 
-def issue_magic_link_for_email(
-    *,
-    repository: HiringRadarRepository,
-    email: str,
-    settings: UserAuthSettings,
-    now: datetime | None = None,
-) -> MagicLinkIssueResult | None:
-    subscriber = repository.get_subscriber_by_email(email)
-    if subscriber is None or subscriber.id is None or not subscriber.is_active:
-        return None
-
-    issued_at_dt = _utc_now(now)
-    expires_at_dt = issued_at_dt + timedelta(seconds=settings.magic_link_ttl_seconds)
-
-    raw_token = secrets.token_urlsafe(32)
-    token_hash = hash_magic_link_token(raw_token)
-
-    repository.create_subscriber_magic_link(
-        subscriber_id=subscriber.id,
-        token_hash=token_hash,
-        expires_at=_to_iso(expires_at_dt),
-        created_at=_to_iso(issued_at_dt),
-    )
-
-    login_url = f"{settings.app_base_url}/app/login?token={raw_token}"
-
-    return MagicLinkIssueResult(
-        subscriber=subscriber,
-        raw_token=raw_token,
-        login_url=login_url,
-        expires_at=_to_iso(expires_at_dt),
-    )
+def normalize_email(email: str) -> str:
+    return email.strip().lower()
 
 
-def consume_magic_link_token(
-    *,
-    repository: HiringRadarRepository,
-    raw_token: str,
-    now: datetime | None = None,
-) -> Subscriber:
-    token_hash = hash_magic_link_token(raw_token)
-    link = repository.get_subscriber_magic_link_by_hash(token_hash)
-
-    if link is None or link.id is None:
-        raise UserAuthError("Invalid or expired sign-in link.")
-
-    if link.consumed_at is not None:
-        raise UserAuthError("This sign-in link has already been used.")
-
-    current_time = _utc_now(now)
-    expires_at_dt = datetime.fromisoformat(link.expires_at.replace("Z", "+00:00"))
-    if expires_at_dt < current_time:
-        raise UserAuthError("This sign-in link has expired.")
-
-    subscriber = repository.get_subscriber_by_id(link.subscriber_id)
-    if subscriber is None or subscriber.id is None or not subscriber.is_active:
-        raise UserAuthError("This account is unavailable.")
-
-    consumed = repository.consume_subscriber_magic_link(
-        link.id,
-        consumed_at=_to_iso(current_time),
-    )
-    if not consumed:
-        raise UserAuthError("This sign-in link is no longer valid.")
-
-    return subscriber
+def utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
-def _encode_payload(payload: dict[str, str | int]) -> str:
-    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
-    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+def utc_now_iso() -> str:
+    return format_utc_datetime(utc_now())
 
 
-def _decode_payload(payload_b64: str) -> dict[str, str | int]:
-    padding = "=" * (-len(payload_b64) % 4)
-
-    try:
-        raw = base64.urlsafe_b64decode(f"{payload_b64}{padding}".encode())
-        payload = json.loads(raw.decode())
-    except (ValueError, json.JSONDecodeError) as exc:
-        raise UserAuthError("Invalid user session payload.") from exc
-
-    if not isinstance(payload, dict):
-        raise UserAuthError("Invalid user session payload.")
-
-    return payload
+def parse_utc_datetime(value: str) -> datetime:
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
-def _sign_payload(*, payload_b64: str, secret: str) -> str:
-    return hmac.new(
-        secret.encode(),
-        payload_b64.encode(),
-        hashlib.sha256,
-    ).hexdigest()
+def format_utc_datetime(value: datetime) -> str:
+    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def create_user_session_token(
+def build_expiration_iso(*, ttl_seconds: int, now: datetime | None = None) -> str:
+    issued_at = now or utc_now()
+    expires_at = issued_at + timedelta(seconds=ttl_seconds)
+    return format_utc_datetime(expires_at)
+
+
+def build_user_session(
     *,
     subscriber_id: int,
     email: str,
-    settings: UserAuthSettings,
-    now: datetime | None = None,
-) -> str:
-    issued_at_dt = _utc_now(now)
-    expires_at_dt = issued_at_dt + timedelta(seconds=settings.session_ttl_seconds)
-
-    payload = {
-        "sub_id": subscriber_id,
-        "email": email,
-        "iat": _to_iso(issued_at_dt),
-        "exp": _to_iso(expires_at_dt),
-    }
-    payload_b64 = _encode_payload(payload)
-    signature = _sign_payload(
-        payload_b64=payload_b64,
-        secret=settings.session_secret,
-    )
-    return f"{payload_b64}.{signature}"
-
-
-def decode_user_session_token(
-    *,
-    token: str,
-    settings: UserAuthSettings,
+    settings: UserAuthSettings | None = None,
     now: datetime | None = None,
 ) -> UserSession:
-    if "." not in token:
-        raise UserAuthError("Invalid user session token.")
-
-    payload_b64, provided_signature = token.split(".", 1)
-    expected_signature = _sign_payload(
-        payload_b64=payload_b64,
-        secret=settings.session_secret,
+    resolved_settings = settings or load_user_auth_settings()
+    issued_at_dt = now or utc_now()
+    expires_at_dt = issued_at_dt + timedelta(
+        seconds=resolved_settings.session_ttl_seconds
     )
-    if not hmac.compare_digest(provided_signature, expected_signature):
-        raise UserAuthError("Invalid user session signature.")
-
-    payload = _decode_payload(payload_b64)
-
-    subscriber_id = payload.get("sub_id")
-    email = payload.get("email")
-    issued_at = payload.get("iat")
-    expires_at = payload.get("exp")
-
-    if not isinstance(subscriber_id, int) or not isinstance(email, str):
-        raise UserAuthError("Invalid user session payload.")
-    if not isinstance(issued_at, str) or not isinstance(expires_at, str):
-        raise UserAuthError("Invalid user session payload.")
-
-    expires_at_dt = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-    current_time = _utc_now(now)
-    if expires_at_dt < current_time:
-        raise UserAuthError("User session has expired.")
-
     return UserSession(
         subscriber_id=subscriber_id,
-        email=email,
-        issued_at=issued_at,
-        expires_at=expires_at,
+        email=normalize_email(email),
+        issued_at=format_utc_datetime(issued_at_dt),
+        expires_at=format_utc_datetime(expires_at_dt),
     )
 
 
-def build_magic_link_email_payload(
+def _build_session_serializer(settings: UserAuthSettings) -> URLSafeSerializer:
+    return URLSafeSerializer(
+        secret_key=settings.secret_key,
+        salt=settings.session_signing_salt,
+    )
+
+
+def sign_user_session(
+    session: UserSession,
     *,
-    recipient_email: str,
-    login_url: str,
-    expires_at: str,
-) -> EmailMessagePayload:
-    subject = "Your Hiring Radar sign-in link"
-    body_text = "\n".join(
-        [
-            "Hiring Radar",
-            "",
-            "Use the secure link below to sign in to your preferences panel.",
-            login_url,
-            "",
-            f"This link expires at {expires_at}.",
-            "If you did not request this email, you can ignore it.",
-        ]
+    settings: UserAuthSettings | None = None,
+) -> str:
+    resolved_settings = settings or load_user_auth_settings()
+    serializer = _build_session_serializer(resolved_settings)
+    return serializer.dumps(asdict(session))
+
+
+def decode_user_session(
+    value: str,
+    *,
+    settings: UserAuthSettings | None = None,
+) -> UserSession:
+    resolved_settings = settings or load_user_auth_settings()
+    serializer = _build_session_serializer(resolved_settings)
+
+    try:
+        payload = serializer.loads(value)
+    except BadSignature as exc:
+        raise SessionDecodeError("Invalid session signature.") from exc
+
+    if not isinstance(payload, dict):
+        raise SessionDecodeError("Invalid session payload shape.")
+
+    try:
+        session = UserSession(
+            subscriber_id=int(payload["subscriber_id"]),
+            email=normalize_email(str(payload["email"])),
+            issued_at=str(payload["issued_at"]),
+            expires_at=str(payload["expires_at"]),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise SessionDecodeError("Invalid session payload fields.") from exc
+
+    if parse_utc_datetime(session.expires_at) <= utc_now():
+        raise SessionDecodeError("Session has expired.")
+
+    return session
+
+
+decode_user_session_token = decode_user_session
+
+
+def create_session_cookie_value(
+    *,
+    subscriber_id: int,
+    email: str,
+    settings: UserAuthSettings | None = None,
+) -> str:
+    resolved_settings = settings or load_user_auth_settings()
+    session = build_user_session(
+        subscriber_id=subscriber_id,
+        email=email,
+        settings=resolved_settings,
+    )
+    return sign_user_session(session, settings=resolved_settings)
+
+
+def generate_magic_link_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_magic_link_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def generate_password_reset_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_password_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def generate_signup_verification_code() -> str:
+    alphabet = "0123456789"
+    return "".join(secrets.choice(alphabet) for _ in range(6))
+
+
+def hash_signup_verification_code(code: str) -> str:
+    normalized = code.strip().upper()
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def verify_signup_verification_code(code: str, expected_hash: str) -> bool:
+    actual_hash = hash_signup_verification_code(code)
+    return hmac.compare_digest(actual_hash, expected_hash)
+
+
+def _b64encode_bytes(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).decode("ascii")
+
+
+def _b64decode_bytes(value: str) -> bytes:
+    return base64.urlsafe_b64decode(value.encode("ascii"))
+
+
+def validate_password_strength(
+    password: str,
+    *,
+    settings: UserAuthSettings | None = None,
+) -> None:
+    resolved_settings = settings or load_user_auth_settings()
+
+    if len(password) < resolved_settings.password_min_length:
+        raise PasswordValidationError(
+            "Password must be at least "
+            f"{resolved_settings.password_min_length} characters long."
+        )
+    if password.isspace():
+        raise PasswordValidationError("Password cannot contain only whitespace.")
+    if not any(char.islower() for char in password):
+        raise PasswordValidationError(
+            "Password must include at least one lowercase letter."
+        )
+    if not any(char.isupper() for char in password):
+        raise PasswordValidationError(
+            "Password must include at least one uppercase letter."
+        )
+    if not any(char.isdigit() for char in password):
+        raise PasswordValidationError("Password must include at least one digit.")
+    if not any(not char.isalnum() for char in password):
+        raise PasswordValidationError(
+            "Password must include at least one special character."
+        )
+
+
+def hash_password(
+    password: str,
+    *,
+    settings: UserAuthSettings | None = None,
+) -> str:
+    resolved_settings = settings or load_user_auth_settings()
+    validate_password_strength(password, settings=resolved_settings)
+
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        resolved_settings.password_pbkdf2_iterations,
+    )
+    return (
+        "pbkdf2_sha256"
+        f"${resolved_settings.password_pbkdf2_iterations}"
+        f"${_b64encode_bytes(salt)}"
+        f"${_b64encode_bytes(digest)}"
     )
 
-    return EmailMessagePayload(
-        to=recipient_email,
-        subject=subject,
-        body_text=body_text,
+
+def verify_password(password: str, password_hash: str | None) -> bool:
+    if not password_hash:
+        return False
+
+    try:
+        algorithm, iterations_raw, salt_b64, digest_b64 = password_hash.split("$", 3)
+    except ValueError:
+        return False
+
+    if algorithm != "pbkdf2_sha256":
+        return False
+
+    try:
+        iterations = int(iterations_raw)
+        salt = _b64decode_bytes(salt_b64)
+        expected_digest = _b64decode_bytes(digest_b64)
+    except (TypeError, ValueError):
+        return False
+
+    derived_digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        iterations,
     )
+    return hmac.compare_digest(derived_digest, expected_digest)
+
+
+def password_hash_needs_upgrade(
+    password_hash: str | None,
+    *,
+    settings: UserAuthSettings | None = None,
+) -> bool:
+    if not password_hash:
+        return True
+
+    resolved_settings = settings or load_user_auth_settings()
+
+    try:
+        algorithm, iterations_raw, _, _ = password_hash.split("$", 3)
+    except ValueError:
+        return True
+
+    if algorithm != "pbkdf2_sha256":
+        return True
+
+    try:
+        iterations = int(iterations_raw)
+    except ValueError:
+        return True
+
+    return iterations < resolved_settings.password_pbkdf2_iterations
+
+
+def build_magic_link_expiration(
+    *,
+    settings: UserAuthSettings | None = None,
+    now: datetime | None = None,
+) -> str:
+    resolved_settings = settings or load_user_auth_settings()
+    return build_expiration_iso(
+        ttl_seconds=resolved_settings.magic_link_ttl_seconds,
+        now=now,
+    )
+
+
+def build_password_reset_expiration(
+    *,
+    settings: UserAuthSettings | None = None,
+    now: datetime | None = None,
+) -> str:
+    resolved_settings = settings or load_user_auth_settings()
+    return build_expiration_iso(
+        ttl_seconds=resolved_settings.password_reset_ttl_seconds,
+        now=now,
+    )
+
+
+def build_signup_verification_expiration(
+    *,
+    settings: UserAuthSettings | None = None,
+    now: datetime | None = None,
+) -> str:
+    resolved_settings = settings or load_user_auth_settings()
+    return build_expiration_iso(
+        ttl_seconds=resolved_settings.signup_verification_ttl_seconds,
+        now=now,
+    )
+
+
+def build_magic_link_url(
+    *,
+    base_url: str,
+    token: str,
+    email: str,
+    redirect_path: str | None = None,
+) -> str:
+    separator = "&" if "?" in base_url else "?"
+    url = f"{base_url}{separator}token={token}&email={normalize_email(email)}"
+    if redirect_path and redirect_path.startswith("/"):
+        url += f"&redirect={redirect_path}"
+    return url
+
+
+def build_password_reset_url(
+    *,
+    base_url: str,
+    token: str,
+    email: str,
+) -> str:
+    separator = "&" if "?" in base_url else "?"
+    return f"{base_url}{separator}token={token}&email={normalize_email(email)}"
+
+
+def session_cookie_kwargs(
+    *,
+    settings: UserAuthSettings | None = None,
+) -> dict[str, Any]:
+    resolved_settings = settings or load_user_auth_settings()
+    secure_cookie = os.getenv("HIRING_RADAR_SESSION_COOKIE_SECURE", "0") == "1"
+    same_site = os.getenv("HIRING_RADAR_SESSION_COOKIE_SAMESITE", "lax")
+
+    return {
+        "httponly": True,
+        "secure": secure_cookie,
+        "samesite": same_site,
+        "max_age": resolved_settings.session_ttl_seconds,
+        "path": "/",
+    }

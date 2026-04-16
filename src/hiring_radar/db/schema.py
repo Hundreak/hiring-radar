@@ -89,7 +89,7 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
     ON notification_runs (notification_type, started_at)
     """,
 )
- 
+
 
 def init_db_schema(connection: sqlite3.Connection) -> None:
     with connection:

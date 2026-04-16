@@ -29,8 +29,7 @@ def _parse_bool(value: str) -> bool:
         return False
 
     raise EmailConfigError(
-        f"Invalid boolean value for SMTP config: {value!r}. "
-        "Use one of: true/false, yes/no, 1/0."
+        f"Invalid boolean value for SMTP config: {value!r}. Use one of: true/false, yes/no, 1/0."
     )
 
 
@@ -68,11 +67,7 @@ def load_env_file(path: str | Path = ".env") -> None:
         if not key:
             continue
 
-        if (
-            len(value) >= 2
-            and value[0] == value[-1]
-            and value[0] in {"'", '"'}
-        ):
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
             value = value[1:-1]
 
         os.environ.setdefault(key, value)

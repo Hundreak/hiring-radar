@@ -14,6 +14,7 @@ from hiring_radar.services.cv_profile_apply_execution import (
 )
 from hiring_radar.services.cv_profile_apply_plan import build_cv_profile_apply_plan
 from hiring_radar.services.cv_profile_draft import (
+    build_cv_draft_certification_entry,
     build_cv_draft_education_entry,
     build_cv_draft_experience_entry,
     build_cv_draft_language_entry,
@@ -296,3 +297,63 @@ def test_apply_execution_serializers_return_json_ready_payloads() -> None:
     assert result_payload["applied_experience_entry_indexes"] == [1]
     assert result_payload["applied_language_entry_indexes"] == [2]
     assert result_payload["applied_change_count"] == 5
+
+def test_apply_selected_cv_profile_operations_persists_selected_certification() -> None:
+    snapshot = build_cv_profile_draft_snapshot(
+        source_upload_id=8,
+        source_filename="cert_cv.pdf",
+        source_parse_status="parsed",
+        parser_version="heuristic-v0",
+        generated_at="2026-04-06T18:00:00Z",
+        draft=build_cv_profile_draft(
+            certification_entries=[
+                build_cv_draft_certification_entry(
+                    certificate_name="Certified Reliability Engineer",
+                    issuer_name="American Society for Quality",
+                    issued_year=2013,
+                )
+            ],
+        ),
+    )
+    profile = SubscriberProfile(subscriber_id=1)
+    apply_plan = build_cv_profile_apply_plan(
+        snapshot=snapshot,
+        profile=profile,
+        education_entries=[],
+        experience_entries=[],
+        language_entries=[],
+        certification_entries=[],
+    )
+    selection = build_cv_selected_apply_operations(
+        scalar_fields=[],
+        list_fields=[],
+        education_entry_indexes=[],
+        experience_entry_indexes=[],
+        language_entry_indexes=[],
+        certification_entry_indexes=[0],
+    )
+
+    result = apply_selected_cv_profile_operations(
+        apply_plan=apply_plan,
+        selection=selection,
+        profile=profile,
+        education_entries=[],
+        experience_entries=[],
+        language_entries=[],
+        certification_entries=[],
+    )
+
+    assert result.applied_certification_entry_indexes == (0,)
+    assert result.applied_change_count == 1
+    assert len(result.certification_entries) == 1
+    assert (
+        result.certification_entries[0].certificate_name
+        == "Certified Reliability Engineer"
+    )
+    assert result.certification_entries[0].issued_year == 2013
+    assert selected_apply_operations_to_dict(selection)[
+        "certification_entry_indexes"
+    ] == [0]
+    assert applied_execution_result_to_dict(result)[
+        "applied_certification_entry_indexes"
+    ] == [0]

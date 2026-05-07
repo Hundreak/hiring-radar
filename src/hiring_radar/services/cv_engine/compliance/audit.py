@@ -77,6 +77,7 @@ def build_parse_run_metadata_json(
     source_parse_status: str | None,
     generated_at: str | None,
     enterprise_metadata: Mapping[str, Any] | None = None,
+    ocr_quality: Mapping[str, Any] | None = None,
 ) -> str:
     """Serialize durable metadata for one persisted parse run."""
     payload = {
@@ -89,6 +90,7 @@ def build_parse_run_metadata_json(
             "generated_at": generated_at,
         },
         "enterprise": dict(enterprise_metadata or {}),
+        "ocr_quality": dict(ocr_quality or {}),
     }
     return _dump_metadata(payload)
 
@@ -102,6 +104,17 @@ def extract_enterprise_metadata_from_parse_run_metadata_json(
     if not isinstance(enterprise, Mapping):
         return None
     return dict(enterprise)
+
+
+def extract_ocr_quality_from_parse_run_metadata_json(
+    metadata_json: str | None,
+) -> dict[str, Any] | None:
+    """Extract stored OCR quality from a parse-run metadata blob."""
+    payload = _load_metadata_json(metadata_json)
+    ocr_quality = payload.get("ocr_quality")
+    if not isinstance(ocr_quality, Mapping):
+        return None
+    return dict(ocr_quality)
 
 
 def build_apply_audit_metadata_json(

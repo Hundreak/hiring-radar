@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from hiring_radar.models import (
+    SubscriberCertificationEntry,
     SubscriberEducationEntry,
     SubscriberExperienceEntry,
     SubscriberLanguageEntry,
@@ -14,6 +15,7 @@ from hiring_radar.services.cv_profile_apply_plan import (
     build_cv_profile_apply_plan,
 )
 from hiring_radar.services.cv_profile_draft import (
+    build_cv_draft_certification_entry,
     build_cv_draft_education_entry,
     build_cv_draft_experience_entry,
     build_cv_draft_language_entry,
@@ -226,3 +228,49 @@ def test_build_cv_profile_apply_plan_skips_duplicate_entries_and_tokens() -> Non
 
     assert plan.has_actionable_changes() is False
     assert plan.default_selected_change_count() == 0
+
+def test_build_cv_profile_apply_plan_adds_and_deduplicates_certifications() -> None:
+    snapshot = build_cv_profile_draft_snapshot(
+        source_upload_id=8,
+        source_filename="alice_cv.pdf",
+        source_parse_status="parsed",
+        parser_version="heuristic-v0",
+        generated_at="2026-04-06T15:20:00Z",
+        draft=build_cv_profile_draft(
+            certification_entries=[
+                build_cv_draft_certification_entry(
+                    certificate_name="Certified Reliability Engineer",
+                    issuer_name="American Society for Quality",
+                    issued_year=2013,
+                ),
+                build_cv_draft_certification_entry(
+                    certificate_name="GD&T Professional",
+                    issuer_name="ASME International",
+                    issued_year=2018,
+                ),
+            ],
+        ),
+    )
+
+    plan = build_cv_profile_apply_plan(
+        snapshot=snapshot,
+        profile=SubscriberProfile(subscriber_id=1),
+        education_entries=[],
+        experience_entries=[],
+        language_entries=[],
+        certification_entries=[
+            SubscriberCertificationEntry(
+                id=21,
+                subscriber_id=1,
+                certificate_name="Certified Reliability Engineer",
+                issuer_name="American Society for Quality",
+                issued_year=2013,
+            )
+        ],
+    )
+
+    assert len(plan.certification_entries) == 2
+    assert plan.certification_entries[0].action == CV_APPLY_ACTION_NOOP
+    assert plan.certification_entries[0].matched_existing_id == 21
+    assert plan.certification_entries[1].action == CV_APPLY_ACTION_ADD_UNIQUE
+    assert plan.certification_entries[1].default_selected is True

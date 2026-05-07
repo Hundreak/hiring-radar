@@ -225,9 +225,11 @@ def _looks_like_role(value: str) -> bool:
     stripped = value.strip()
     if not stripped:
         return False
+    if _ROLE_HINT_RE.search(stripped):
+        return True
     if _COMPANY_HINT_RE.search(stripped):
         return False
-    return bool(_ROLE_HINT_RE.search(stripped)) or _alpha_ratio(stripped) >= 0.65
+    return _alpha_ratio(stripped) >= 0.65
 
 
 

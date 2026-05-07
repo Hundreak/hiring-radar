@@ -6,6 +6,7 @@ from hiring_radar.api.app import create_app
 from hiring_radar.api.dependencies import get_current_user_session, get_repository
 from hiring_radar.models import (
     Subscriber,
+    SubscriberCertificationEntry,
     SubscriberCvUpload,
     SubscriberEducationEntry,
     SubscriberExperienceEntry,
@@ -22,6 +23,7 @@ class FakeRepository:
         self.education_entries: list[SubscriberEducationEntry] = []
         self.experience_entries: list[SubscriberExperienceEntry] = []
         self.language_entries: list[SubscriberLanguageEntry] = []
+        self.certification_entries: list[SubscriberCertificationEntry] = []
         self.language_certificates: list[SubscriberLanguageCertificate] = [
             SubscriberLanguageCertificate(
                 id=1,
@@ -184,6 +186,30 @@ class FakeRepository:
 
     def list_subscriber_language_certificates(self, subscriber_id: int):
         return self.language_certificates
+
+    def list_subscriber_certification_entries(self, subscriber_id: int):
+        return self.certification_entries
+
+    def replace_subscriber_certification_entries(
+        self, subscriber_id: int, *, entries, updated_at: str
+    ):
+        self.certification_entries = [
+            SubscriberCertificationEntry(
+                id=index + 1,
+                subscriber_id=subscriber_id,
+                certificate_name=item.certificate_name,
+                issuer_name=item.issuer_name,
+                issued_year=item.issued_year,
+                file_name=item.file_name,
+                storage_path=item.storage_path,
+                uploaded_at=item.uploaded_at,
+                display_order=index,
+                created_at=updated_at,
+                updated_at=updated_at,
+            )
+            for index, item in enumerate(entries)
+        ]
+        return self.certification_entries
 
     def get_latest_subscriber_cv_upload(self, subscriber_id: int):
         return self.latest_cv_upload

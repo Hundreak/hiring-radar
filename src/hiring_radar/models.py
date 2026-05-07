@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass(slots=True, frozen=True)
@@ -21,6 +21,170 @@ class JobRecord:
     last_seen_at: str | None = None
     is_active: bool = True
     scraped_at: str = ""
+
+
+@dataclass(slots=True, frozen=True)
+class JobSource:
+    id: int | None = None
+    source_type: str = ""
+    source_name: str = ""
+    account_slug: str = ""
+    base_url: str | None = None
+    trust_score: float = 0.5
+    country_scope: str | None = None
+    is_active: bool = True
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class JobSourceRecord:
+    id: int | None = None
+    source_id: int = 0
+    external_job_id: str = ""
+    external_company_id: str | None = None
+    raw_payload_json: str = "{}"
+    raw_payload_hash: str = ""
+    canonical_url: str | None = None
+    title: str = ""
+    company_name: str = ""
+    location_text: str | None = None
+    posted_at: str | None = None
+    apply_url: str | None = None
+    fetched_at: str | None = None
+    first_seen_at: str | None = None
+    last_seen_at: str | None = None
+    is_active: bool = True
+
+
+@dataclass(slots=True, frozen=True)
+class CanonicalJob:
+    id: int | None = None
+    canonical_key: str = ""
+    normalized_title: str = ""
+    normalized_company_name: str = ""
+    display_title: str = ""
+    display_company_name: str = ""
+    location_city: str | None = None
+    district: str | None = None
+    country: str | None = None
+    workplace_type: str | None = None
+    employment_type: str | None = None
+    seniority: str | None = None
+    category: str | None = None
+    department: str | None = None
+    description_text: str | None = None
+    description_html: str | None = None
+    posted_at: str | None = None
+    apply_url: str = ""
+    trust_score: float = 0.5
+    freshness_score: float = 0.5
+    is_active: bool = True
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class CanonicalJobLink:
+    canonical_job_id: int = 0
+    source_job_id: int = 0
+    merge_reason: str | None = None
+    confidence: float = 1.0
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class CanonicalJobFeature:
+    id: int | None = None
+    canonical_job_id: int = 0
+    feature_version: str = "v1"
+    role_family: str | None = None
+    job_discipline: str | None = None
+    department_family: str | None = None
+    title_tokens: tuple[str, ...] = ()
+    skill_terms: tuple[str, ...] = ()
+    required_skill_terms: tuple[str, ...] = ()
+    preferred_skill_terms: tuple[str, ...] = ()
+    external_requirement_terms: tuple[str, ...] = ()
+    external_technology_terms: tuple[str, ...] = ()
+    external_responsibility_terms: tuple[str, ...] = ()
+    location_tokens: tuple[str, ...] = ()
+    language_requirements: tuple[str, ...] = ()
+    education_level_hint: str | None = None
+    years_experience_min: int | None = None
+    management_track: bool = False
+    individual_contributor: bool = True
+    domain_signals: tuple[str, ...] = ()
+    responsibility_scope: str | None = None
+    external_context_status: str | None = None
+    external_context_updated_at: str | None = None
+    match_readiness_score: float = 0.0
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class SubscriberProfileFeature:
+    id: int | None = None
+    subscriber_id: int = 0
+    feature_version: str = "v1"
+    role_families: tuple[str, ...] = ()
+    discipline_preferences: tuple[str, ...] = ()
+    title_tokens: tuple[str, ...] = ()
+    skill_terms: tuple[str, ...] = ()
+    experience_evidence_terms: tuple[str, ...] = ()
+    preferred_location_tokens: tuple[str, ...] = ()
+    language_capabilities: tuple[str, ...] = ()
+    education_level: str | None = None
+    years_experience_total: int | None = None
+    remote_preference: str | None = None
+    management_preference: bool | None = None
+    profile_strength_score: float = 0.0
+    seniority_level: str | None = None
+    domain_signals: tuple[str, ...] = ()
+    responsibility_scope: str | None = None
+    ownership_signals: tuple[str, ...] = ()
+    impact_signals: tuple[str, ...] = ()
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class SubscriberJobInteraction:
+    id: int | None = None
+    subscriber_id: int = 0
+    api_job_id: int = 0
+    job_kind: Literal["legacy", "canonical"] = "canonical"
+    canonical_job_id: int | None = None
+    legacy_job_id: int | None = None
+    impression_count: int = 0
+    open_count: int = 0
+    save_count: int = 0
+    apply_click_count: int = 0
+    total_dwell_seconds: int = 0
+    max_dwell_seconds: int = 0
+    affinity_score: float = 0.0
+    first_interacted_at: str | None = None
+    last_interacted_at: str | None = None
+    last_source_surface: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class SubscriberJobInteractionEvent:
+    id: int | None = None
+    subscriber_id: int = 0
+    api_job_id: int = 0
+    job_kind: Literal["legacy", "canonical"] = "canonical"
+    canonical_job_id: int | None = None
+    legacy_job_id: int | None = None
+    interaction_type: Literal["impression", "open", "dwell", "save", "apply_click"] = "open"
+    source_surface: str | None = None
+    dwell_seconds: int | None = None
+    metadata_json: str = "{}"
+    created_at: str | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -184,6 +348,19 @@ class SubscriberLanguageCertificate:
     updated_at: str | None = None
 
 
+@dataclass(slots=True, frozen=True)
+class SubscriberCertificationEntry:
+    id: int | None = None
+    subscriber_id: int = 0
+    certificate_name: str = ""
+    issuer_name: str | None = None
+    issued_year: int | None = None
+    file_name: str | None = None
+    storage_path: str | None = None
+    uploaded_at: str | None = None
+    display_order: int = 0
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -464,10 +641,35 @@ class SubscriberAiLearnedMemory:
 
 
 @dataclass(slots=True, frozen=True)
+class JobExternalContextSnapshot:
+    id: int | None = None
+    source_url: str = ""
+    final_url: str | None = None
+    source_domain: str | None = None
+    fetch_status: str = "unavailable"
+    http_status: int | None = None
+    page_title: str | None = None
+    site_name: str | None = None
+    meta_description: str | None = None
+    clean_text: str = ""
+    content_digest: str | None = None
+    site_specific_requirements: tuple[str, ...] = ()
+    company_culture_clues: tuple[str, ...] = ()
+    responsibility_clues: tuple[str, ...] = ()
+    technology_stack_terms: tuple[str, ...] = ()
+    source_metadata_json: dict[str, Any] = field(default_factory=dict)
+    warning: str | None = None
+    fetched_at: str | None = None
+    expires_at: str | None = None
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
 class SubscriberSavedJob:
     id: int | None = None
     subscriber_id: int = 0
     job_id: int = 0
+    api_job_id: int | None = None
     status: str = "reviewing"
     match_score: int | None = None
     deadline_at: str | None = None
@@ -529,3 +731,24 @@ class SubscriberTotpSecret:
     is_verified: bool = False
     created_at: str | None = None
     verified_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class SubscriberOAuthProvider:
+    id: int | None = None
+    subscriber_id: int = 0
+    provider: str = ""
+    provider_user_id: str = ""
+    email_at_provider: str = ""
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class SubscriberOAuthState:
+    id: int | None = None
+    state_token_hash: str = ""
+    redirect_path: str = ""
+    nonce: str = ""
+    expires_at: str = ""
+    created_at: str | None = None

@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 
 from hiring_radar.services.cv_profile_draft import (
+    CvDraftCertificationEntry,
     CvDraftEducationEntry,
     CvDraftExperienceEntry,
     CvDraftLanguageEntry,
@@ -77,6 +78,7 @@ class CvProfileConfidenceReport:
     education_entries: CvFieldConfidence
     experience_entries: CvFieldConfidence
     language_entries: CvFieldConfidence
+    certification_entries: CvFieldConfidence
 
     def high_confidence_field_count(self) -> int:
         """Count fields marked as high confidence.
@@ -114,6 +116,7 @@ class CvProfileConfidenceReport:
             self.education_entries,
             self.experience_entries,
             self.language_entries,
+            self.certification_entries,
         )
 
 
@@ -142,6 +145,9 @@ def build_cv_profile_confidence_report(
         education_entries=_build_education_confidence(draft.education_entries),
         experience_entries=_build_experience_confidence(draft.experience_entries),
         language_entries=_build_language_confidence(draft.language_entries),
+        certification_entries=_build_certification_confidence(
+            draft.certification_entries
+        ),
     )
 
 
@@ -444,6 +450,47 @@ def _build_language_confidence(
 
     return CvFieldConfidence(
         field_name="language_entries",
+        level=level,
+        has_value=True,
+        item_count=len(entries),
+        signals=tuple(signals),
+    )
+
+
+def _build_certification_confidence(
+    entries: tuple[CvDraftCertificationEntry, ...],
+) -> CvFieldConfidence:
+    """Build confidence metadata for generic certification entries."""
+    if not entries:
+        return CvFieldConfidence(
+            field_name="certification_entries",
+            level=CV_CONFIDENCE_MEDIUM,
+            has_value=False,
+            item_count=0,
+            signals=("optional_missing",),
+        )
+
+    issuer_count = sum(
+        1 for entry in entries if _clean_optional_string(entry.issuer_name)
+    )
+    year_count = sum(1 for entry in entries if entry.issued_year is not None)
+
+    signals = [
+        f"count:{len(entries)}",
+        f"with_issuer:{issuer_count}",
+        f"with_year:{year_count}",
+    ]
+    if issuer_count >= 1 and year_count >= 1:
+        level = CV_CONFIDENCE_HIGH
+        signals.append("issuer_year_structured")
+    elif issuer_count >= 1 or year_count >= 1:
+        level = CV_CONFIDENCE_MEDIUM
+        signals.append("partial_structure")
+    else:
+        level = CV_CONFIDENCE_LOW
+
+    return CvFieldConfidence(
+        field_name="certification_entries",
         level=level,
         has_value=True,
         item_count=len(entries),

@@ -37,6 +37,7 @@ from hiring_radar.api.schemas.user_profile import (
     UserCvWorkspaceContextResponse,
     UserEducationEntryResponse,
     UserExperienceEntryResponse,
+    UserCertificationEntryResponse,
     UserLanguageCertificateResponse,
     UserLanguageEntryResponse,
     UserProfileAvatarUploadResponse,
@@ -49,6 +50,7 @@ from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.models import (
     SubscriberCvParseRun,
     SubscriberCvUpload,
+    SubscriberCertificationEntry,
     SubscriberEducationEntry,
     SubscriberExperienceEntry,
     SubscriberLanguageCertificate,
@@ -58,6 +60,7 @@ from hiring_radar.models import (
 from hiring_radar.services.cv_engine.compliance.audit import (
     build_apply_audit_metadata_json,
     build_parse_run_metadata_json,
+    extract_ocr_quality_from_parse_run_metadata_json,
 )
 from hiring_radar.services.cv_engine.enterprise.api_metadata import (
     build_cv_enterprise_metadata,
@@ -91,6 +94,21 @@ from hiring_radar.services.cv_profile_apply_execution import (
     selected_apply_operations_to_dict,
 )
 from hiring_radar.services.cv_profile_apply_plan import build_cv_profile_apply_plan
+from hiring_radar.services.cv_ocr_quality import (
+    CV_OCR_QUALITY_HIGH,
+    CV_OCR_QUALITY_MEDIUM,
+    OcrQualityReport,
+    filter_gibberish_items,
+    is_gibberish_scalar,
+    quality_band_at_least,
+    score_ocr_quality,
+)
+from hiring_radar.services.cv_profile_auto_apply import (
+    auto_apply_cv_profile_draft,
+    pivot_profile_to_cv_draft,
+    replace_profile_from_cv_draft,
+)
+from hiring_radar.services.cv_profile_parser import is_valid_spoken_language
 from hiring_radar.services.cv_profile_confidence import (
     build_cv_profile_confidence_report,
 )
@@ -416,6 +434,7 @@ def _serialize_profile(
     experience_entries,
     language_entries,
     language_certificates,
+    certification_entries,
     latest_cv_upload,
     repository: HiringRadarRepository,
 ) -> UserProfileResponse:
@@ -479,6 +498,7 @@ def _serialize_profile(
                 display_order=item.display_order,
             )
             for item in language_entries
+            if is_valid_spoken_language(item.language_name)
         ],
         language_certificates=[
             UserLanguageCertificateResponse(
@@ -490,6 +510,18 @@ def _serialize_profile(
                 uploaded_at=item.uploaded_at,
             )
             for item in language_certificates
+        ],
+        certification_entries=[
+            UserCertificationEntryResponse(
+                id=item.id,
+                certificate_name=item.certificate_name,
+                issuer_name=item.issuer_name,
+                issued_year=item.issued_year,
+                file_name=item.file_name,
+                uploaded_at=item.uploaded_at,
+                display_order=item.display_order,
+            )
+            for item in certification_entries
         ],
         latest_cv_upload=(
             _serialize_cv_upload_response(
@@ -556,6 +588,7 @@ def _get_serialized_profile(
     experience_entries = repository.list_subscriber_experience_entries(subscriber_id)
     language_entries = repository.list_subscriber_language_entries(subscriber_id)
     language_certificates = repository.list_subscriber_language_certificates(subscriber_id)
+    certification_entries = repository.list_subscriber_certification_entries(subscriber_id)
     latest_cv_upload = repository.get_latest_subscriber_cv_upload(subscriber_id)
 
     return _serialize_profile(
@@ -565,6 +598,7 @@ def _get_serialized_profile(
         experience_entries=experience_entries,
         language_entries=language_entries,
         language_certificates=language_certificates,
+        certification_entries=certification_entries,
         latest_cv_upload=latest_cv_upload,
         repository=repository,
     )
@@ -630,6 +664,13 @@ def _persist_cv_parse_snapshot(
         subscriber_id=cv_upload.subscriber_id,
         cv_upload=cv_upload,
     )
+    ocr_quality_report = score_ocr_quality(
+        cv_upload.extracted_text,
+        extraction_method=infer_cv_extraction_method(
+            cv_upload.original_filename,
+            cv_upload.content_type,
+        ),
+    )
     parse_metadata_json = build_parse_run_metadata_json(
         parser_version=snapshot.parser_version,
         source_upload_id=cv_upload.id,
@@ -637,6 +678,7 @@ def _persist_cv_parse_snapshot(
         source_parse_status=snapshot.source_parse_status or cv_upload.parse_status,
         generated_at=snapshot.generated_at,
         enterprise_metadata=enterprise_metadata,
+        ocr_quality=ocr_quality_report.to_dict(),
     )
     repository.create_subscriber_cv_parse_run(
         cv_upload.subscriber_id,
@@ -647,6 +689,243 @@ def _persist_cv_parse_snapshot(
         created_at=snapshot.generated_at,
         metadata_json=parse_metadata_json,
     )
+
+
+def _cv_draft_has_pivot_signal(snapshot) -> bool:
+    """True when the uploaded CV produced enough signal to pivot the profile.
+
+    A pivot wipes fields on the profile that the new CV does not carry,
+    so we only commit to that contract when the draft has at least one
+    piece of CV-derived content (structured section, list item, or
+    meaningful scalar). Otherwise the upload is treated as a conservative
+    preserve so a near-empty parse cannot destroy a populated profile.
+    """
+    draft = snapshot.draft
+    if draft.education_entries or draft.experience_entries or draft.language_entries:
+        return True
+    if draft.skills or draft.target_roles or draft.preferred_locations:
+        return True
+    for field_name in ("headline", "summary", "remote_preference"):
+        value = getattr(draft, field_name)
+        if isinstance(value, str) and value.strip():
+            return True
+    return False
+
+
+def _sanitize_cv_draft_snapshot(snapshot, *, ocr_source: bool = False):
+    """Drop gibberish scalars and list items from a parsed CV draft.
+
+    Even when the overall OCR quality gate passes, individual fields
+    can contain corrupt tokens (e.g. ``"@#ö|\\"`` as a headline). Those
+    must never be written to the profile. Structured entries whose
+    required string field (school, job title, language) is gibberish
+    are dropped as well.
+
+    ``ocr_source=True`` applies stricter per-field filtering so that
+    column-merge artifacts and single-fragment OCR tokens are rejected
+    even when they contain valid-looking characters.
+    """
+    from dataclasses import replace as dataclass_replace
+
+    draft = snapshot.draft
+
+    def _clean_scalar(value):
+        if value is None:
+            return None
+        if is_gibberish_scalar(value, strict=ocr_source):
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+    def _filter_list(values):
+        return filter_gibberish_items(values, strict=ocr_source)
+
+    sanitized = dataclass_replace(
+        draft,
+        full_name=_clean_scalar(draft.full_name),
+        headline=_clean_scalar(draft.headline),
+        summary=_clean_scalar(draft.summary),
+        phone=draft.phone,
+        remote_preference=_clean_scalar(draft.remote_preference),
+        skills=_filter_list(draft.skills),
+        target_roles=_filter_list(draft.target_roles),
+        preferred_locations=_filter_list(draft.preferred_locations),
+        education_entries=tuple(
+            entry
+            for entry in draft.education_entries
+            if not is_gibberish_scalar(entry.school_name, min_letters=2, strict=ocr_source)
+        ),
+        experience_entries=tuple(
+            entry
+            for entry in draft.experience_entries
+            if not is_gibberish_scalar(entry.title, min_letters=2, strict=ocr_source)
+        ),
+        language_entries=tuple(
+            entry
+            for entry in draft.language_entries
+            if not is_gibberish_scalar(entry.language_name, min_letters=2, strict=ocr_source)
+            and is_valid_spoken_language(entry.language_name)
+        ),
+    )
+    return dataclass_replace(snapshot, draft=sanitized)
+
+
+def _read_stored_ocr_quality_band(parse_run) -> str | None:
+    """Return the OCR quality band recorded in a parse-run metadata blob."""
+    metadata_blob = getattr(parse_run, "metadata_json", None)
+    ocr_quality = extract_ocr_quality_from_parse_run_metadata_json(metadata_blob)
+    if not ocr_quality:
+        return None
+    band = ocr_quality.get("band")
+    if not isinstance(band, str) or not band.strip():
+        return None
+    return band.strip().lower()
+
+
+def _auto_apply_latest_cv_parse_run(
+    repository: HiringRadarRepository,
+    *,
+    subscriber_id: int,
+    updated_at: str,
+) -> None:
+    """Apply the latest parsed CV as the active profile source of truth.
+
+    The apply strategy is gated on OCR quality so garbage text can
+    never corrupt a populated profile:
+
+    - Extraction failed / snapshot missing -> preserve (no-op).
+    - OCR quality is ``unusable`` -> preserve.
+    - OCR quality is ``low`` AND extraction came from OCR -> preserve.
+    - Otherwise the draft is first sanitized (per-field gibberish is
+      stripped) and:
+        - quality ``high`` + substantive draft -> full pivot (clears
+          CV-derived fields that the new CV no longer carries).
+        - anything else -> conservative replace (only mutates fields
+          where the draft has a clean value; preserves everything else).
+
+    Failures are logged and swallowed so the upload flow does not
+    break.
+    """
+    try:
+        parse_run = repository.get_latest_subscriber_cv_parse_run(subscriber_id)
+        if parse_run is None:
+            return
+        snapshot = _deserialize_cv_parse_snapshot(parse_run)
+
+        current_profile = repository.get_subscriber_profile(subscriber_id)
+        current_education = repository.list_subscriber_education_entries(subscriber_id)
+        current_experience = repository.list_subscriber_experience_entries(subscriber_id)
+        current_languages = repository.list_subscriber_language_entries(subscriber_id)
+        current_certifications = repository.list_subscriber_certification_entries(
+            subscriber_id
+        )
+
+        extraction_succeeded = (
+            (snapshot.source_parse_status or "").strip().lower() == "parsed"
+        )
+        ocr_band = _read_stored_ocr_quality_band(parse_run)
+        extraction_method = (snapshot.source_filename or "").lower()
+        snapshot_came_from_ocr = extraction_method.endswith(
+            (".png", ".jpg", ".jpeg")
+        )
+
+        if not extraction_succeeded:
+            return
+        if ocr_band == "unusable":
+            logger.info(
+                "CV auto-apply skipped (unusable OCR quality).",
+                extra={"subscriber_id": subscriber_id},
+            )
+            return
+        if snapshot_came_from_ocr:
+            # Image OCR auto-apply requires high quality — medium is too risky
+            # for unreviewed apply because column-merge artifacts, noisy
+            # backgrounds, and PSM mismatches can produce plausible-looking text
+            # that still corrupts structured fields.
+            if not quality_band_at_least(ocr_band or "", CV_OCR_QUALITY_HIGH):
+                logger.info(
+                    "CV auto-apply skipped (image OCR quality below high: %s).",
+                    ocr_band,
+                    extra={"subscriber_id": subscriber_id},
+                )
+                return
+
+        snapshot = _sanitize_cv_draft_snapshot(snapshot, ocr_source=snapshot_came_from_ocr)
+        draft_is_substantive = _cv_draft_has_pivot_signal(snapshot)
+        quality_allows_pivot = ocr_band is None or quality_band_at_least(
+            ocr_band, CV_OCR_QUALITY_HIGH
+        )
+        if draft_is_substantive and quality_allows_pivot:
+            result = pivot_profile_to_cv_draft(
+                snapshot=snapshot,
+                profile=current_profile,
+                education_entries=current_education,
+                experience_entries=current_experience,
+                language_entries=current_languages,
+                certification_entries=current_certifications,
+            )
+        else:
+            result = replace_profile_from_cv_draft(
+                snapshot=snapshot,
+                profile=current_profile,
+                education_entries=current_education,
+                experience_entries=current_experience,
+                language_entries=current_languages,
+                certification_entries=current_certifications,
+            )
+
+        nothing_to_apply = (
+            result.total_applied_changes == 0
+            and not result.replaced_education_entries
+            and not result.replaced_experience_entries
+            and not result.replaced_language_entries
+            and not result.replaced_certification_entries
+        )
+        if nothing_to_apply:
+            return
+
+        repository.upsert_subscriber_profile(
+            subscriber_id,
+            phone=result.profile.phone,
+            headline=result.profile.headline,
+            summary=result.profile.summary,
+            target_roles=result.profile.target_roles,
+            skills=result.profile.skills,
+            preferred_locations=result.profile.preferred_locations,
+            remote_preference=result.profile.remote_preference,
+            cv_filename=result.profile.cv_filename,
+            cv_uploaded_at=result.profile.cv_uploaded_at,
+            updated_at=updated_at,
+        )
+        if result.replaced_education_entries:
+            repository.replace_subscriber_education_entries(
+                subscriber_id,
+                entries=list(result.education_entries),
+                updated_at=updated_at,
+            )
+        if result.replaced_experience_entries:
+            repository.replace_subscriber_experience_entries(
+                subscriber_id,
+                entries=list(result.experience_entries),
+                updated_at=updated_at,
+            )
+        if result.replaced_language_entries:
+            repository.replace_subscriber_language_entries(
+                subscriber_id,
+                entries=list(result.language_entries),
+                updated_at=updated_at,
+            )
+        if result.replaced_certification_entries:
+            repository.replace_subscriber_certification_entries(
+                subscriber_id,
+                entries=list(result.certification_entries),
+                updated_at=updated_at,
+            )
+    except Exception:
+        logger.exception(
+            "CV auto-apply failed.",
+            extra={"subscriber_id": subscriber_id},
+        )
 
 
 def _serialize_cv_field_confidence_response(field) -> UserCvFieldConfidenceResponse:
@@ -681,6 +960,9 @@ def _serialize_cv_profile_confidence_report_response(
         ),
         language_entries=_serialize_cv_field_confidence_response(
             report.language_entries
+        ),
+        certification_entries=_serialize_cv_field_confidence_response(
+            report.certification_entries
         ),
     )
 
@@ -823,6 +1105,14 @@ def _serialize_cv_parse_snapshot_response(
                         }
                         for item in snapshot.draft.language_entries
                     ],
+                    "certification_entries": [
+                        {
+                            "certificate_name": item.certificate_name,
+                            "issuer_name": item.issuer_name,
+                            "issued_year": item.issued_year,
+                        }
+                        for item in snapshot.draft.certification_entries
+                    ],
                 },
             }
         )
@@ -886,6 +1176,16 @@ def _build_apply_plan_extraction_text(apply_plan) -> str | None:
         item.draft_entry.proficiency_level or ""
         for item in apply_plan.language_entries
         if item.draft_entry.proficiency_level
+    )
+    parts.extend(
+        item.draft_entry.certificate_name
+        for item in apply_plan.certification_entries
+        if item.draft_entry.certificate_name
+    )
+    parts.extend(
+        item.draft_entry.issuer_name or ""
+        for item in apply_plan.certification_entries
+        if item.draft_entry.issuer_name
     )
 
     combined = "\n".join(part for part in parts if part).strip()
@@ -1047,6 +1347,19 @@ def _serialize_cv_profile_apply_plan_response(
                     }
                     for item in apply_plan.language_entries
                 ],
+                "certification_entries": [
+                    {
+                        "draft_entry": {
+                            "certificate_name": item.draft_entry.certificate_name,
+                            "issuer_name": item.draft_entry.issuer_name,
+                            "issued_year": item.draft_entry.issued_year,
+                        },
+                        "matched_existing_id": item.matched_existing_id,
+                        "action": item.action,
+                        "default_selected": item.default_selected,
+                    }
+                    for item in apply_plan.certification_entries
+                ],
             }
         )
     except ValidationError as exc:
@@ -1110,6 +1423,7 @@ def _count_selected_apply_operations(selection) -> int:
         + len(selection.education_entry_indexes)
         + len(selection.experience_entry_indexes)
         + len(selection.language_entry_indexes)
+        + len(selection.certification_entry_indexes)
     )
 
 
@@ -1259,6 +1573,22 @@ def update_user_profile(
         updated_at=updated_at,
     )
 
+    repository.replace_subscriber_certification_entries(
+        user_session.subscriber_id,
+        entries=[
+            SubscriberCertificationEntry(
+                certificate_name=item.certificate_name.strip(),
+                issuer_name=_clean_optional_string(item.issuer_name),
+                issued_year=item.issued_year,
+                file_name=_clean_optional_string(item.file_name),
+                uploaded_at=_clean_optional_string(item.uploaded_at),
+            )
+            for item in payload.certification_entries
+            if item.certificate_name.strip()
+        ],
+        updated_at=updated_at,
+    )
+
     _sync_profile_retrieval_safe(
         repository,
         subscriber_id=user_session.subscriber_id,
@@ -1318,6 +1648,9 @@ def get_latest_user_cv_profile_apply_plan(
         language_entries=repository.list_subscriber_language_entries(
             user_session.subscriber_id
         ),
+        certification_entries=repository.list_subscriber_certification_entries(
+            user_session.subscriber_id
+        ),
     )
 
     confidence_report = build_cv_profile_confidence_report(snapshot)
@@ -1361,6 +1694,9 @@ def apply_selected_user_cv_profile_operations(
     current_language_entries = repository.list_subscriber_language_entries(
         user_session.subscriber_id
     )
+    current_certification_entries = repository.list_subscriber_certification_entries(
+        user_session.subscriber_id
+    )
 
     apply_plan = build_cv_profile_apply_plan(
         snapshot=snapshot,
@@ -1368,6 +1704,7 @@ def apply_selected_user_cv_profile_operations(
         education_entries=current_education_entries,
         experience_entries=current_experience_entries,
         language_entries=current_language_entries,
+        certification_entries=current_certification_entries,
     )
 
     try:
@@ -1377,6 +1714,7 @@ def apply_selected_user_cv_profile_operations(
             education_entry_indexes=payload.education_entry_indexes,
             experience_entry_indexes=payload.experience_entry_indexes,
             language_entry_indexes=payload.language_entry_indexes,
+            certification_entry_indexes=payload.certification_entry_indexes,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -1420,6 +1758,7 @@ def apply_selected_user_cv_profile_operations(
             education_entries=current_education_entries,
             experience_entries=current_experience_entries,
             language_entries=current_language_entries,
+            certification_entries=current_certification_entries,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -1458,6 +1797,11 @@ def apply_selected_user_cv_profile_operations(
         entries=list(execution_result.language_entries),
         updated_at=updated_at,
     )
+    repository.replace_subscriber_certification_entries(
+        user_session.subscriber_id,
+        entries=list(execution_result.certification_entries),
+        updated_at=updated_at,
+    )
 
     updated_profile = repository.get_subscriber_profile(user_session.subscriber_id)
     updated_education_entries = repository.list_subscriber_education_entries(
@@ -1469,6 +1813,9 @@ def apply_selected_user_cv_profile_operations(
     updated_language_entries = repository.list_subscriber_language_entries(
         user_session.subscriber_id
     )
+    updated_certification_entries = repository.list_subscriber_certification_entries(
+        user_session.subscriber_id
+    )
 
     post_apply_plan = build_cv_profile_apply_plan(
         snapshot=snapshot,
@@ -1476,6 +1823,7 @@ def apply_selected_user_cv_profile_operations(
         education_entries=updated_education_entries,
         experience_entries=updated_experience_entries,
         language_entries=updated_language_entries,
+        certification_entries=updated_certification_entries,
     )
     remaining_actionable_change_count = post_apply_plan.actionable_change_count()
     resulting_parse_run_apply_status = derive_parse_run_apply_status(
@@ -1564,6 +1912,9 @@ def apply_selected_user_cv_profile_operations(
         applied_language_entry_indexes=list(
             execution_result.applied_language_entry_indexes
         ),
+        applied_certification_entry_indexes=list(
+            execution_result.applied_certification_entry_indexes
+        ),
         profile=_get_serialized_profile(repository, user_session.subscriber_id),
     )
 
@@ -1632,6 +1983,11 @@ async def upload_user_cv(
             subscriber_id=user_session.subscriber_id,
             cv_filename=cv_upload.original_filename,
             cv_uploaded_at=cv_upload.uploaded_at or uploaded_at,
+            updated_at=uploaded_at,
+        )
+        _auto_apply_latest_cv_parse_run(
+            repository,
+            subscriber_id=user_session.subscriber_id,
             updated_at=uploaded_at,
         )
         _sync_profile_and_cv_retrieval_safe(

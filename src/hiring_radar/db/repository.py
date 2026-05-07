@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 from collections.abc import Iterable
 from typing import Any
 
 from hiring_radar.models import (
+    CanonicalJob,
+    CanonicalJobFeature,
+    CanonicalJobLink,
     CrawlRun,
     JobRecord,
+    JobSource,
+    JobSourceRecord,
+    JobExternalContextSnapshot,
     NotificationCheckpoint,
     NotificationRun,
     Subscriber,
@@ -18,6 +25,7 @@ from hiring_radar.models import (
     SubscriberCvApplyAudit,
     SubscriberCvParseRun,
     SubscriberCvUpload,
+    SubscriberCertificationEntry,
     SubscriberEducationEntry,
     SubscriberExperienceEntry,
     SubscriberKeywordPreference,
@@ -32,7 +40,12 @@ from hiring_radar.models import (
     SubscriberEmailChangeRequest,
     SubscriberTotpSecret,
     SubscriberSignupVerification,
+    SubscriberOAuthProvider,
+    SubscriberOAuthState,
     SubscriberProfile,
+    SubscriberProfileFeature,
+    SubscriberJobInteraction,
+    SubscriberJobInteractionEvent,
     SubscriberSkillDetail,
     CareerKnowledgeDocument,
     RetrievalChunk,
@@ -61,6 +74,224 @@ def _row_to_job_record(row: sqlite3.Row) -> JobRecord:
         last_seen_at=row["last_seen_at"],
         is_active=bool(row["is_active"]),
         scraped_at=row["scraped_at"],
+    )
+
+
+def _row_to_job_source(row: sqlite3.Row) -> JobSource:
+    return JobSource(
+        id=row["id"],
+        source_type=row["source_type"],
+        source_name=row["source_name"],
+        account_slug=row["account_slug"],
+        base_url=row["base_url"],
+        trust_score=float(row["trust_score"]),
+        country_scope=row["country_scope"],
+        is_active=bool(row["is_active"]),
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _row_to_job_source_record(row: sqlite3.Row) -> JobSourceRecord:
+    return JobSourceRecord(
+        id=row["id"],
+        source_id=row["source_id"],
+        external_job_id=row["external_job_id"],
+        external_company_id=row["external_company_id"],
+        raw_payload_json=row["raw_payload_json"],
+        raw_payload_hash=row["raw_payload_hash"],
+        canonical_url=row["canonical_url"],
+        title=row["title"],
+        company_name=row["company_name"],
+        location_text=row["location_text"],
+        posted_at=row["posted_at"],
+        apply_url=row["apply_url"],
+        fetched_at=row["fetched_at"],
+        first_seen_at=row["first_seen_at"],
+        last_seen_at=row["last_seen_at"],
+        is_active=bool(row["is_active"]),
+    )
+
+
+def _row_to_canonical_job(row: sqlite3.Row) -> CanonicalJob:
+    return CanonicalJob(
+        id=row["id"],
+        canonical_key=row["canonical_key"],
+        normalized_title=row["normalized_title"],
+        normalized_company_name=row["normalized_company_name"],
+        display_title=row["display_title"],
+        display_company_name=row["display_company_name"],
+        location_city=row["location_city"],
+        district=row["district"],
+        country=row["country"],
+        workplace_type=row["workplace_type"],
+        employment_type=row["employment_type"],
+        seniority=row["seniority"],
+        category=row["category"],
+        department=row["department"],
+        description_text=row["description_text"],
+        description_html=row["description_html"],
+        posted_at=row["posted_at"],
+        apply_url=row["apply_url"],
+        trust_score=float(row["trust_score"]),
+        freshness_score=float(row["freshness_score"]),
+        is_active=bool(row["is_active"]),
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _row_to_canonical_job_link(row: sqlite3.Row) -> CanonicalJobLink:
+    return CanonicalJobLink(
+        canonical_job_id=row["canonical_job_id"],
+        source_job_id=row["source_job_id"],
+        merge_reason=row["merge_reason"],
+        confidence=float(row["confidence"]),
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _row_to_canonical_job_feature(row: sqlite3.Row) -> CanonicalJobFeature:
+    keys = row.keys()
+    return CanonicalJobFeature(
+        id=row["id"],
+        canonical_job_id=row["canonical_job_id"],
+        feature_version=row["feature_version"],
+        role_family=row["role_family"],
+        job_discipline=row["job_discipline"],
+        department_family=row["department_family"],
+        title_tokens=tuple(json.loads(row["title_tokens_json"] or "[]")),
+        skill_terms=tuple(json.loads(row["skill_terms_json"] or "[]")),
+        required_skill_terms=tuple(json.loads(row["required_skill_terms_json"] or "[]")) if "required_skill_terms_json" in keys else (),
+        preferred_skill_terms=tuple(json.loads(row["preferred_skill_terms_json"] or "[]")) if "preferred_skill_terms_json" in keys else (),
+        external_requirement_terms=tuple(json.loads(row["external_requirement_terms_json"] or "[]")) if "external_requirement_terms_json" in keys else (),
+        external_technology_terms=tuple(json.loads(row["external_technology_terms_json"] or "[]")) if "external_technology_terms_json" in keys else (),
+        external_responsibility_terms=tuple(json.loads(row["external_responsibility_terms_json"] or "[]")) if "external_responsibility_terms_json" in keys else (),
+        location_tokens=tuple(json.loads(row["location_tokens_json"] or "[]")),
+        language_requirements=tuple(json.loads(row["language_requirements_json"] or "[]")),
+        education_level_hint=row["education_level_hint"],
+        years_experience_min=row["years_experience_min"],
+        management_track=bool(row["management_track"]),
+        individual_contributor=bool(row["individual_contributor"]),
+        domain_signals=tuple(json.loads(row["domain_signals_json"] or "[]")) if "domain_signals_json" in keys else (),
+        responsibility_scope=row["responsibility_scope"] if "responsibility_scope" in keys else None,
+        external_context_status=row["external_context_status"] if "external_context_status" in keys else None,
+        external_context_updated_at=row["external_context_updated_at"] if "external_context_updated_at" in keys else None,
+        match_readiness_score=float(row["match_readiness_score"]),
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _row_to_subscriber_profile_feature(row: sqlite3.Row) -> SubscriberProfileFeature:
+    management_preference_value = row["management_preference"]
+    keys = row.keys()
+    return SubscriberProfileFeature(
+        id=row["id"],
+        subscriber_id=row["subscriber_id"],
+        feature_version=row["feature_version"],
+        role_families=tuple(json.loads(row["role_families_json"] or "[]")),
+        discipline_preferences=tuple(json.loads(row["discipline_preferences_json"] or "[]")),
+        title_tokens=tuple(json.loads(row["title_tokens_json"] or "[]")),
+        skill_terms=tuple(json.loads(row["skill_terms_json"] or "[]")),
+        experience_evidence_terms=(
+            tuple(json.loads(row["experience_evidence_terms_json"] or "[]"))
+            if "experience_evidence_terms_json" in keys else ()
+        ),
+        preferred_location_tokens=tuple(json.loads(row["preferred_location_tokens_json"] or "[]")),
+        language_capabilities=tuple(json.loads(row["language_capabilities_json"] or "[]")),
+        education_level=row["education_level"],
+        years_experience_total=row["years_experience_total"],
+        remote_preference=row["remote_preference"],
+        management_preference=(
+            None if management_preference_value is None else bool(management_preference_value)
+        ),
+        profile_strength_score=float(row["profile_strength_score"]),
+        seniority_level=row["seniority_level"] if "seniority_level" in keys else None,
+        domain_signals=tuple(json.loads(row["domain_signals_json"] or "[]")) if "domain_signals_json" in keys else (),
+        responsibility_scope=row["responsibility_scope"] if "responsibility_scope" in keys else None,
+        ownership_signals=(
+            tuple(json.loads(row["ownership_signals_json"] or "[]"))
+            if "ownership_signals_json" in keys else ()
+        ),
+        impact_signals=(
+            tuple(json.loads(row["impact_signals_json"] or "[]"))
+            if "impact_signals_json" in keys else ()
+        ),
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _row_to_subscriber_job_interaction(row: sqlite3.Row) -> SubscriberJobInteraction:
+    return SubscriberJobInteraction(
+        id=row["id"],
+        subscriber_id=row["subscriber_id"],
+        api_job_id=row["api_job_id"],
+        job_kind=row["job_kind"],
+        canonical_job_id=row["canonical_job_id"],
+        legacy_job_id=row["legacy_job_id"],
+        impression_count=row["impression_count"],
+        open_count=row["open_count"],
+        save_count=row["save_count"],
+        apply_click_count=row["apply_click_count"],
+        total_dwell_seconds=row["total_dwell_seconds"],
+        max_dwell_seconds=row["max_dwell_seconds"],
+        affinity_score=float(row["affinity_score"]),
+        first_interacted_at=row["first_interacted_at"],
+        last_interacted_at=row["last_interacted_at"],
+        last_source_surface=row["last_source_surface"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _row_to_subscriber_job_interaction_event(
+    row: sqlite3.Row,
+) -> SubscriberJobInteractionEvent:
+    return SubscriberJobInteractionEvent(
+        id=row["id"],
+        subscriber_id=row["subscriber_id"],
+        api_job_id=row["api_job_id"],
+        job_kind=row["job_kind"],
+        canonical_job_id=row["canonical_job_id"],
+        legacy_job_id=row["legacy_job_id"],
+        interaction_type=row["interaction_type"],
+        source_surface=row["source_surface"],
+        dwell_seconds=row["dwell_seconds"],
+        metadata_json=row["metadata_json"],
+        created_at=row["created_at"],
+    )
+
+
+def _clamp_score(value: float) -> float:
+    return max(0.0, min(1.0, value))
+
+
+def _compute_behavioral_affinity_score(
+    *,
+    impression_count: int,
+    open_count: int,
+    save_count: int,
+    apply_click_count: int,
+    total_dwell_seconds: int,
+) -> float:
+    impression_signal = min(0.06, math.log1p(max(0, impression_count)) * 0.016)
+    open_signal = min(0.40, math.log1p(max(0, open_count)) * 0.18)
+    save_signal = min(0.24, math.log1p(max(0, save_count)) * 0.16)
+    apply_signal = min(0.18, math.log1p(max(0, apply_click_count)) * 0.13)
+    dwell_units = max(0, total_dwell_seconds) / 30.0
+    dwell_signal = min(0.22, math.log1p(dwell_units) * 0.085)
+    return round(
+        _clamp_score(
+            impression_signal
+            + open_signal
+            + save_signal
+            + apply_signal
+            + dwell_signal
+        ),
+        4,
     )
 
 
@@ -233,6 +464,22 @@ def _row_to_subscriber_language_certificate(
     )
 
 
+def _row_to_subscriber_certification_entry(
+    row: sqlite3.Row,
+) -> SubscriberCertificationEntry:
+    return SubscriberCertificationEntry(
+        id=row["id"],
+        subscriber_id=row["subscriber_id"],
+        certificate_name=row["certificate_name"],
+        issuer_name=row["issuer_name"],
+        issued_year=row["issued_year"],
+        file_name=row["file_name"],
+        storage_path=row["storage_path"],
+        uploaded_at=row["uploaded_at"],
+        display_order=row["display_order"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
 
 
 def _row_to_subscriber_skill_detail(
@@ -470,6 +717,32 @@ def _row_to_subscriber_ai_learned_memory(row: sqlite3.Row) -> SubscriberAiLearne
         times_reinforced=int(row["times_reinforced"]),
         last_observed_at=row["last_observed_at"],
         created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _row_to_job_external_context_snapshot(row: sqlite3.Row) -> JobExternalContextSnapshot:
+    metadata_raw = row["source_metadata_json"] or "{}"
+    return JobExternalContextSnapshot(
+        id=row["id"],
+        source_url=row["source_url"],
+        final_url=row["final_url"],
+        source_domain=row["source_domain"],
+        fetch_status=row["fetch_status"],
+        http_status=row["http_status"],
+        page_title=row["page_title"],
+        site_name=row["site_name"],
+        meta_description=row["meta_description"],
+        clean_text=row["clean_text"] or "",
+        content_digest=row["content_digest"],
+        site_specific_requirements=tuple(json.loads(row["site_specific_requirements_json"] or "[]")),
+        company_culture_clues=tuple(json.loads(row["company_culture_clues_json"] or "[]")),
+        responsibility_clues=tuple(json.loads(row["responsibility_clues_json"] or "[]")),
+        technology_stack_terms=tuple(json.loads(row["technology_stack_terms_json"] or "[]")),
+        source_metadata_json=json.loads(metadata_raw),
+        warning=row["warning"],
+        fetched_at=row["fetched_at"],
+        expires_at=row["expires_at"],
         updated_at=row["updated_at"],
     )
 
@@ -1684,6 +1957,84 @@ class HiringRadarRepository:
                 )
 
         return self.list_subscriber_language_certificates(subscriber_id)
+
+    def list_subscriber_certification_entries(
+        self,
+        subscriber_id: int,
+    ) -> list[SubscriberCertificationEntry]:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                subscriber_id,
+                certificate_name,
+                issuer_name,
+                issued_year,
+                file_name,
+                storage_path,
+                uploaded_at,
+                display_order,
+                created_at,
+                updated_at
+            FROM subscriber_certification_entries
+            WHERE subscriber_id = ?
+            ORDER BY display_order ASC, id ASC
+            """,
+            (subscriber_id,),
+        )
+        return [
+            _row_to_subscriber_certification_entry(row)
+            for row in cursor.fetchall()
+        ]
+
+    def replace_subscriber_certification_entries(
+        self,
+        subscriber_id: int,
+        *,
+        entries: list[SubscriberCertificationEntry],
+        updated_at: str,
+    ) -> list[SubscriberCertificationEntry]:
+        with self.connection:
+            self.connection.execute(
+                """
+                DELETE FROM subscriber_certification_entries
+                WHERE subscriber_id = ?
+                """,
+                (subscriber_id,),
+            )
+
+            for index, entry in enumerate(entries):
+                self.connection.execute(
+                    """
+                    INSERT INTO subscriber_certification_entries (
+                        subscriber_id,
+                        certificate_name,
+                        issuer_name,
+                        issued_year,
+                        file_name,
+                        storage_path,
+                        uploaded_at,
+                        display_order,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        subscriber_id,
+                        entry.certificate_name,
+                        entry.issuer_name,
+                        entry.issued_year,
+                        entry.file_name,
+                        entry.storage_path,
+                        entry.uploaded_at,
+                        index,
+                        updated_at,
+                        updated_at,
+                    ),
+                )
+
+        return self.list_subscriber_certification_entries(subscriber_id)
 
     def list_subscriber_skill_details(
         self,
@@ -3062,6 +3413,1708 @@ class HiringRadarRepository:
 
         return cursor.rowcount
 
+    def get_job_source_by_id(self, source_id: int) -> JobSource | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                source_type,
+                source_name,
+                account_slug,
+                base_url,
+                trust_score,
+                country_scope,
+                is_active,
+                created_at,
+                updated_at
+            FROM job_sources
+            WHERE id = ?
+            """,
+            (source_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_job_source(row)
+
+    def list_job_sources(self, *, active_only: bool = False) -> list[JobSource]:
+        if active_only:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    source_type,
+                    source_name,
+                    account_slug,
+                    base_url,
+                    trust_score,
+                    country_scope,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM job_sources
+                WHERE is_active = 1
+                ORDER BY source_type ASC, source_name ASC, id ASC
+                """
+            )
+        else:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    source_type,
+                    source_name,
+                    account_slug,
+                    base_url,
+                    trust_score,
+                    country_scope,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM job_sources
+                ORDER BY source_type ASC, source_name ASC, id ASC
+                """
+            )
+        return [_row_to_job_source(row) for row in cursor.fetchall()]
+
+    def get_job_source(
+        self,
+        *,
+        source_type: str,
+        source_name: str,
+        account_slug: str = "",
+    ) -> JobSource | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                source_type,
+                source_name,
+                account_slug,
+                base_url,
+                trust_score,
+                country_scope,
+                is_active,
+                created_at,
+                updated_at
+            FROM job_sources
+            WHERE source_type = ?
+              AND source_name = ?
+              AND account_slug = ?
+            """,
+            (source_type, source_name, account_slug),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_job_source(row)
+
+    def upsert_job_source(self, source: JobSource) -> JobSource:
+        existing = self.get_job_source(
+            source_type=source.source_type,
+            source_name=source.source_name,
+            account_slug=source.account_slug,
+        )
+        if existing is None:
+            with self.connection:
+                cursor = self.connection.execute(
+                    """
+                    INSERT INTO job_sources (
+                        source_type,
+                        source_name,
+                        account_slug,
+                        base_url,
+                        trust_score,
+                        country_scope,
+                        is_active,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        source.source_type,
+                        source.source_name,
+                        source.account_slug,
+                        source.base_url,
+                        source.trust_score,
+                        source.country_scope,
+                        int(source.is_active),
+                        source.created_at,
+                        source.updated_at,
+                    ),
+                )
+            created_id = int(cursor.lastrowid)
+            created = self.get_job_source(
+                source_type=source.source_type,
+                source_name=source.source_name,
+                account_slug=source.account_slug,
+            )
+            if created is None:
+                raise RuntimeError(f"Failed to load created job source {created_id}.")
+            return created
+
+        with self.connection:
+            self.connection.execute(
+                """
+                UPDATE job_sources
+                SET
+                    base_url = ?,
+                    trust_score = ?,
+                    country_scope = ?,
+                    is_active = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    source.base_url,
+                    source.trust_score,
+                    source.country_scope,
+                    int(source.is_active),
+                    source.updated_at,
+                    existing.id,
+                ),
+            )
+
+        refreshed = self.get_job_source(
+            source_type=source.source_type,
+            source_name=source.source_name,
+            account_slug=source.account_slug,
+        )
+        if refreshed is None:
+            raise RuntimeError("Failed to reload updated job source.")
+        return refreshed
+
+    def get_job_source_record(
+        self,
+        *,
+        source_id: int,
+        external_job_id: str,
+    ) -> JobSourceRecord | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                source_id,
+                external_job_id,
+                external_company_id,
+                raw_payload_json,
+                raw_payload_hash,
+                canonical_url,
+                title,
+                company_name,
+                location_text,
+                posted_at,
+                apply_url,
+                fetched_at,
+                first_seen_at,
+                last_seen_at,
+                is_active
+            FROM job_source_records
+            WHERE source_id = ?
+              AND external_job_id = ?
+            """,
+            (source_id, external_job_id),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_job_source_record(row)
+
+    def upsert_job_source_record(self, record: JobSourceRecord) -> JobSourceRecord:
+        existing = self.get_job_source_record(
+            source_id=record.source_id,
+            external_job_id=record.external_job_id,
+        )
+        if existing is None:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    INSERT INTO job_source_records (
+                        source_id,
+                        external_job_id,
+                        external_company_id,
+                        raw_payload_json,
+                        raw_payload_hash,
+                        canonical_url,
+                        title,
+                        company_name,
+                        location_text,
+                        posted_at,
+                        apply_url,
+                        fetched_at,
+                        first_seen_at,
+                        last_seen_at,
+                        is_active
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        record.source_id,
+                        record.external_job_id,
+                        record.external_company_id,
+                        record.raw_payload_json,
+                        record.raw_payload_hash,
+                        record.canonical_url,
+                        record.title,
+                        record.company_name,
+                        record.location_text,
+                        record.posted_at,
+                        record.apply_url,
+                        record.fetched_at,
+                        record.fetched_at,
+                        record.fetched_at,
+                        int(record.is_active),
+                    ),
+                )
+        else:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    UPDATE job_source_records
+                    SET
+                        external_company_id = ?,
+                        raw_payload_json = ?,
+                        raw_payload_hash = ?,
+                        canonical_url = ?,
+                        title = ?,
+                        company_name = ?,
+                        location_text = ?,
+                        posted_at = ?,
+                        apply_url = ?,
+                        fetched_at = ?,
+                        last_seen_at = ?,
+                        is_active = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        record.external_company_id,
+                        record.raw_payload_json,
+                        record.raw_payload_hash,
+                        record.canonical_url,
+                        record.title,
+                        record.company_name,
+                        record.location_text,
+                        record.posted_at,
+                        record.apply_url,
+                        record.fetched_at,
+                        record.fetched_at,
+                        int(record.is_active),
+                        existing.id,
+                    ),
+                )
+
+        refreshed = self.get_job_source_record(
+            source_id=record.source_id,
+            external_job_id=record.external_job_id,
+        )
+        if refreshed is None:
+            raise RuntimeError("Failed to reload job source record.")
+        return refreshed
+
+    def list_job_source_records(
+        self,
+        *,
+        source_id: int,
+        active_only: bool = False,
+    ) -> list[JobSourceRecord]:
+        if active_only:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    source_id,
+                    external_job_id,
+                    external_company_id,
+                    raw_payload_json,
+                    raw_payload_hash,
+                    canonical_url,
+                    title,
+                    company_name,
+                    location_text,
+                    posted_at,
+                    apply_url,
+                    fetched_at,
+                    first_seen_at,
+                    last_seen_at,
+                    is_active
+                FROM job_source_records
+                WHERE source_id = ?
+                  AND is_active = 1
+                ORDER BY last_seen_at DESC, id DESC
+                """,
+                (source_id,),
+            )
+        else:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    source_id,
+                    external_job_id,
+                    external_company_id,
+                    raw_payload_json,
+                    raw_payload_hash,
+                    canonical_url,
+                    title,
+                    company_name,
+                    location_text,
+                    posted_at,
+                    apply_url,
+                    fetched_at,
+                    first_seen_at,
+                    last_seen_at,
+                    is_active
+                FROM job_source_records
+                WHERE source_id = ?
+                ORDER BY last_seen_at DESC, id DESC
+                """,
+                (source_id,),
+            )
+        return [_row_to_job_source_record(row) for row in cursor.fetchall()]
+
+    def mark_missing_job_source_records_inactive(
+        self,
+        *,
+        source_id: int,
+        seen_external_job_ids: Iterable[str],
+        updated_at: str,
+    ) -> int:
+        _ = updated_at
+        external_job_ids = tuple(seen_external_job_ids)
+
+        if external_job_ids:
+            placeholders = ", ".join(["?"] * len(external_job_ids))
+            query = f"""
+                UPDATE job_source_records
+                SET is_active = 0
+                WHERE source_id = ?
+                  AND is_active = 1
+                  AND external_job_id NOT IN ({placeholders})
+            """
+            params: tuple[str | int, ...] = (source_id, *external_job_ids)
+        else:
+            query = """
+                UPDATE job_source_records
+                SET is_active = 0
+                WHERE source_id = ?
+                  AND is_active = 1
+            """
+            params = (source_id,)
+
+        with self.connection:
+            cursor = self.connection.execute(query, params)
+
+        return cursor.rowcount
+
+    def get_canonical_job_by_id(self, canonical_job_id: int) -> CanonicalJob | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                canonical_key,
+                normalized_title,
+                normalized_company_name,
+                display_title,
+                display_company_name,
+                location_city,
+                district,
+                country,
+                workplace_type,
+                employment_type,
+                seniority,
+                category,
+                department,
+                description_text,
+                description_html,
+                posted_at,
+                apply_url,
+                trust_score,
+                freshness_score,
+                is_active,
+                created_at,
+                updated_at
+            FROM canonical_jobs
+            WHERE id = ?
+            """,
+            (canonical_job_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_canonical_job(row)
+
+    def get_canonical_job(self, *, canonical_key: str) -> CanonicalJob | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                canonical_key,
+                normalized_title,
+                normalized_company_name,
+                display_title,
+                display_company_name,
+                location_city,
+                district,
+                country,
+                workplace_type,
+                employment_type,
+                seniority,
+                category,
+                department,
+                description_text,
+                description_html,
+                posted_at,
+                apply_url,
+                trust_score,
+                freshness_score,
+                is_active,
+                created_at,
+                updated_at
+            FROM canonical_jobs
+            WHERE canonical_key = ?
+            """,
+            (canonical_key,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_canonical_job(row)
+
+    def upsert_canonical_job(self, job: CanonicalJob) -> CanonicalJob:
+        existing = self.get_canonical_job(canonical_key=job.canonical_key)
+        if existing is None:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    INSERT INTO canonical_jobs (
+                        canonical_key,
+                        normalized_title,
+                        normalized_company_name,
+                        display_title,
+                        display_company_name,
+                        location_city,
+                        district,
+                        country,
+                        workplace_type,
+                        employment_type,
+                        seniority,
+                        category,
+                        department,
+                        description_text,
+                        description_html,
+                        posted_at,
+                        apply_url,
+                        trust_score,
+                        freshness_score,
+                        is_active,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        job.canonical_key,
+                        job.normalized_title,
+                        job.normalized_company_name,
+                        job.display_title,
+                        job.display_company_name,
+                        job.location_city,
+                        job.district,
+                        job.country,
+                        job.workplace_type,
+                        job.employment_type,
+                        job.seniority,
+                        job.category,
+                        job.department,
+                        job.description_text,
+                        job.description_html,
+                        job.posted_at,
+                        job.apply_url,
+                        job.trust_score,
+                        job.freshness_score,
+                        int(job.is_active),
+                        job.created_at,
+                        job.updated_at,
+                    ),
+                )
+        else:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    UPDATE canonical_jobs
+                    SET
+                        normalized_title = ?,
+                        normalized_company_name = ?,
+                        display_title = ?,
+                        display_company_name = ?,
+                        location_city = ?,
+                        district = ?,
+                        country = ?,
+                        workplace_type = ?,
+                        employment_type = ?,
+                        seniority = ?,
+                        category = ?,
+                        department = ?,
+                        description_text = ?,
+                        description_html = ?,
+                        posted_at = ?,
+                        apply_url = ?,
+                        trust_score = ?,
+                        freshness_score = ?,
+                        is_active = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        job.normalized_title,
+                        job.normalized_company_name,
+                        job.display_title,
+                        job.display_company_name,
+                        job.location_city,
+                        job.district,
+                        job.country,
+                        job.workplace_type,
+                        job.employment_type,
+                        job.seniority,
+                        job.category,
+                        job.department,
+                        job.description_text,
+                        job.description_html,
+                        job.posted_at,
+                        job.apply_url,
+                        job.trust_score,
+                        job.freshness_score,
+                        int(job.is_active),
+                        job.updated_at,
+                        existing.id,
+                    ),
+                )
+
+        refreshed = self.get_canonical_job(canonical_key=job.canonical_key)
+        if refreshed is None:
+            raise RuntimeError("Failed to reload canonical job.")
+        return refreshed
+
+    def list_canonical_jobs(self, *, active_only: bool = False) -> list[CanonicalJob]:
+        if active_only:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    canonical_key,
+                    normalized_title,
+                    normalized_company_name,
+                    display_title,
+                    display_company_name,
+                    location_city,
+                    district,
+                    country,
+                    workplace_type,
+                    employment_type,
+                    seniority,
+                    category,
+                    department,
+                    description_text,
+                    description_html,
+                    posted_at,
+                    apply_url,
+                    trust_score,
+                    freshness_score,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM canonical_jobs
+                WHERE is_active = 1
+                ORDER BY updated_at DESC, id DESC
+                """
+            )
+        else:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    canonical_key,
+                    normalized_title,
+                    normalized_company_name,
+                    display_title,
+                    display_company_name,
+                    location_city,
+                    district,
+                    country,
+                    workplace_type,
+                    employment_type,
+                    seniority,
+                    category,
+                    department,
+                    description_text,
+                    description_html,
+                    posted_at,
+                    apply_url,
+                    trust_score,
+                    freshness_score,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM canonical_jobs
+                ORDER BY updated_at DESC, id DESC
+                """
+            )
+        return [_row_to_canonical_job(row) for row in cursor.fetchall()]
+
+    def list_ranked_canonical_jobs(
+        self,
+        *,
+        active_only: bool = True,
+        limit: int | None = None,
+    ) -> list[CanonicalJob]:
+        where_clause = "WHERE is_active = 1" if active_only else ""
+        query = f"""
+            SELECT
+                id,
+                canonical_key,
+                normalized_title,
+                normalized_company_name,
+                display_title,
+                display_company_name,
+                location_city,
+                district,
+                country,
+                workplace_type,
+                employment_type,
+                seniority,
+                category,
+                department,
+                description_text,
+                description_html,
+                posted_at,
+                apply_url,
+                trust_score,
+                freshness_score,
+                is_active,
+                created_at,
+                updated_at
+            FROM canonical_jobs
+            {where_clause}
+            ORDER BY ((trust_score * 0.65) + (freshness_score * 0.35)) DESC,
+                     trust_score DESC,
+                     freshness_score DESC,
+                     updated_at DESC,
+                     id DESC
+        """
+        params: tuple[int, ...] = ()
+        if limit is not None:
+            query += "\n LIMIT ?"
+            params = (limit,)
+        cursor = self.connection.execute(query, params)
+        return [_row_to_canonical_job(row) for row in cursor.fetchall()]
+
+    def get_canonical_job_feature(
+        self,
+        *,
+        canonical_job_id: int,
+    ) -> CanonicalJobFeature | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                canonical_job_id,
+                feature_version,
+                role_family,
+                job_discipline,
+                department_family,
+                title_tokens_json,
+                skill_terms_json,
+                required_skill_terms_json,
+                preferred_skill_terms_json,
+                external_requirement_terms_json,
+                external_technology_terms_json,
+                external_responsibility_terms_json,
+                location_tokens_json,
+                language_requirements_json,
+                education_level_hint,
+                years_experience_min,
+                management_track,
+                individual_contributor,
+                domain_signals_json,
+                responsibility_scope,
+                external_context_status,
+                external_context_updated_at,
+                match_readiness_score,
+                created_at,
+                updated_at
+            FROM canonical_job_features
+            WHERE canonical_job_id = ?
+            """,
+            (canonical_job_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_canonical_job_feature(row)
+
+    def upsert_canonical_job_feature(
+        self,
+        feature: CanonicalJobFeature,
+    ) -> CanonicalJobFeature:
+        existing = self.get_canonical_job_feature(canonical_job_id=feature.canonical_job_id)
+        serialized_title_tokens = json.dumps(list(feature.title_tokens), ensure_ascii=False)
+        serialized_skill_terms = json.dumps(list(feature.skill_terms), ensure_ascii=False)
+        serialized_required_skill_terms = json.dumps(list(feature.required_skill_terms), ensure_ascii=False)
+        serialized_preferred_skill_terms = json.dumps(list(feature.preferred_skill_terms), ensure_ascii=False)
+        serialized_external_requirement_terms = json.dumps(list(feature.external_requirement_terms), ensure_ascii=False)
+        serialized_external_technology_terms = json.dumps(list(feature.external_technology_terms), ensure_ascii=False)
+        serialized_external_responsibility_terms = json.dumps(list(feature.external_responsibility_terms), ensure_ascii=False)
+        serialized_location_tokens = json.dumps(list(feature.location_tokens), ensure_ascii=False)
+        serialized_language_requirements = json.dumps(list(feature.language_requirements), ensure_ascii=False)
+        serialized_domain_signals = json.dumps(list(feature.domain_signals), ensure_ascii=False)
+
+        if existing is None:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    INSERT INTO canonical_job_features (
+                        canonical_job_id,
+                        feature_version,
+                        role_family,
+                        job_discipline,
+                        department_family,
+                        title_tokens_json,
+                        skill_terms_json,
+                        required_skill_terms_json,
+                        preferred_skill_terms_json,
+                        external_requirement_terms_json,
+                        external_technology_terms_json,
+                        external_responsibility_terms_json,
+                        location_tokens_json,
+                        language_requirements_json,
+                        education_level_hint,
+                        years_experience_min,
+                        management_track,
+                        individual_contributor,
+                        domain_signals_json,
+                        responsibility_scope,
+                        external_context_status,
+                        external_context_updated_at,
+                        match_readiness_score,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        feature.canonical_job_id,
+                        feature.feature_version,
+                        feature.role_family,
+                        feature.job_discipline,
+                        feature.department_family,
+                        serialized_title_tokens,
+                        serialized_skill_terms,
+                        serialized_required_skill_terms,
+                        serialized_preferred_skill_terms,
+                        serialized_external_requirement_terms,
+                        serialized_external_technology_terms,
+                        serialized_external_responsibility_terms,
+                        serialized_location_tokens,
+                        serialized_language_requirements,
+                        feature.education_level_hint,
+                        feature.years_experience_min,
+                        int(feature.management_track),
+                        int(feature.individual_contributor),
+                        serialized_domain_signals,
+                        feature.responsibility_scope,
+                        feature.external_context_status,
+                        feature.external_context_updated_at,
+                        feature.match_readiness_score,
+                        feature.created_at,
+                        feature.updated_at,
+                    ),
+                )
+        else:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    UPDATE canonical_job_features
+                    SET
+                        feature_version = ?,
+                        role_family = ?,
+                        job_discipline = ?,
+                        department_family = ?,
+                        title_tokens_json = ?,
+                        skill_terms_json = ?,
+                        required_skill_terms_json = ?,
+                        preferred_skill_terms_json = ?,
+                        external_requirement_terms_json = ?,
+                        external_technology_terms_json = ?,
+                        external_responsibility_terms_json = ?,
+                        location_tokens_json = ?,
+                        language_requirements_json = ?,
+                        education_level_hint = ?,
+                        years_experience_min = ?,
+                        management_track = ?,
+                        individual_contributor = ?,
+                        domain_signals_json = ?,
+                        responsibility_scope = ?,
+                        external_context_status = ?,
+                        external_context_updated_at = ?,
+                        match_readiness_score = ?,
+                        updated_at = ?
+                    WHERE canonical_job_id = ?
+                    """,
+                    (
+                        feature.feature_version,
+                        feature.role_family,
+                        feature.job_discipline,
+                        feature.department_family,
+                        serialized_title_tokens,
+                        serialized_skill_terms,
+                        serialized_required_skill_terms,
+                        serialized_preferred_skill_terms,
+                        serialized_external_requirement_terms,
+                        serialized_external_technology_terms,
+                        serialized_external_responsibility_terms,
+                        serialized_location_tokens,
+                        serialized_language_requirements,
+                        feature.education_level_hint,
+                        feature.years_experience_min,
+                        int(feature.management_track),
+                        int(feature.individual_contributor),
+                        serialized_domain_signals,
+                        feature.responsibility_scope,
+                        feature.external_context_status,
+                        feature.external_context_updated_at,
+                        feature.match_readiness_score,
+                        feature.updated_at,
+                        feature.canonical_job_id,
+                    ),
+                )
+
+        refreshed = self.get_canonical_job_feature(canonical_job_id=feature.canonical_job_id)
+        if refreshed is None:
+            raise RuntimeError("Failed to reload canonical job feature.")
+        return refreshed
+
+    def list_canonical_job_features(
+        self,
+        *,
+        active_only: bool = False,
+    ) -> list[CanonicalJobFeature]:
+        if active_only:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    features.id,
+                    features.canonical_job_id,
+                    features.feature_version,
+                    features.role_family,
+                    features.job_discipline,
+                    features.department_family,
+                    features.title_tokens_json,
+                    features.skill_terms_json,
+                    features.required_skill_terms_json,
+                    features.preferred_skill_terms_json,
+                    features.external_requirement_terms_json,
+                features.external_technology_terms_json,
+                features.external_responsibility_terms_json,
+                features.location_tokens_json,
+                    features.language_requirements_json,
+                    features.education_level_hint,
+                    features.years_experience_min,
+                    features.management_track,
+                    features.individual_contributor,
+                    features.domain_signals_json,
+                    features.responsibility_scope,
+                    features.external_context_status,
+                    features.external_context_updated_at,
+                    features.match_readiness_score,
+                    features.created_at,
+                    features.updated_at
+                FROM canonical_job_features AS features
+                INNER JOIN canonical_jobs AS jobs
+                    ON jobs.id = features.canonical_job_id
+                WHERE jobs.is_active = 1
+                ORDER BY features.match_readiness_score DESC, features.updated_at DESC, features.id DESC
+                """
+            )
+        else:
+            cursor = self.connection.execute(
+                """
+                SELECT
+                    id,
+                    canonical_job_id,
+                    feature_version,
+                    role_family,
+                    job_discipline,
+                    department_family,
+                    title_tokens_json,
+                    skill_terms_json,
+                    required_skill_terms_json,
+                    preferred_skill_terms_json,
+                    external_requirement_terms_json,
+                    external_technology_terms_json,
+                    external_responsibility_terms_json,
+                    location_tokens_json,
+                    language_requirements_json,
+                    education_level_hint,
+                    years_experience_min,
+                    management_track,
+                    individual_contributor,
+                    domain_signals_json,
+                    responsibility_scope,
+                    external_context_status,
+                    external_context_updated_at,
+                    match_readiness_score,
+                    created_at,
+                    updated_at
+                FROM canonical_job_features
+                ORDER BY match_readiness_score DESC, updated_at DESC, id DESC
+                """
+            )
+        return [_row_to_canonical_job_feature(row) for row in cursor.fetchall()]
+
+    def prune_canonical_job_features_for_inactive_jobs(self) -> int:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                DELETE FROM canonical_job_features
+                WHERE canonical_job_id IN (
+                    SELECT id
+                    FROM canonical_jobs
+                    WHERE is_active = 0
+                )
+                """
+            )
+        return cursor.rowcount
+
+    def get_subscriber_profile_feature(
+        self,
+        *,
+        subscriber_id: int,
+    ) -> SubscriberProfileFeature | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                subscriber_id,
+                feature_version,
+                role_families_json,
+                discipline_preferences_json,
+                title_tokens_json,
+                skill_terms_json,
+                experience_evidence_terms_json,
+                preferred_location_tokens_json,
+                language_capabilities_json,
+                education_level,
+                years_experience_total,
+                remote_preference,
+                management_preference,
+                profile_strength_score,
+                seniority_level,
+                domain_signals_json,
+                responsibility_scope,
+                ownership_signals_json,
+                impact_signals_json,
+                created_at,
+                updated_at
+            FROM subscriber_profile_features
+            WHERE subscriber_id = ?
+            """,
+            (subscriber_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_subscriber_profile_feature(row)
+
+    def upsert_subscriber_profile_feature(
+        self,
+        feature: SubscriberProfileFeature,
+    ) -> SubscriberProfileFeature:
+        existing = self.get_subscriber_profile_feature(subscriber_id=feature.subscriber_id)
+        serialized_role_families = json.dumps(list(feature.role_families), ensure_ascii=False)
+        serialized_discipline_preferences = json.dumps(
+            list(feature.discipline_preferences),
+            ensure_ascii=False,
+        )
+        serialized_title_tokens = json.dumps(list(feature.title_tokens), ensure_ascii=False)
+        serialized_skill_terms = json.dumps(list(feature.skill_terms), ensure_ascii=False)
+        serialized_experience_evidence_terms = json.dumps(
+            list(feature.experience_evidence_terms),
+            ensure_ascii=False,
+        )
+        serialized_preferred_location_tokens = json.dumps(
+            list(feature.preferred_location_tokens),
+            ensure_ascii=False,
+        )
+        serialized_language_capabilities = json.dumps(
+            list(feature.language_capabilities),
+            ensure_ascii=False,
+        )
+        management_preference = (
+            None if feature.management_preference is None else int(feature.management_preference)
+        )
+        serialized_domain_signals = json.dumps(list(feature.domain_signals), ensure_ascii=False)
+        serialized_ownership_signals = json.dumps(list(feature.ownership_signals), ensure_ascii=False)
+        serialized_impact_signals = json.dumps(list(feature.impact_signals), ensure_ascii=False)
+
+        if existing is None:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    INSERT INTO subscriber_profile_features (
+                        subscriber_id,
+                        feature_version,
+                        role_families_json,
+                        discipline_preferences_json,
+                        title_tokens_json,
+                        skill_terms_json,
+                        experience_evidence_terms_json,
+                        preferred_location_tokens_json,
+                        language_capabilities_json,
+                        education_level,
+                        years_experience_total,
+                        remote_preference,
+                        management_preference,
+                        profile_strength_score,
+                        seniority_level,
+                        domain_signals_json,
+                        responsibility_scope,
+                        ownership_signals_json,
+                        impact_signals_json,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        feature.subscriber_id,
+                        feature.feature_version,
+                        serialized_role_families,
+                        serialized_discipline_preferences,
+                        serialized_title_tokens,
+                        serialized_skill_terms,
+                        serialized_experience_evidence_terms,
+                        serialized_preferred_location_tokens,
+                        serialized_language_capabilities,
+                        feature.education_level,
+                        feature.years_experience_total,
+                        feature.remote_preference,
+                        management_preference,
+                        feature.profile_strength_score,
+                        feature.seniority_level,
+                        serialized_domain_signals,
+                        feature.responsibility_scope,
+                        serialized_ownership_signals,
+                        serialized_impact_signals,
+                        feature.created_at,
+                        feature.updated_at,
+                    ),
+                )
+        else:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    UPDATE subscriber_profile_features
+                    SET
+                        feature_version = ?,
+                        role_families_json = ?,
+                        discipline_preferences_json = ?,
+                        title_tokens_json = ?,
+                        skill_terms_json = ?,
+                        experience_evidence_terms_json = ?,
+                        preferred_location_tokens_json = ?,
+                        language_capabilities_json = ?,
+                        education_level = ?,
+                        years_experience_total = ?,
+                        remote_preference = ?,
+                        management_preference = ?,
+                        profile_strength_score = ?,
+                        seniority_level = ?,
+                        domain_signals_json = ?,
+                        responsibility_scope = ?,
+                        ownership_signals_json = ?,
+                        impact_signals_json = ?,
+                        updated_at = ?
+                    WHERE subscriber_id = ?
+                    """,
+                    (
+                        feature.feature_version,
+                        serialized_role_families,
+                        serialized_discipline_preferences,
+                        serialized_title_tokens,
+                        serialized_skill_terms,
+                        serialized_experience_evidence_terms,
+                        serialized_preferred_location_tokens,
+                        serialized_language_capabilities,
+                        feature.education_level,
+                        feature.years_experience_total,
+                        feature.remote_preference,
+                        management_preference,
+                        feature.profile_strength_score,
+                        feature.seniority_level,
+                        serialized_domain_signals,
+                        feature.responsibility_scope,
+                        serialized_ownership_signals,
+                        serialized_impact_signals,
+                        feature.updated_at,
+                        feature.subscriber_id,
+                    ),
+                )
+
+        refreshed = self.get_subscriber_profile_feature(subscriber_id=feature.subscriber_id)
+        if refreshed is None:
+            raise RuntimeError("Failed to reload subscriber profile feature.")
+        return refreshed
+
+    def get_subscriber_job_interaction(
+        self,
+        *,
+        subscriber_id: int,
+        api_job_id: int,
+    ) -> SubscriberJobInteraction | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                subscriber_id,
+                api_job_id,
+                job_kind,
+                canonical_job_id,
+                legacy_job_id,
+                impression_count,
+                open_count,
+                save_count,
+                apply_click_count,
+                total_dwell_seconds,
+                max_dwell_seconds,
+                affinity_score,
+                first_interacted_at,
+                last_interacted_at,
+                last_source_surface,
+                created_at,
+                updated_at
+            FROM subscriber_job_interactions
+            WHERE subscriber_id = ?
+              AND api_job_id = ?
+            """,
+            (subscriber_id, api_job_id),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return _row_to_subscriber_job_interaction(row)
+
+    def record_subscriber_job_interaction(
+        self,
+        *,
+        subscriber_id: int,
+        api_job_id: int,
+        job_kind: str,
+        canonical_job_id: int | None,
+        legacy_job_id: int | None,
+        interaction_type: str,
+        interacted_at: str,
+        source_surface: str | None = None,
+        dwell_seconds: int | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> SubscriberJobInteraction:
+        if interaction_type not in {"impression", "open", "dwell", "save", "apply_click"}:
+            raise ValueError(f"Unsupported interaction type: {interaction_type}")
+        if job_kind not in {"legacy", "canonical"}:
+            raise ValueError(f"Unsupported job kind: {job_kind}")
+        normalized_dwell_seconds = 0 if dwell_seconds is None else int(dwell_seconds)
+        if normalized_dwell_seconds < 0:
+            raise ValueError("dwell_seconds must be non-negative.")
+        metadata_json = json.dumps(metadata or {}, sort_keys=True)
+
+        existing = self.get_subscriber_job_interaction(
+            subscriber_id=subscriber_id,
+            api_job_id=api_job_id,
+        )
+        impression_increment = 1 if interaction_type == "impression" else 0
+        open_increment = 1 if interaction_type == "open" else 0
+        save_increment = 1 if interaction_type == "save" else 0
+        apply_increment = 1 if interaction_type == "apply_click" else 0
+        dwell_increment = normalized_dwell_seconds if interaction_type == "dwell" else 0
+        max_dwell_increment = normalized_dwell_seconds if interaction_type == "dwell" else 0
+
+        with self.connection:
+            self.connection.execute(
+                """
+                INSERT INTO subscriber_job_interaction_events (
+                    subscriber_id,
+                    api_job_id,
+                    job_kind,
+                    canonical_job_id,
+                    legacy_job_id,
+                    interaction_type,
+                    source_surface,
+                    dwell_seconds,
+                    metadata_json,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    subscriber_id,
+                    api_job_id,
+                    job_kind,
+                    canonical_job_id,
+                    legacy_job_id,
+                    interaction_type,
+                    source_surface,
+                    normalized_dwell_seconds if interaction_type == "dwell" else None,
+                    metadata_json,
+                    interacted_at,
+                ),
+            )
+
+            if existing is None:
+                affinity_score = _compute_behavioral_affinity_score(
+                    impression_count=impression_increment,
+                    open_count=open_increment,
+                    save_count=save_increment,
+                    apply_click_count=apply_increment,
+                    total_dwell_seconds=dwell_increment,
+                )
+                self.connection.execute(
+                    """
+                    INSERT INTO subscriber_job_interactions (
+                        subscriber_id,
+                        api_job_id,
+                        job_kind,
+                        canonical_job_id,
+                        legacy_job_id,
+                        impression_count,
+                        open_count,
+                        save_count,
+                        apply_click_count,
+                        total_dwell_seconds,
+                        max_dwell_seconds,
+                        affinity_score,
+                        first_interacted_at,
+                        last_interacted_at,
+                        last_source_surface,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        subscriber_id,
+                        api_job_id,
+                        job_kind,
+                        canonical_job_id,
+                        legacy_job_id,
+                        impression_increment,
+                        open_increment,
+                        save_increment,
+                        apply_increment,
+                        dwell_increment,
+                        max_dwell_increment,
+                        affinity_score,
+                        interacted_at,
+                        interacted_at,
+                        source_surface,
+                        interacted_at,
+                        interacted_at,
+                    ),
+                )
+            else:
+                impression_count = existing.impression_count + impression_increment
+                open_count = existing.open_count + open_increment
+                save_count = existing.save_count + save_increment
+                apply_click_count = existing.apply_click_count + apply_increment
+                total_dwell_seconds = existing.total_dwell_seconds + dwell_increment
+                max_dwell_seconds = max(existing.max_dwell_seconds, max_dwell_increment)
+                affinity_score = _compute_behavioral_affinity_score(
+                    impression_count=impression_count,
+                    open_count=open_count,
+                    save_count=save_count,
+                    apply_click_count=apply_click_count,
+                    total_dwell_seconds=total_dwell_seconds,
+                )
+                self.connection.execute(
+                    """
+                    UPDATE subscriber_job_interactions
+                    SET
+                        job_kind = ?,
+                        canonical_job_id = ?,
+                        legacy_job_id = ?,
+                        impression_count = ?,
+                        open_count = ?,
+                        save_count = ?,
+                        apply_click_count = ?,
+                        total_dwell_seconds = ?,
+                        max_dwell_seconds = ?,
+                        affinity_score = ?,
+                        last_interacted_at = ?,
+                        last_source_surface = ?,
+                        updated_at = ?
+                    WHERE subscriber_id = ?
+                      AND api_job_id = ?
+                    """,
+                    (
+                        job_kind,
+                        canonical_job_id,
+                        legacy_job_id,
+                        impression_count,
+                        open_count,
+                        save_count,
+                        apply_click_count,
+                        total_dwell_seconds,
+                        max_dwell_seconds,
+                        affinity_score,
+                        interacted_at,
+                        source_surface or existing.last_source_surface,
+                        interacted_at,
+                        subscriber_id,
+                        api_job_id,
+                    ),
+                )
+
+        refreshed = self.get_subscriber_job_interaction(
+            subscriber_id=subscriber_id,
+            api_job_id=api_job_id,
+        )
+        if refreshed is None:
+            raise RuntimeError("Failed to reload subscriber job interaction.")
+        return refreshed
+
+    def list_subscriber_job_interaction_events(
+        self,
+        *,
+        subscriber_id: int,
+        api_job_id: int | None = None,
+        limit: int = 100,
+    ) -> list[SubscriberJobInteractionEvent]:
+        params: list[Any] = [subscriber_id]
+        query = """
+            SELECT
+                id,
+                subscriber_id,
+                api_job_id,
+                job_kind,
+                canonical_job_id,
+                legacy_job_id,
+                interaction_type,
+                source_surface,
+                dwell_seconds,
+                metadata_json,
+                created_at
+            FROM subscriber_job_interaction_events
+            WHERE subscriber_id = ?
+        """
+        if api_job_id is not None:
+            query += " AND api_job_id = ?"
+            params.append(api_job_id)
+        query += " ORDER BY created_at DESC, id DESC LIMIT ?"
+        params.append(limit)
+        cursor = self.connection.execute(query, tuple(params))
+        return [_row_to_subscriber_job_interaction_event(row) for row in cursor.fetchall()]
+
+    def list_subscriber_job_behavioral_affinity_scores(
+        self,
+        *,
+        subscriber_id: int,
+        canonical_job_ids: Iterable[int] | None = None,
+        active_only: bool = True,
+    ) -> dict[int, float]:
+        params: list[Any] = [subscriber_id]
+        query = """
+            SELECT
+                interactions.canonical_job_id AS canonical_job_id,
+                interactions.affinity_score AS affinity_score
+            FROM subscriber_job_interactions AS interactions
+        """
+        if active_only:
+            query += """
+                INNER JOIN canonical_jobs AS jobs
+                    ON jobs.id = interactions.canonical_job_id
+            """
+        query += " WHERE interactions.subscriber_id = ? AND interactions.canonical_job_id IS NOT NULL"
+        if active_only:
+            query += " AND jobs.is_active = 1"
+        normalized_ids = tuple(sorted({job_id for job_id in (canonical_job_ids or ()) if job_id > 0}))
+        if normalized_ids:
+            placeholders = ", ".join("?" for _ in normalized_ids)
+            query += f" AND interactions.canonical_job_id IN ({placeholders})"
+            params.extend(normalized_ids)
+        cursor = self.connection.execute(query, tuple(params))
+        return {int(row["canonical_job_id"]): float(row["affinity_score"]) for row in cursor.fetchall()}
+
+
+    def list_matchable_canonical_job_feature_pairs(
+        self,
+        *,
+        active_only: bool = True,
+        limit: int | None = None,
+    ) -> list[tuple[CanonicalJob, CanonicalJobFeature]]:
+        where_clause = "WHERE jobs.is_active = 1" if active_only else ""
+        query = f"""
+            SELECT
+                jobs.id AS job_id,
+                jobs.canonical_key,
+                jobs.normalized_title,
+                jobs.normalized_company_name,
+                jobs.display_title,
+                jobs.display_company_name,
+                jobs.location_city,
+                jobs.district,
+                jobs.country,
+                jobs.workplace_type,
+                jobs.employment_type,
+                jobs.seniority,
+                jobs.category,
+                jobs.department,
+                jobs.description_text,
+                jobs.description_html,
+                jobs.posted_at,
+                jobs.apply_url,
+                jobs.trust_score,
+                jobs.freshness_score,
+                jobs.is_active AS job_is_active,
+                jobs.created_at AS job_created_at,
+                jobs.updated_at AS job_updated_at,
+                features.id AS feature_id,
+                features.canonical_job_id,
+                features.feature_version,
+                features.role_family,
+                features.job_discipline,
+                features.department_family,
+                features.title_tokens_json,
+                features.skill_terms_json,
+                features.required_skill_terms_json,
+                features.preferred_skill_terms_json,
+                features.external_requirement_terms_json,
+                features.external_technology_terms_json,
+                features.external_responsibility_terms_json,
+                features.location_tokens_json,
+                features.language_requirements_json,
+                features.education_level_hint,
+                features.years_experience_min,
+                features.management_track,
+                features.individual_contributor,
+                features.domain_signals_json,
+                features.responsibility_scope,
+                features.external_context_status,
+                features.external_context_updated_at,
+                features.match_readiness_score,
+                features.created_at AS feature_created_at,
+                features.updated_at AS feature_updated_at
+            FROM canonical_jobs AS jobs
+            INNER JOIN canonical_job_features AS features
+                ON features.canonical_job_id = jobs.id
+            {where_clause}
+            ORDER BY
+                ((jobs.trust_score * 0.35) + (jobs.freshness_score * 0.25) + (features.match_readiness_score * 0.40)) DESC,
+                jobs.updated_at DESC,
+                jobs.id DESC
+        """
+        params: tuple[int, ...] = ()
+        if limit is not None:
+            query += "\n LIMIT ?"
+            params = (limit,)
+
+        cursor = self.connection.execute(query, params)
+        results: list[tuple[CanonicalJob, CanonicalJobFeature]] = []
+        for row in cursor.fetchall():
+            job = CanonicalJob(
+                id=row["job_id"],
+                canonical_key=row["canonical_key"],
+                normalized_title=row["normalized_title"],
+                normalized_company_name=row["normalized_company_name"],
+                display_title=row["display_title"],
+                display_company_name=row["display_company_name"],
+                location_city=row["location_city"],
+                district=row["district"],
+                country=row["country"],
+                workplace_type=row["workplace_type"],
+                employment_type=row["employment_type"],
+                seniority=row["seniority"],
+                category=row["category"],
+                department=row["department"],
+                description_text=row["description_text"],
+                description_html=row["description_html"],
+                posted_at=row["posted_at"],
+                apply_url=row["apply_url"],
+                trust_score=float(row["trust_score"]),
+                freshness_score=float(row["freshness_score"]),
+                is_active=bool(row["job_is_active"]),
+                created_at=row["job_created_at"],
+                updated_at=row["job_updated_at"],
+            )
+            feature = CanonicalJobFeature(
+                id=row["feature_id"],
+                canonical_job_id=row["canonical_job_id"],
+                feature_version=row["feature_version"],
+                role_family=row["role_family"],
+                job_discipline=row["job_discipline"],
+                department_family=row["department_family"],
+                title_tokens=tuple(json.loads(row["title_tokens_json"] or "[]")),
+                skill_terms=tuple(json.loads(row["skill_terms_json"] or "[]")),
+                required_skill_terms=tuple(json.loads(row["required_skill_terms_json"] or "[]")),
+                preferred_skill_terms=tuple(json.loads(row["preferred_skill_terms_json"] or "[]")),
+                external_requirement_terms=tuple(json.loads(row["external_requirement_terms_json"] or "[]")),
+                external_technology_terms=tuple(json.loads(row["external_technology_terms_json"] or "[]")),
+                external_responsibility_terms=tuple(json.loads(row["external_responsibility_terms_json"] or "[]")),
+                location_tokens=tuple(json.loads(row["location_tokens_json"] or "[]")),
+                language_requirements=tuple(json.loads(row["language_requirements_json"] or "[]")),
+                education_level_hint=row["education_level_hint"],
+                years_experience_min=row["years_experience_min"],
+                management_track=bool(row["management_track"]),
+                individual_contributor=bool(row["individual_contributor"]),
+                domain_signals=tuple(json.loads(row["domain_signals_json"] or "[]")),
+                responsibility_scope=row["responsibility_scope"],
+                external_context_status=row["external_context_status"],
+                external_context_updated_at=row["external_context_updated_at"],
+                match_readiness_score=float(row["match_readiness_score"]),
+                created_at=row["feature_created_at"],
+                updated_at=row["feature_updated_at"],
+            )
+            results.append((job, feature))
+        return results
+
+    def upsert_canonical_job_link(self, link: CanonicalJobLink) -> CanonicalJobLink:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                canonical_job_id,
+                source_job_id,
+                merge_reason,
+                confidence,
+                created_at,
+                updated_at
+            FROM canonical_job_links
+            WHERE source_job_id = ?
+            """,
+            (link.source_job_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    INSERT INTO canonical_job_links (
+                        canonical_job_id,
+                        source_job_id,
+                        merge_reason,
+                        confidence,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        link.canonical_job_id,
+                        link.source_job_id,
+                        link.merge_reason,
+                        link.confidence,
+                        link.created_at,
+                        link.updated_at,
+                    ),
+                )
+        else:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    UPDATE canonical_job_links
+                    SET
+                        canonical_job_id = ?,
+                        merge_reason = ?,
+                        confidence = ?,
+                        updated_at = ?
+                    WHERE source_job_id = ?
+                    """,
+                    (
+                        link.canonical_job_id,
+                        link.merge_reason,
+                        link.confidence,
+                        link.updated_at,
+                        link.source_job_id,
+                    ),
+                )
+
+        cursor = self.connection.execute(
+            """
+            SELECT
+                canonical_job_id,
+                source_job_id,
+                merge_reason,
+                confidence,
+                created_at,
+                updated_at
+            FROM canonical_job_links
+            WHERE source_job_id = ?
+            """,
+            (link.source_job_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            raise RuntimeError("Failed to reload canonical job link.")
+        return _row_to_canonical_job_link(row)
+
+    def list_canonical_job_links(self, *, canonical_job_id: int) -> list[CanonicalJobLink]:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                canonical_job_id,
+                source_job_id,
+                merge_reason,
+                confidence,
+                created_at,
+                updated_at
+            FROM canonical_job_links
+            WHERE canonical_job_id = ?
+            ORDER BY confidence DESC, source_job_id ASC
+            """,
+            (canonical_job_id,),
+        )
+        return [_row_to_canonical_job_link(row) for row in cursor.fetchall()]
+
+    def prune_canonical_job_links_for_inactive_source_records(self) -> int:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                DELETE FROM canonical_job_links
+                WHERE source_job_id IN (
+                    SELECT id
+                    FROM job_source_records
+                    WHERE is_active = 0
+                )
+                """
+            )
+        return cursor.rowcount
+
+    def mark_missing_canonical_jobs_inactive(
+        self,
+        *,
+        seen_canonical_keys: Iterable[str],
+        updated_at: str,
+    ) -> int:
+        canonical_keys = tuple(seen_canonical_keys)
+
+        if canonical_keys:
+            placeholders = ", ".join(["?"] * len(canonical_keys))
+            query = f"""
+                UPDATE canonical_jobs
+                SET is_active = 0, updated_at = ?
+                WHERE is_active = 1
+                  AND canonical_key NOT IN ({placeholders})
+            """
+            params: tuple[str, ...] = (updated_at, *canonical_keys)
+        else:
+            query = """
+                UPDATE canonical_jobs
+                SET is_active = 0, updated_at = ?
+                WHERE is_active = 1
+            """
+            params = (updated_at,)
+
+        with self.connection:
+            cursor = self.connection.execute(query, params)
+        return cursor.rowcount
+
     def get_subscriber_by_id(self, subscriber_id: int) -> Subscriber | None:
         cursor = self.connection.execute(
             """
@@ -3983,6 +6036,13 @@ class HiringRadarRepository:
         with self.connection:
             self.connection.execute(
                 """
+                DELETE FROM retrieval_embedding_jobs
+                WHERE chunk_id IN (SELECT id FROM retrieval_chunks WHERE document_id = ?)
+                """,
+                (document_id,),
+            )
+            self.connection.execute(
+                """
                 DELETE FROM retrieval_embeddings
                 WHERE chunk_id IN (SELECT id FROM retrieval_chunks WHERE document_id = ?)
                 """,
@@ -4437,6 +6497,154 @@ class HiringRadarRepository:
         )
         return [_row_to_subscriber_ai_learned_memory(row) for row in cursor.fetchall()]
 
+    def get_job_external_context_snapshot_by_url(
+        self,
+        source_url: str,
+    ) -> JobExternalContextSnapshot | None:
+        cursor = self.connection.execute(
+            """
+            SELECT
+                id,
+                source_url,
+                final_url,
+                source_domain,
+                fetch_status,
+                http_status,
+                page_title,
+                site_name,
+                meta_description,
+                clean_text,
+                content_digest,
+                site_specific_requirements_json,
+                company_culture_clues_json,
+                responsibility_clues_json,
+                technology_stack_terms_json,
+                source_metadata_json,
+                warning,
+                fetched_at,
+                expires_at,
+                updated_at
+            FROM job_external_context_snapshots
+            WHERE source_url = ?
+            """,
+            (source_url,),
+        )
+        row = cursor.fetchone()
+        return None if row is None else _row_to_job_external_context_snapshot(row)
+
+    def upsert_job_external_context_snapshot(
+        self,
+        snapshot: JobExternalContextSnapshot,
+    ) -> JobExternalContextSnapshot:
+        existing = self.get_job_external_context_snapshot_by_url(snapshot.source_url)
+        requirements_json = json.dumps(list(snapshot.site_specific_requirements), ensure_ascii=False)
+        culture_json = json.dumps(list(snapshot.company_culture_clues), ensure_ascii=False)
+        responsibilities_json = json.dumps(list(snapshot.responsibility_clues), ensure_ascii=False)
+        technology_json = json.dumps(list(snapshot.technology_stack_terms), ensure_ascii=False)
+        metadata_json = json.dumps(snapshot.source_metadata_json or {}, ensure_ascii=False, sort_keys=True)
+
+        with self.connection:
+            if existing is None:
+                self.connection.execute(
+                    """
+                    INSERT INTO job_external_context_snapshots (
+                        source_url,
+                        final_url,
+                        source_domain,
+                        fetch_status,
+                        http_status,
+                        page_title,
+                        site_name,
+                        meta_description,
+                        clean_text,
+                        content_digest,
+                        site_specific_requirements_json,
+                        company_culture_clues_json,
+                        responsibility_clues_json,
+                        technology_stack_terms_json,
+                        source_metadata_json,
+                        warning,
+                        fetched_at,
+                        expires_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        snapshot.source_url,
+                        snapshot.final_url,
+                        snapshot.source_domain,
+                        snapshot.fetch_status,
+                        snapshot.http_status,
+                        snapshot.page_title,
+                        snapshot.site_name,
+                        snapshot.meta_description,
+                        snapshot.clean_text,
+                        snapshot.content_digest,
+                        requirements_json,
+                        culture_json,
+                        responsibilities_json,
+                        technology_json,
+                        metadata_json,
+                        snapshot.warning,
+                        snapshot.fetched_at,
+                        snapshot.expires_at,
+                        snapshot.updated_at,
+                    ),
+                )
+            else:
+                self.connection.execute(
+                    """
+                    UPDATE job_external_context_snapshots
+                    SET
+                        final_url = ?,
+                        source_domain = ?,
+                        fetch_status = ?,
+                        http_status = ?,
+                        page_title = ?,
+                        site_name = ?,
+                        meta_description = ?,
+                        clean_text = ?,
+                        content_digest = ?,
+                        site_specific_requirements_json = ?,
+                        company_culture_clues_json = ?,
+                        responsibility_clues_json = ?,
+                        technology_stack_terms_json = ?,
+                        source_metadata_json = ?,
+                        warning = ?,
+                        fetched_at = ?,
+                        expires_at = ?,
+                        updated_at = ?
+                    WHERE source_url = ?
+                    """,
+                    (
+                        snapshot.final_url,
+                        snapshot.source_domain,
+                        snapshot.fetch_status,
+                        snapshot.http_status,
+                        snapshot.page_title,
+                        snapshot.site_name,
+                        snapshot.meta_description,
+                        snapshot.clean_text,
+                        snapshot.content_digest,
+                        requirements_json,
+                        culture_json,
+                        responsibilities_json,
+                        technology_json,
+                        metadata_json,
+                        snapshot.warning,
+                        snapshot.fetched_at,
+                        snapshot.expires_at,
+                        snapshot.updated_at,
+                        snapshot.source_url,
+                    ),
+                )
+
+        refreshed = self.get_job_external_context_snapshot_by_url(snapshot.source_url)
+        if refreshed is None:
+            raise RuntimeError("Failed to load job external context snapshot after upsert.")
+        return refreshed
+
     def close(self) -> None:
         self.connection.close()
 
@@ -4562,6 +6770,42 @@ class HiringRadarRepository:
         return [_row_to_retrieval_search_candidate(row) for row in cursor.fetchall()]
 
 
+
+    def list_retrieval_embedding_jobs(
+        self,
+        *,
+        provider: str | None = None,
+        model: str | None = None,
+        status: str | None = None,
+        chunk_id: int | None = None,
+    ) -> list[RetrievalEmbeddingJob]:
+        conditions: list[str] = []
+        params: list[Any] = []
+        if provider is not None:
+            conditions.append("provider = ?")
+            params.append(provider)
+        if model is not None:
+            conditions.append("model = ?")
+            params.append(model)
+        if status is not None:
+            conditions.append("status = ?")
+            params.append(status)
+        if chunk_id is not None:
+            conditions.append("chunk_id = ?")
+            params.append(chunk_id)
+        where_sql = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        cursor = self.connection.execute(
+            f"""
+            SELECT
+                id, chunk_id, provider, model, status, attempt_count, last_error,
+                created_at, updated_at, claimed_at, completed_at
+            FROM retrieval_embedding_jobs
+            {where_sql}
+            ORDER BY created_at ASC, id ASC
+            """,
+            tuple(params),
+        )
+        return [_row_to_retrieval_embedding_job(row) for row in cursor.fetchall()]
 
     def get_retrieval_embedding_job(self, job_id: int) -> RetrievalEmbeddingJob | None:
         cursor = self.connection.execute(
@@ -4770,6 +7014,7 @@ class HiringRadarRepository:
             id=row["id"],
             subscriber_id=row["subscriber_id"],
             job_id=row["job_id"],
+            api_job_id=row["api_job_id"],
             status=row["status"],
             match_score=row["match_score"],
             deadline_at=row["deadline_at"],
@@ -4795,26 +7040,44 @@ class HiringRadarRepository:
         job_id: int,
         match_score: int | None = None,
         now: str,
+        api_job_id: int | None = None,
     ) -> SubscriberSavedJob:
+        resolved_api_job_id = api_job_id or job_id
         with self.connection:
             self.connection.execute(
                 """
                 INSERT INTO subscriber_saved_jobs
-                    (subscriber_id, job_id, status, match_score, created_at, updated_at)
-                VALUES (?, ?, 'reviewing', ?, ?, ?)
+                    (subscriber_id, job_id, api_job_id, status, match_score, created_at, updated_at)
+                VALUES (?, ?, ?, 'reviewing', ?, ?, ?)
                 """,
-                (subscriber_id, job_id, match_score, now, now),
+                (subscriber_id, job_id, resolved_api_job_id, match_score, now, now),
             )
-        return self.get_saved_job(subscriber_id=subscriber_id, job_id=job_id)  # type: ignore[return-value]
+        return self.get_saved_job(subscriber_id=subscriber_id, job_id=resolved_api_job_id)  # type: ignore[return-value]
 
     def unsave_job(self, *, subscriber_id: int, job_id: int) -> bool:
         with self.connection:
-            cursor = self.connection.execute(
+            # First resolve the saved_job record ID so we can delete its notes.
+            # Notes have a FK onto subscriber_saved_jobs.id (FK enforcement ON),
+            # so the parent row cannot be deleted while child notes exist.
+            row = self.connection.execute(
                 """
-                DELETE FROM subscriber_saved_jobs
-                WHERE subscriber_id = ? AND job_id = ?
+                SELECT id FROM subscriber_saved_jobs
+                WHERE subscriber_id = ?
+                  AND (api_job_id = ? OR (api_job_id IS NULL AND job_id = ?))
+                LIMIT 1
                 """,
-                (subscriber_id, job_id),
+                (subscriber_id, job_id, job_id),
+            ).fetchone()
+            if row is None:
+                return False
+            saved_job_id = row["id"]
+            self.connection.execute(
+                "DELETE FROM subscriber_saved_job_notes WHERE saved_job_id = ?",
+                (saved_job_id,),
+            )
+            cursor = self.connection.execute(
+                "DELETE FROM subscriber_saved_jobs WHERE id = ?",
+                (saved_job_id,),
             )
         return cursor.rowcount > 0
 
@@ -4823,10 +7086,10 @@ class HiringRadarRepository:
     ) -> SubscriberSavedJob | None:
         cursor = self.connection.execute(
             """
-            SELECT id, subscriber_id, job_id, status, match_score,
+            SELECT id, subscriber_id, job_id, api_job_id, status, match_score,
                    deadline_at, interview_at, created_at, updated_at
             FROM subscriber_saved_jobs
-            WHERE subscriber_id = ? AND job_id = ?
+            WHERE subscriber_id = ? AND api_job_id = ?
             """,
             (subscriber_id, job_id),
         )
@@ -4838,7 +7101,7 @@ class HiringRadarRepository:
     ) -> SubscriberSavedJob | None:
         cursor = self.connection.execute(
             """
-            SELECT id, subscriber_id, job_id, status, match_score,
+            SELECT id, subscriber_id, job_id, api_job_id, status, match_score,
                    deadline_at, interview_at, created_at, updated_at
             FROM subscriber_saved_jobs
             WHERE id = ? AND subscriber_id = ?
@@ -4851,7 +7114,7 @@ class HiringRadarRepository:
     def list_saved_jobs(self, subscriber_id: int) -> list[SubscriberSavedJob]:
         cursor = self.connection.execute(
             """
-            SELECT id, subscriber_id, job_id, status, match_score,
+            SELECT id, subscriber_id, job_id, api_job_id, status, match_score,
                    deadline_at, interview_at, created_at, updated_at
             FROM subscriber_saved_jobs
             WHERE subscriber_id = ?
@@ -4965,6 +7228,16 @@ class HiringRadarRepository:
         now: str,
     ) -> SubscriberSession:
         with self.connection:
+            # Expire any existing active session from the same device+IP to
+            # prevent duplicate session rows accumulating on repeated logins.
+            self.connection.execute(
+                """
+                UPDATE subscriber_sessions SET expired_at = ?
+                WHERE subscriber_id = ? AND device_label = ? AND ip_address = ?
+                  AND expired_at IS NULL
+                """,
+                (now, subscriber_id, device_label, ip_address),
+            )
             cursor = self.connection.execute(
                 """
                 INSERT INTO subscriber_sessions
@@ -5261,3 +7534,119 @@ class HiringRadarRepository:
                 (subscriber_id,),
             )
         return c.rowcount > 0
+
+    # ------------------------------------------------------------------ #
+    # Google OAuth — state tokens                                          #
+    # ------------------------------------------------------------------ #
+
+    def create_oauth_state(
+        self,
+        *,
+        state_token_hash: str,
+        redirect_path: str,
+        nonce: str,
+        expires_at: str,
+        created_at: str,
+    ) -> SubscriberOAuthState:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                INSERT INTO subscriber_oauth_states
+                    (state_token_hash, redirect_path, nonce, expires_at, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (state_token_hash, redirect_path, nonce, expires_at, created_at),
+            )
+            sid = cursor.lastrowid
+        row = self.connection.execute(
+            "SELECT * FROM subscriber_oauth_states WHERE id = ?", (sid,)
+        ).fetchone()
+        return SubscriberOAuthState(
+            id=row["id"],
+            state_token_hash=row["state_token_hash"],
+            redirect_path=row["redirect_path"],
+            nonce=row["nonce"],
+            expires_at=row["expires_at"],
+            created_at=row["created_at"],
+        )
+
+    def get_and_delete_oauth_state(
+        self, state_token_hash: str
+    ) -> SubscriberOAuthState | None:
+        row = self.connection.execute(
+            "SELECT * FROM subscriber_oauth_states WHERE state_token_hash = ?",
+            (state_token_hash,),
+        ).fetchone()
+        if row is None:
+            return None
+        with self.connection:
+            self.connection.execute(
+                "DELETE FROM subscriber_oauth_states WHERE id = ?", (row["id"],)
+            )
+        return SubscriberOAuthState(
+            id=row["id"],
+            state_token_hash=row["state_token_hash"],
+            redirect_path=row["redirect_path"],
+            nonce=row["nonce"],
+            expires_at=row["expires_at"],
+            created_at=row["created_at"],
+        )
+
+    # ------------------------------------------------------------------ #
+    # Google OAuth — provider links                                        #
+    # ------------------------------------------------------------------ #
+
+    def get_oauth_provider(
+        self, *, provider: str, provider_user_id: str
+    ) -> SubscriberOAuthProvider | None:
+        row = self.connection.execute(
+            """
+            SELECT * FROM subscriber_oauth_providers
+            WHERE provider = ? AND provider_user_id = ?
+            """,
+            (provider, provider_user_id),
+        ).fetchone()
+        if row is None:
+            return None
+        return SubscriberOAuthProvider(
+            id=row["id"],
+            subscriber_id=row["subscriber_id"],
+            provider=row["provider"],
+            provider_user_id=row["provider_user_id"],
+            email_at_provider=row["email_at_provider"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
+
+    def create_oauth_provider_link(
+        self,
+        *,
+        subscriber_id: int,
+        provider: str,
+        provider_user_id: str,
+        email_at_provider: str,
+        now: str,
+    ) -> SubscriberOAuthProvider:
+        with self.connection:
+            cursor = self.connection.execute(
+                """
+                INSERT INTO subscriber_oauth_providers
+                    (subscriber_id, provider, provider_user_id, email_at_provider,
+                     created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (subscriber_id, provider, provider_user_id, email_at_provider, now, now),
+            )
+            sid = cursor.lastrowid
+        row = self.connection.execute(
+            "SELECT * FROM subscriber_oauth_providers WHERE id = ?", (sid,)
+        ).fetchone()
+        return SubscriberOAuthProvider(
+            id=row["id"],
+            subscriber_id=row["subscriber_id"],
+            provider=row["provider"],
+            provider_user_id=row["provider_user_id"],
+            email_at_provider=row["email_at_provider"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )

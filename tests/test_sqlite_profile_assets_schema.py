@@ -20,6 +20,7 @@ def test_profile_asset_tables_exist(tmp_path: Path) -> None:
 
         assert "subscriber_language_entries" in table_names
         assert "subscriber_language_certificates" in table_names
+        assert "subscriber_certification_entries" in table_names
         assert "subscriber_cv_uploads" in table_names
         assert "subscriber_cv_parse_runs" in table_names
         assert "subscriber_cv_apply_audits" in table_names
@@ -41,6 +42,12 @@ def test_profile_asset_table_columns_exist(tmp_path: Path) -> None:
             row["name"]
             for row in connection.execute(
                 "PRAGMA table_info(subscriber_language_certificates)"
+            ).fetchall()
+        }
+        generic_certificate_columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(subscriber_certification_entries)"
             ).fetchall()
         }
         cv_columns = {
@@ -91,6 +98,20 @@ def test_profile_asset_table_columns_exist(tmp_path: Path) -> None:
             "created_at",
             "updated_at",
         }.issubset(certificate_columns)
+
+        assert {
+            "id",
+            "subscriber_id",
+            "certificate_name",
+            "issuer_name",
+            "issued_year",
+            "file_name",
+            "storage_path",
+            "uploaded_at",
+            "display_order",
+            "created_at",
+            "updated_at",
+        }.issubset(generic_certificate_columns)
 
         assert {
             "id",

@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from hiring_radar.models import (
+    SubscriberCertificationEntry,
     SubscriberEducationEntry,
     SubscriberExperienceEntry,
     SubscriberLanguageEntry,
@@ -14,6 +15,7 @@ from hiring_radar.services.cv_profile_apply_plan import (
     CV_APPLY_ACTION_FILL_MISSING,
     CV_APPLY_ACTION_REVIEW_REQUIRED,
     CvEducationEntryApplyPlan,
+    CvCertificationEntryApplyPlan,
     CvExperienceEntryApplyPlan,
     CvLanguageEntryApplyPlan,
     CvProfileApplyPlan,
@@ -34,6 +36,7 @@ class CvSelectedApplyOperations:
         education_entry_indexes: Selected education entry plan indexes.
         experience_entry_indexes: Selected experience entry plan indexes.
         language_entry_indexes: Selected language entry plan indexes.
+        certification_entry_indexes: Selected certification entry plan indexes.
     """
 
     scalar_fields: tuple[str, ...] = ()
@@ -41,6 +44,7 @@ class CvSelectedApplyOperations:
     education_entry_indexes: tuple[int, ...] = ()
     experience_entry_indexes: tuple[int, ...] = ()
     language_entry_indexes: tuple[int, ...] = ()
+    certification_entry_indexes: tuple[int, ...] = ()
 
     def change_count(self) -> int:
         """Return the total number of selected operations.
@@ -54,6 +58,7 @@ class CvSelectedApplyOperations:
             + len(self.education_entry_indexes)
             + len(self.experience_entry_indexes)
             + len(self.language_entry_indexes)
+            + len(self.certification_entry_indexes)
         )
 
 
@@ -71,6 +76,7 @@ class CvProfileApplyExecutionResult:
         applied_education_entry_indexes: Applied education entry indexes.
         applied_experience_entry_indexes: Applied experience entry indexes.
         applied_language_entry_indexes: Applied language entry indexes.
+        applied_certification_entry_indexes: Applied certification entry indexes.
         applied_change_count: Total applied operation count.
     """
 
@@ -78,11 +84,13 @@ class CvProfileApplyExecutionResult:
     education_entries: tuple[SubscriberEducationEntry, ...]
     experience_entries: tuple[SubscriberExperienceEntry, ...]
     language_entries: tuple[SubscriberLanguageEntry, ...]
+    certification_entries: tuple[SubscriberCertificationEntry, ...]
     applied_scalar_fields: tuple[str, ...]
     applied_list_fields: tuple[str, ...]
     applied_education_entry_indexes: tuple[int, ...]
     applied_experience_entry_indexes: tuple[int, ...]
     applied_language_entry_indexes: tuple[int, ...]
+    applied_certification_entry_indexes: tuple[int, ...]
     applied_change_count: int
 
 
@@ -93,6 +101,7 @@ def build_cv_selected_apply_operations(
     education_entry_indexes: Sequence[int],
     experience_entry_indexes: Sequence[int],
     language_entry_indexes: Sequence[int],
+    certification_entry_indexes: Sequence[int] = (),
 ) -> CvSelectedApplyOperations:
     """Build and validate a normalized selection payload.
 
@@ -102,6 +111,7 @@ def build_cv_selected_apply_operations(
         education_entry_indexes: Selected education plan indexes.
         experience_entry_indexes: Selected experience plan indexes.
         language_entry_indexes: Selected language plan indexes.
+        certification_entry_indexes: Selected certification plan indexes.
 
     Returns:
         A normalized and deduplicated selection object.
@@ -130,6 +140,10 @@ def build_cv_selected_apply_operations(
             language_entry_indexes,
             logical_name="language_entry_indexes",
         ),
+        certification_entry_indexes=_normalize_unique_indexes(
+            certification_entry_indexes,
+            logical_name="certification_entry_indexes",
+        ),
     )
 
     if selection.change_count() == 0:
@@ -146,6 +160,7 @@ def apply_selected_cv_profile_operations(
     education_entries: Sequence[SubscriberEducationEntry],
     experience_entries: Sequence[SubscriberExperienceEntry],
     language_entries: Sequence[SubscriberLanguageEntry],
+    certification_entries: Sequence[SubscriberCertificationEntry] = (),
 ) -> CvProfileApplyExecutionResult:
     """Apply selected operations against the current subscriber profile state.
 
@@ -160,6 +175,7 @@ def apply_selected_cv_profile_operations(
         education_entries: Current persisted education entries.
         experience_entries: Current persisted experience entries.
         language_entries: Current persisted language entries.
+        certification_entries: Current persisted generic certification entries.
 
     Returns:
         The updated in-memory profile state and the list-oriented entry sets.
@@ -171,6 +187,7 @@ def apply_selected_cv_profile_operations(
     updated_education_entries = list(education_entries)
     updated_experience_entries = list(experience_entries)
     updated_language_entries = list(language_entries)
+    updated_certification_entries = list(certification_entries)
 
     applied_scalar_fields = _apply_selected_scalar_fields(
         apply_plan=apply_plan,
@@ -204,17 +221,25 @@ def apply_selected_cv_profile_operations(
         subscriber_id=profile.subscriber_id,
         existing_entries=updated_language_entries,
     )
+    applied_certification_entry_indexes = _apply_selected_certification_entries(
+        entry_plans=apply_plan.certification_entries,
+        selected_indexes=selection.certification_entry_indexes,
+        subscriber_id=profile.subscriber_id,
+        existing_entries=updated_certification_entries,
+    )
 
     return CvProfileApplyExecutionResult(
         profile=updated_profile,
         education_entries=tuple(updated_education_entries),
         experience_entries=tuple(updated_experience_entries),
         language_entries=tuple(updated_language_entries),
+        certification_entries=tuple(updated_certification_entries),
         applied_scalar_fields=applied_scalar_fields.applied_field_names,
         applied_list_fields=applied_list_fields.applied_field_names,
         applied_education_entry_indexes=applied_education_entry_indexes,
         applied_experience_entry_indexes=applied_experience_entry_indexes,
         applied_language_entry_indexes=applied_language_entry_indexes,
+        applied_certification_entry_indexes=applied_certification_entry_indexes,
         applied_change_count=selection.change_count(),
     )
 
@@ -455,11 +480,41 @@ def _apply_selected_language_entries(
     return tuple(applied_indexes)
 
 
+def _apply_selected_certification_entries(
+    *,
+    entry_plans: Sequence[CvCertificationEntryApplyPlan],
+    selected_indexes: Sequence[int],
+    subscriber_id: int,
+    existing_entries: list[SubscriberCertificationEntry],
+) -> tuple[int, ...]:
+    """Apply selected certification entry operations."""
+    applied_indexes: list[int] = []
+
+    for index in selected_indexes:
+        plan = _get_selected_entry_plan(
+            entry_plans,
+            index=index,
+            logical_name="certification",
+        )
+        existing_entries.append(
+            SubscriberCertificationEntry(
+                subscriber_id=subscriber_id,
+                certificate_name=plan.draft_entry.certificate_name,
+                issuer_name=plan.draft_entry.issuer_name,
+                issued_year=plan.draft_entry.issued_year,
+            )
+        )
+        applied_indexes.append(index)
+
+    return tuple(applied_indexes)
+
+
 def _get_selected_entry_plan(
     entry_plans: Sequence[
         CvEducationEntryApplyPlan
         | CvExperienceEntryApplyPlan
         | CvLanguageEntryApplyPlan
+        | CvCertificationEntryApplyPlan
     ],
     *,
     index: int,
@@ -594,13 +649,18 @@ def selected_apply_operations_to_dict(
     Returns:
         JSON-ready selection payload.
     """
-    return {
+    payload = {
         "scalar_fields": list(selection.scalar_fields),
         "list_fields": list(selection.list_fields),
         "education_entry_indexes": list(selection.education_entry_indexes),
         "experience_entry_indexes": list(selection.experience_entry_indexes),
         "language_entry_indexes": list(selection.language_entry_indexes),
     }
+    if selection.certification_entry_indexes:
+        payload["certification_entry_indexes"] = list(
+            selection.certification_entry_indexes
+        )
+    return payload
 
 
 def applied_execution_result_to_dict(
@@ -625,6 +685,9 @@ def applied_execution_result_to_dict(
         ),
         "applied_language_entry_indexes": list(
             result.applied_language_entry_indexes
+        ),
+        "applied_certification_entry_indexes": list(
+            result.applied_certification_entry_indexes
         ),
         "applied_change_count": result.applied_change_count,
     }

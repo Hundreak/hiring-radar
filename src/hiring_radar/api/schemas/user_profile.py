@@ -42,6 +42,14 @@ class UserLanguageCertificateResponse(BaseModel):
     uploaded_at: str | None
 
 
+class UserCertificationEntryResponse(BaseModel):
+    id: int | None
+    certificate_name: str
+    issuer_name: str | None
+    issued_year: int | None
+    file_name: str | None
+    uploaded_at: str | None
+    display_order: int
 
 
 class UserProfileAvatarUploadResponse(BaseModel):
@@ -181,6 +189,14 @@ class UserCvDraftLanguageEntryResponse(BaseModel):
     notes: str | None
 
 
+class UserCvDraftCertificationEntryResponse(BaseModel):
+    """Serialized generic certification derived from a parsed CV draft."""
+
+    certificate_name: str
+    issuer_name: str | None
+    issued_year: int | None
+
+
 class UserCvProfileDraftResponse(BaseModel):
     """Normalized profile draft generated from parsed CV text."""
 
@@ -193,6 +209,7 @@ class UserCvProfileDraftResponse(BaseModel):
     education_entries: list[UserCvDraftEducationEntryResponse]
     experience_entries: list[UserCvDraftExperienceEntryResponse]
     language_entries: list[UserCvDraftLanguageEntryResponse]
+    certification_entries: list[UserCvDraftCertificationEntryResponse]
 
 
 class UserCvFieldConfidenceResponse(BaseModel):
@@ -217,6 +234,7 @@ class UserCvProfileConfidenceReportResponse(BaseModel):
     education_entries: UserCvFieldConfidenceResponse
     experience_entries: UserCvFieldConfidenceResponse
     language_entries: UserCvFieldConfidenceResponse
+    certification_entries: UserCvFieldConfidenceResponse
 
 
 class UserCvParseSnapshotResponse(BaseModel):
@@ -284,6 +302,15 @@ class UserCvLanguageEntryApplyPlanResponse(BaseModel):
     default_selected: bool
 
 
+class UserCvCertificationEntryApplyPlanResponse(BaseModel):
+    """Serialized apply plan for a generic certification entry."""
+
+    draft_entry: UserCvDraftCertificationEntryResponse
+    matched_existing_id: int | None
+    action: str
+    default_selected: bool
+
+
 class UserCvProfileApplyPlanResponse(BaseModel):
     """Typed response for the latest CV apply plan."""
 
@@ -305,6 +332,7 @@ class UserCvProfileApplyPlanResponse(BaseModel):
     education_entries: list[UserCvEducationEntryApplyPlanResponse]
     experience_entries: list[UserCvExperienceEntryApplyPlanResponse]
     language_entries: list[UserCvLanguageEntryApplyPlanResponse]
+    certification_entries: list[UserCvCertificationEntryApplyPlanResponse]
     confidence: UserCvProfileConfidenceReportResponse
     field_review: list[UserCvFieldReviewInsightResponse]
     review_summary: UserCvReviewSummaryResponse
@@ -322,6 +350,7 @@ class UserCvApplySelectedRequest(BaseModel):
     education_entry_indexes: list[int] = Field(default_factory=list)
     experience_entry_indexes: list[int] = Field(default_factory=list)
     language_entry_indexes: list[int] = Field(default_factory=list)
+    certification_entry_indexes: list[int] = Field(default_factory=list)
     manual_review_acknowledged: bool = False
 
 
@@ -338,6 +367,7 @@ class UserCvApplySelectedResponse(BaseModel):
     applied_education_entry_indexes: list[int]
     applied_experience_entry_indexes: list[int]
     applied_language_entry_indexes: list[int]
+    applied_certification_entry_indexes: list[int]
     workspace_refresh_required: bool = True
 
 
@@ -364,6 +394,7 @@ class UserProfileResponse(BaseModel):
     experience_entries: list[UserExperienceEntryResponse]
     language_entries: list[UserLanguageEntryResponse]
     language_certificates: list[UserLanguageCertificateResponse]
+    certification_entries: list[UserCertificationEntryResponse]
     latest_cv_upload: UserCvUploadResponse | None
     completeness: UserProfileCompletenessResponse
     created_at: str | None
@@ -398,6 +429,16 @@ class UserLanguageEntryUpdate(BaseModel):
     notes: str | None = None
 
 
+class UserCertificationEntryUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    certificate_name: str
+    issuer_name: str | None = None
+    issued_year: int | None = None
+    file_name: str | None = None
+    uploaded_at: str | None = None
+
+
 class UserProfileUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -412,6 +453,7 @@ class UserProfileUpdateRequest(BaseModel):
     education_entries: list[UserEducationEntryUpdate] = Field(default_factory=list)
     experience_entries: list[UserExperienceEntryUpdate] = Field(default_factory=list)
     language_entries: list[UserLanguageEntryUpdate] = Field(default_factory=list)
+    certification_entries: list[UserCertificationEntryUpdate] = Field(default_factory=list)
 
 
 class CreateUserAiAuditLogRequest(BaseModel):

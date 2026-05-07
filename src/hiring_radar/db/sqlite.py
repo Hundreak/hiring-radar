@@ -50,6 +50,228 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
     ON jobs (first_seen_at)
     """,
     """
+    CREATE TABLE IF NOT EXISTS job_sources (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_type TEXT NOT NULL,
+        source_name TEXT NOT NULL,
+        account_slug TEXT NOT NULL DEFAULT '',
+        base_url TEXT,
+        trust_score REAL NOT NULL DEFAULT 0.5,
+        country_scope TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE (source_type, source_name, account_slug)
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_job_sources_type_active
+    ON job_sources (source_type, is_active, source_name)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS job_source_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_id INTEGER NOT NULL,
+        external_job_id TEXT NOT NULL,
+        external_company_id TEXT,
+        raw_payload_json TEXT NOT NULL,
+        raw_payload_hash TEXT NOT NULL,
+        canonical_url TEXT,
+        title TEXT NOT NULL,
+        company_name TEXT NOT NULL,
+        location_text TEXT,
+        posted_at TEXT,
+        apply_url TEXT,
+        fetched_at TEXT NOT NULL,
+        first_seen_at TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+        FOREIGN KEY (source_id) REFERENCES job_sources(id) ON DELETE CASCADE,
+        UNIQUE (source_id, external_job_id)
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_job_source_records_source_active
+    ON job_source_records (source_id, is_active, last_seen_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_job_source_records_payload_hash
+    ON job_source_records (raw_payload_hash)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS canonical_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        canonical_key TEXT NOT NULL UNIQUE,
+        normalized_title TEXT NOT NULL,
+        normalized_company_name TEXT NOT NULL,
+        display_title TEXT NOT NULL,
+        display_company_name TEXT NOT NULL,
+        location_city TEXT,
+        district TEXT,
+        country TEXT,
+        workplace_type TEXT,
+        employment_type TEXT,
+        seniority TEXT,
+        category TEXT,
+        department TEXT,
+        description_text TEXT,
+        description_html TEXT,
+        posted_at TEXT,
+        apply_url TEXT NOT NULL,
+        trust_score REAL NOT NULL DEFAULT 0.5,
+        freshness_score REAL NOT NULL DEFAULT 0.5,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_canonical_jobs_active_updated_at
+    ON canonical_jobs (is_active, updated_at DESC)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_canonical_jobs_company_title
+    ON canonical_jobs (normalized_company_name, normalized_title)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS canonical_job_links (
+        canonical_job_id INTEGER NOT NULL,
+        source_job_id INTEGER NOT NULL UNIQUE,
+        merge_reason TEXT,
+        confidence REAL NOT NULL DEFAULT 1.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (canonical_job_id, source_job_id),
+        FOREIGN KEY (canonical_job_id) REFERENCES canonical_jobs(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_job_id) REFERENCES job_source_records(id) ON DELETE CASCADE
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_canonical_job_links_canonical_job_id
+    ON canonical_job_links (canonical_job_id, confidence DESC)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS canonical_job_features (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        canonical_job_id INTEGER NOT NULL UNIQUE,
+        feature_version TEXT NOT NULL,
+        role_family TEXT,
+        job_discipline TEXT,
+        department_family TEXT,
+        title_tokens_json TEXT NOT NULL DEFAULT '[]',
+        skill_terms_json TEXT NOT NULL DEFAULT '[]',
+        location_tokens_json TEXT NOT NULL DEFAULT '[]',
+        language_requirements_json TEXT NOT NULL DEFAULT '[]',
+        education_level_hint TEXT,
+        years_experience_min INTEGER,
+        management_track INTEGER NOT NULL DEFAULT 0 CHECK (management_track IN (0, 1)),
+        individual_contributor INTEGER NOT NULL DEFAULT 1 CHECK (individual_contributor IN (0, 1)),
+        match_readiness_score REAL NOT NULL DEFAULT 0.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (canonical_job_id) REFERENCES canonical_jobs(id) ON DELETE CASCADE
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_canonical_job_features_role_family
+    ON canonical_job_features (role_family, job_discipline)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_canonical_job_features_match_readiness
+    ON canonical_job_features (match_readiness_score DESC, updated_at DESC)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS subscriber_profile_features (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subscriber_id INTEGER NOT NULL UNIQUE,
+        feature_version TEXT NOT NULL,
+        role_families_json TEXT NOT NULL DEFAULT '[]',
+        discipline_preferences_json TEXT NOT NULL DEFAULT '[]',
+        title_tokens_json TEXT NOT NULL DEFAULT '[]',
+        skill_terms_json TEXT NOT NULL DEFAULT '[]',
+        experience_evidence_terms_json TEXT NOT NULL DEFAULT '[]',
+        preferred_location_tokens_json TEXT NOT NULL DEFAULT '[]',
+        language_capabilities_json TEXT NOT NULL DEFAULT '[]',
+        education_level TEXT,
+        years_experience_total INTEGER,
+        remote_preference TEXT,
+        management_preference INTEGER CHECK (management_preference IN (0, 1)),
+        profile_strength_score REAL NOT NULL DEFAULT 0.0,
+        seniority_level TEXT,
+        domain_signals_json TEXT NOT NULL DEFAULT '[]',
+        responsibility_scope TEXT,
+        ownership_signals_json TEXT NOT NULL DEFAULT '[]',
+        impact_signals_json TEXT NOT NULL DEFAULT '[]',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_subscriber_profile_features_strength
+    ON subscriber_profile_features (profile_strength_score DESC, updated_at DESC)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS subscriber_job_interactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subscriber_id INTEGER NOT NULL,
+        api_job_id INTEGER NOT NULL,
+        job_kind TEXT NOT NULL CHECK (job_kind IN ('legacy', 'canonical')),
+        canonical_job_id INTEGER,
+        legacy_job_id INTEGER,
+        impression_count INTEGER NOT NULL DEFAULT 0,
+        open_count INTEGER NOT NULL DEFAULT 0,
+        save_count INTEGER NOT NULL DEFAULT 0,
+        apply_click_count INTEGER NOT NULL DEFAULT 0,
+        total_dwell_seconds INTEGER NOT NULL DEFAULT 0,
+        max_dwell_seconds INTEGER NOT NULL DEFAULT 0,
+        affinity_score REAL NOT NULL DEFAULT 0.0,
+        first_interacted_at TEXT NOT NULL,
+        last_interacted_at TEXT NOT NULL,
+        last_source_surface TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE,
+        FOREIGN KEY (canonical_job_id) REFERENCES canonical_jobs(id) ON DELETE CASCADE,
+        FOREIGN KEY (legacy_job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+        UNIQUE (subscriber_id, api_job_id)
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_subscriber_job_interactions_affinity
+    ON subscriber_job_interactions (subscriber_id, affinity_score DESC, last_interacted_at DESC)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_subscriber_job_interactions_canonical
+    ON subscriber_job_interactions (subscriber_id, canonical_job_id, affinity_score DESC)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS subscriber_job_interaction_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subscriber_id INTEGER NOT NULL,
+        api_job_id INTEGER NOT NULL,
+        job_kind TEXT NOT NULL CHECK (job_kind IN ('legacy', 'canonical')),
+        canonical_job_id INTEGER,
+        legacy_job_id INTEGER,
+        interaction_type TEXT NOT NULL CHECK (interaction_type IN ('impression', 'open', 'dwell', 'save', 'apply_click')),
+        source_surface TEXT,
+        dwell_seconds INTEGER,
+        metadata_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE,
+        FOREIGN KEY (canonical_job_id) REFERENCES canonical_jobs(id) ON DELETE CASCADE,
+        FOREIGN KEY (legacy_job_id) REFERENCES jobs(id) ON DELETE CASCADE
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_subscriber_job_interaction_events_subscriber_time
+    ON subscriber_job_interaction_events (subscriber_id, created_at DESC, id DESC)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_subscriber_job_interaction_events_canonical
+    ON subscriber_job_interaction_events (subscriber_id, canonical_job_id, created_at DESC)
+    """,
+    """
     CREATE TABLE IF NOT EXISTS subscribers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT NOT NULL UNIQUE,
@@ -263,6 +485,26 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
     ON subscriber_language_certificates (subscriber_id, id)
     """,
     """
+    CREATE TABLE IF NOT EXISTS subscriber_certification_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subscriber_id INTEGER NOT NULL,
+        certificate_name TEXT NOT NULL,
+        issuer_name TEXT,
+        issued_year INTEGER,
+        file_name TEXT,
+        storage_path TEXT,
+        uploaded_at TEXT,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (subscriber_id) REFERENCES subscribers(id)
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_subscriber_certification_entries_subscriber_id
+    ON subscriber_certification_entries (subscriber_id, display_order, id)
+    """,
+    """
     CREATE TABLE IF NOT EXISTS subscriber_skill_details (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         subscriber_id INTEGER NOT NULL,
@@ -463,6 +705,30 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
     ON retrieval_embeddings (chunk_id, created_at DESC, id DESC)
     """,
     """
+    CREATE TABLE IF NOT EXISTS retrieval_embedding_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chunk_id INTEGER NOT NULL,
+        provider TEXT NOT NULL,
+        model TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'queued',
+        attempt_count INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        claimed_at TEXT,
+        completed_at TEXT,
+        FOREIGN KEY (chunk_id) REFERENCES retrieval_chunks(id) ON DELETE CASCADE
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_retrieval_embedding_jobs_chunk_id
+    ON retrieval_embedding_jobs (chunk_id, status, created_at, id)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_retrieval_embedding_jobs_queue
+    ON retrieval_embedding_jobs (provider, model, status, created_at, id)
+    """,
+    """
     CREATE TABLE IF NOT EXISTS subscriber_ai_copilot_conversations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         subscriber_id INTEGER NOT NULL,
@@ -539,17 +805,46 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
     ON subscriber_ai_learned_memories (subscriber_id, updated_at DESC, id DESC)
     """,
     """
+    CREATE TABLE IF NOT EXISTS job_external_context_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_url TEXT NOT NULL UNIQUE,
+        final_url TEXT,
+        source_domain TEXT,
+        fetch_status TEXT NOT NULL DEFAULT 'unavailable',
+        http_status INTEGER,
+        page_title TEXT,
+        site_name TEXT,
+        meta_description TEXT,
+        clean_text TEXT NOT NULL DEFAULT '',
+        content_digest TEXT,
+        site_specific_requirements_json TEXT NOT NULL DEFAULT '[]',
+        company_culture_clues_json TEXT NOT NULL DEFAULT '[]',
+        responsibility_clues_json TEXT NOT NULL DEFAULT '[]',
+        technology_stack_terms_json TEXT NOT NULL DEFAULT '[]',
+        source_metadata_json TEXT NOT NULL DEFAULT '{}',
+        warning TEXT,
+        fetched_at TEXT,
+        expires_at TEXT,
+        updated_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_job_external_context_snapshots_expires_at
+    ON job_external_context_snapshots (expires_at, updated_at DESC, id DESC)
+    """,
+    """
     CREATE TABLE IF NOT EXISTS subscriber_saved_jobs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         subscriber_id INTEGER NOT NULL,
         job_id INTEGER NOT NULL,
+        api_job_id INTEGER NOT NULL,
         status TEXT NOT NULL DEFAULT 'reviewing',
         match_score INTEGER,
         deadline_at TEXT,
         interview_at TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        UNIQUE(subscriber_id, job_id),
+        UNIQUE(subscriber_id, api_job_id),
         FOREIGN KEY (subscriber_id) REFERENCES subscribers(id),
         FOREIGN KEY (job_id) REFERENCES jobs(id)
     )
@@ -663,6 +958,144 @@ def _ensure_column(
         connection.execute(
             f"ALTER TABLE {table_name} "
             f"ADD COLUMN {column_name} {column_definition}"
+        )
+
+
+def _ensure_saved_jobs_api_reference_migration(connection: sqlite3.Connection) -> None:
+    _ensure_column(
+        connection,
+        table_name="subscriber_saved_jobs",
+        column_name="api_job_id",
+        column_definition="INTEGER",
+    )
+    with connection:
+        connection.execute(
+            """
+            UPDATE subscriber_saved_jobs
+            SET api_job_id = job_id
+            WHERE api_job_id IS NULL
+            """
+        )
+        connection.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriber_saved_jobs_api_job_id
+            ON subscriber_saved_jobs (subscriber_id, api_job_id)
+            """
+        )
+
+
+def _ensure_matching_engine_migrations(connection: sqlite3.Connection) -> None:
+    with connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS subscriber_profile_features (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subscriber_id INTEGER NOT NULL UNIQUE,
+                feature_version TEXT NOT NULL,
+                role_families_json TEXT NOT NULL DEFAULT '[]',
+                discipline_preferences_json TEXT NOT NULL DEFAULT '[]',
+                title_tokens_json TEXT NOT NULL DEFAULT '[]',
+                skill_terms_json TEXT NOT NULL DEFAULT '[]',
+                experience_evidence_terms_json TEXT NOT NULL DEFAULT '[]',
+                preferred_location_tokens_json TEXT NOT NULL DEFAULT '[]',
+                language_capabilities_json TEXT NOT NULL DEFAULT '[]',
+                education_level TEXT,
+                years_experience_total INTEGER,
+                remote_preference TEXT,
+                management_preference INTEGER CHECK (management_preference IN (0, 1)),
+                profile_strength_score REAL NOT NULL DEFAULT 0.0,
+                seniority_level TEXT,
+                domain_signals_json TEXT NOT NULL DEFAULT '[]',
+                responsibility_scope TEXT,
+                ownership_signals_json TEXT NOT NULL DEFAULT '[]',
+                impact_signals_json TEXT NOT NULL DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_profile_features_strength
+            ON subscriber_profile_features (profile_strength_score DESC, updated_at DESC)
+            """
+        )
+
+
+def _ensure_job_interaction_memory_migrations(connection: sqlite3.Connection) -> None:
+    with connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS subscriber_job_interactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subscriber_id INTEGER NOT NULL,
+                api_job_id INTEGER NOT NULL,
+                job_kind TEXT NOT NULL CHECK (job_kind IN ('legacy', 'canonical')),
+                canonical_job_id INTEGER,
+                legacy_job_id INTEGER,
+                impression_count INTEGER NOT NULL DEFAULT 0,
+                open_count INTEGER NOT NULL DEFAULT 0,
+                save_count INTEGER NOT NULL DEFAULT 0,
+                apply_click_count INTEGER NOT NULL DEFAULT 0,
+                total_dwell_seconds INTEGER NOT NULL DEFAULT 0,
+                max_dwell_seconds INTEGER NOT NULL DEFAULT 0,
+                affinity_score REAL NOT NULL DEFAULT 0.0,
+                first_interacted_at TEXT NOT NULL,
+                last_interacted_at TEXT NOT NULL,
+                last_source_surface TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE,
+                FOREIGN KEY (canonical_job_id) REFERENCES canonical_jobs(id) ON DELETE CASCADE,
+                FOREIGN KEY (legacy_job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+                UNIQUE (subscriber_id, api_job_id)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_job_interactions_affinity
+            ON subscriber_job_interactions (subscriber_id, affinity_score DESC, last_interacted_at DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_job_interactions_canonical
+            ON subscriber_job_interactions (subscriber_id, canonical_job_id, affinity_score DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS subscriber_job_interaction_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subscriber_id INTEGER NOT NULL,
+                api_job_id INTEGER NOT NULL,
+                job_kind TEXT NOT NULL CHECK (job_kind IN ('legacy', 'canonical')),
+                canonical_job_id INTEGER,
+                legacy_job_id INTEGER,
+                interaction_type TEXT NOT NULL CHECK (interaction_type IN ('impression', 'open', 'dwell', 'save', 'apply_click')),
+                source_surface TEXT,
+                dwell_seconds INTEGER,
+                metadata_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE,
+                FOREIGN KEY (canonical_job_id) REFERENCES canonical_jobs(id) ON DELETE CASCADE,
+                FOREIGN KEY (legacy_job_id) REFERENCES jobs(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_job_interaction_events_subscriber_time
+            ON subscriber_job_interaction_events (subscriber_id, created_at DESC, id DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_job_interaction_events_canonical
+            ON subscriber_job_interaction_events (subscriber_id, canonical_job_id, created_at DESC)
+            """
         )
 
 
@@ -802,6 +1235,167 @@ def _ensure_copilot_ai_migrations(connection: sqlite3.Connection) -> None:
         column_definition="TEXT",
     )
 
+def _ensure_job_corpus_expansion_migrations(connection: sqlite3.Connection) -> None:
+    with connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS job_sources (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_type TEXT NOT NULL,
+                source_name TEXT NOT NULL,
+                account_slug TEXT NOT NULL DEFAULT '',
+                base_url TEXT,
+                trust_score REAL NOT NULL DEFAULT 0.5,
+                country_scope TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE (source_type, source_name, account_slug)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_job_sources_type_active
+            ON job_sources (source_type, is_active, source_name)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS job_source_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_id INTEGER NOT NULL,
+                external_job_id TEXT NOT NULL,
+                external_company_id TEXT,
+                raw_payload_json TEXT NOT NULL,
+                raw_payload_hash TEXT NOT NULL,
+                canonical_url TEXT,
+                title TEXT NOT NULL,
+                company_name TEXT NOT NULL,
+                location_text TEXT,
+                posted_at TEXT,
+                apply_url TEXT,
+                fetched_at TEXT NOT NULL,
+                first_seen_at TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+                FOREIGN KEY (source_id) REFERENCES job_sources(id) ON DELETE CASCADE,
+                UNIQUE (source_id, external_job_id)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_job_source_records_source_active
+            ON job_source_records (source_id, is_active, last_seen_at)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_job_source_records_payload_hash
+            ON job_source_records (raw_payload_hash)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS canonical_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                canonical_key TEXT NOT NULL UNIQUE,
+                normalized_title TEXT NOT NULL,
+                normalized_company_name TEXT NOT NULL,
+                display_title TEXT NOT NULL,
+                display_company_name TEXT NOT NULL,
+                location_city TEXT,
+                district TEXT,
+                country TEXT,
+                workplace_type TEXT,
+                employment_type TEXT,
+                seniority TEXT,
+                category TEXT,
+                department TEXT,
+                description_text TEXT,
+                description_html TEXT,
+                posted_at TEXT,
+                apply_url TEXT NOT NULL,
+                trust_score REAL NOT NULL DEFAULT 0.5,
+                freshness_score REAL NOT NULL DEFAULT 0.5,
+                is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_canonical_jobs_active_updated_at
+            ON canonical_jobs (is_active, updated_at DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_canonical_jobs_company_title
+            ON canonical_jobs (normalized_company_name, normalized_title)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS canonical_job_links (
+                canonical_job_id INTEGER NOT NULL,
+                source_job_id INTEGER NOT NULL UNIQUE,
+                merge_reason TEXT,
+                confidence REAL NOT NULL DEFAULT 1.0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (canonical_job_id, source_job_id),
+                FOREIGN KEY (canonical_job_id) REFERENCES canonical_jobs(id) ON DELETE CASCADE,
+                FOREIGN KEY (source_job_id) REFERENCES job_source_records(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_canonical_job_links_canonical_job_id
+            ON canonical_job_links (canonical_job_id, confidence DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS canonical_job_features (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                canonical_job_id INTEGER NOT NULL UNIQUE,
+                feature_version TEXT NOT NULL,
+                role_family TEXT,
+                job_discipline TEXT,
+                department_family TEXT,
+                title_tokens_json TEXT NOT NULL DEFAULT '[]',
+                skill_terms_json TEXT NOT NULL DEFAULT '[]',
+                location_tokens_json TEXT NOT NULL DEFAULT '[]',
+                language_requirements_json TEXT NOT NULL DEFAULT '[]',
+                education_level_hint TEXT,
+                years_experience_min INTEGER,
+                management_track INTEGER NOT NULL DEFAULT 0 CHECK (management_track IN (0, 1)),
+                individual_contributor INTEGER NOT NULL DEFAULT 1 CHECK (individual_contributor IN (0, 1)),
+                match_readiness_score REAL NOT NULL DEFAULT 0.0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (canonical_job_id) REFERENCES canonical_jobs(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_canonical_job_features_role_family
+            ON canonical_job_features (role_family, job_discipline)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_canonical_job_features_match_readiness
+            ON canonical_job_features (match_readiness_score DESC, updated_at DESC)
+            """
+        )
+
+
 def _ensure_retrieval_migrations(connection: sqlite3.Connection) -> None:
     _ensure_column(
         connection,
@@ -827,6 +1421,73 @@ def _ensure_retrieval_migrations(connection: sqlite3.Connection) -> None:
         column_name="status",
         column_definition="TEXT NOT NULL DEFAULT 'pending'",
     )
+    with connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS retrieval_embedding_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chunk_id INTEGER NOT NULL,
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'queued',
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                claimed_at TEXT,
+                completed_at TEXT,
+                FOREIGN KEY (chunk_id) REFERENCES retrieval_chunks(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_retrieval_embedding_jobs_chunk_id
+            ON retrieval_embedding_jobs (chunk_id, status, created_at, id)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_retrieval_embedding_jobs_queue
+            ON retrieval_embedding_jobs (provider, model, status, created_at, id)
+            """
+        )
+
+
+def _ensure_job_external_context_migrations(connection: sqlite3.Connection) -> None:
+    with connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS job_external_context_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_url TEXT NOT NULL UNIQUE,
+                final_url TEXT,
+                source_domain TEXT,
+                fetch_status TEXT NOT NULL DEFAULT 'unavailable',
+                http_status INTEGER,
+                page_title TEXT,
+                site_name TEXT,
+                meta_description TEXT,
+                clean_text TEXT NOT NULL DEFAULT '',
+                content_digest TEXT,
+                site_specific_requirements_json TEXT NOT NULL DEFAULT '[]',
+                company_culture_clues_json TEXT NOT NULL DEFAULT '[]',
+                responsibility_clues_json TEXT NOT NULL DEFAULT '[]',
+                technology_stack_terms_json TEXT NOT NULL DEFAULT '[]',
+                source_metadata_json TEXT NOT NULL DEFAULT '{}',
+                warning TEXT,
+                fetched_at TEXT,
+                expires_at TEXT,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_job_external_context_snapshots_expires_at
+            ON job_external_context_snapshots (expires_at, updated_at DESC, id DESC)
+            """
+        )
 
 
 def init_db_schema(connection: sqlite3.Connection) -> None:
@@ -834,6 +1495,186 @@ def init_db_schema(connection: sqlite3.Connection) -> None:
         for statement in SCHEMA_STATEMENTS:
             connection.execute(statement)
 
+
+def _ensure_google_oauth_migrations(connection: sqlite3.Connection) -> None:
+    with connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS subscriber_oauth_providers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subscriber_id INTEGER NOT NULL,
+                provider TEXT NOT NULL,
+                provider_user_id TEXT NOT NULL,
+                email_at_provider TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE,
+                UNIQUE (provider, provider_user_id)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_oauth_providers_subscriber
+            ON subscriber_oauth_providers (subscriber_id, provider)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS subscriber_oauth_states (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                state_token_hash TEXT NOT NULL UNIQUE,
+                redirect_path TEXT NOT NULL DEFAULT '',
+                nonce TEXT NOT NULL DEFAULT '',
+                expires_at TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_oauth_states_expires_at
+            ON subscriber_oauth_states (expires_at)
+            """
+        )
+
+
+def _ensure_matching_engine_v2_migrations(connection: sqlite3.Connection) -> None:
+    """Add seniority and experience-evidence columns introduced in matching engine v2."""
+    _ensure_column(
+        connection,
+        table_name="subscriber_profile_features",
+        column_name="seniority_level",
+        column_definition="TEXT",
+    )
+
+
+def _ensure_matching_engine_v3_migrations(connection: sqlite3.Connection) -> None:
+    """Add required/preferred skill split, domain signals, and responsibility scope (v3)."""
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="required_skill_terms_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="preferred_skill_terms_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="domain_signals_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="responsibility_scope",
+        column_definition="TEXT",
+    )
+    _ensure_column(
+        connection,
+        table_name="subscriber_profile_features",
+        column_name="domain_signals_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+
+
+def _ensure_matching_engine_v4_migrations(connection: sqlite3.Connection) -> None:
+    """Add external job-intelligence columns to canonical job features (v4)."""
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="external_requirement_terms_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="external_technology_terms_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="external_responsibility_terms_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="external_context_status",
+        column_definition="TEXT",
+    )
+    _ensure_column(
+        connection,
+        table_name="canonical_job_features",
+        column_name="external_context_updated_at",
+        column_definition="TEXT",
+    )
+
+
+
+
+def _ensure_profile_certification_migrations(connection: sqlite3.Connection) -> None:
+    """Create the generic subscriber certification table for CV-derived awards."""
+    with connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS subscriber_certification_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subscriber_id INTEGER NOT NULL,
+                certificate_name TEXT NOT NULL,
+                issuer_name TEXT,
+                issued_year INTEGER,
+                file_name TEXT,
+                storage_path TEXT,
+                uploaded_at TEXT,
+                display_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (subscriber_id) REFERENCES subscribers(id)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_certification_entries_subscriber_id
+            ON subscriber_certification_entries (subscriber_id, display_order, id)
+            """
+        )
+
+
+def _ensure_matching_engine_v5_migrations(connection: sqlite3.Connection) -> None:
+    """Add persisted profile-evidence columns introduced in matching engine v5."""
+    _ensure_column(
+        connection,
+        table_name="subscriber_profile_features",
+        column_name="experience_evidence_terms_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+    _ensure_column(
+        connection,
+        table_name="subscriber_profile_features",
+        column_name="responsibility_scope",
+        column_definition="TEXT",
+    )
+    _ensure_column(
+        connection,
+        table_name="subscriber_profile_features",
+        column_name="ownership_signals_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
+    _ensure_column(
+        connection,
+        table_name="subscriber_profile_features",
+        column_name="impact_signals_json",
+        column_definition="TEXT NOT NULL DEFAULT '[]'",
+    )
 
 def initialize_database(db_path: str) -> sqlite3.Connection:
     path = Path(db_path)
@@ -851,6 +1692,17 @@ def initialize_database(db_path: str) -> sqlite3.Connection:
     _ensure_profile_asset_migrations(connection)
     _ensure_retrieval_migrations(connection)
     _ensure_copilot_ai_migrations(connection)
+    _ensure_job_corpus_expansion_migrations(connection)
+    _ensure_matching_engine_migrations(connection)
+    _ensure_job_interaction_memory_migrations(connection)
+    _ensure_saved_jobs_api_reference_migration(connection)
+    _ensure_job_external_context_migrations(connection)
+    _ensure_google_oauth_migrations(connection)
+    _ensure_matching_engine_v2_migrations(connection)
+    _ensure_matching_engine_v3_migrations(connection)
+    _ensure_matching_engine_v4_migrations(connection)
+    _ensure_matching_engine_v5_migrations(connection)
+    _ensure_profile_certification_migrations(connection)
 
     return connection
 

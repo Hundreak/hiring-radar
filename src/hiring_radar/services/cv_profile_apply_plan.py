@@ -4,12 +4,14 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from hiring_radar.models import (
+    SubscriberCertificationEntry,
     SubscriberEducationEntry,
     SubscriberExperienceEntry,
     SubscriberLanguageEntry,
     SubscriberProfile,
 )
 from hiring_radar.services.cv_profile_draft import (
+    CvDraftCertificationEntry,
     CvDraftEducationEntry,
     CvDraftExperienceEntry,
     CvDraftLanguageEntry,
@@ -93,6 +95,16 @@ class CvLanguageEntryApplyPlan:
 
 
 @dataclass(slots=True, frozen=True)
+class CvCertificationEntryApplyPlan:
+    """Represents a proposed apply decision for a generic certification entry."""
+
+    draft_entry: CvDraftCertificationEntry
+    matched_existing_id: int | None
+    action: str
+    default_selected: bool
+
+
+@dataclass(slots=True, frozen=True)
 class CvProfileApplyPlan:
     """Represents a safe, non-destructive apply plan for a parsed CV draft.
 
@@ -107,6 +119,7 @@ class CvProfileApplyPlan:
         education_entries: Entry plans for education suggestions.
         experience_entries: Entry plans for experience suggestions.
         language_entries: Entry plans for language suggestions.
+        certification_entries: Entry plans for generic certification suggestions.
     """
 
     source_parse_status: str | None
@@ -119,6 +132,7 @@ class CvProfileApplyPlan:
     education_entries: tuple[CvEducationEntryApplyPlan, ...]
     experience_entries: tuple[CvExperienceEntryApplyPlan, ...]
     language_entries: tuple[CvLanguageEntryApplyPlan, ...]
+    certification_entries: tuple[CvCertificationEntryApplyPlan, ...]
 
     def has_actionable_changes(self) -> bool:
         """Return whether the plan contains at least one actionable change.
@@ -138,6 +152,11 @@ class CvProfileApplyPlan:
         if any(plan.action != CV_APPLY_ACTION_NOOP for plan in self.experience_entries):
             return True
         if any(plan.action != CV_APPLY_ACTION_NOOP for plan in self.language_entries):
+            return True
+        if any(
+            plan.action != CV_APPLY_ACTION_NOOP
+            for plan in self.certification_entries
+        ):
             return True
 
         return False
@@ -165,6 +184,11 @@ class CvProfileApplyPlan:
         total += sum(
             1 for plan in self.language_entries if plan.action != CV_APPLY_ACTION_NOOP
         )
+        total += sum(
+            1
+            for plan in self.certification_entries
+            if plan.action != CV_APPLY_ACTION_NOOP
+        )
 
         return total
     
@@ -184,6 +208,9 @@ class CvProfileApplyPlan:
         total += sum(1 for plan in self.education_entries if plan.default_selected)
         total += sum(1 for plan in self.experience_entries if plan.default_selected)
         total += sum(1 for plan in self.language_entries if plan.default_selected)
+        total += sum(
+            1 for plan in self.certification_entries if plan.default_selected
+        )
 
         return total
 
@@ -195,6 +222,7 @@ def build_cv_profile_apply_plan(
     education_entries: Sequence[SubscriberEducationEntry],
     experience_entries: Sequence[SubscriberExperienceEntry],
     language_entries: Sequence[SubscriberLanguageEntry],
+    certification_entries: Sequence[SubscriberCertificationEntry] = (),
 ) -> CvProfileApplyPlan:
     """Build a non-destructive apply plan from a parsed CV snapshot.
 
@@ -204,6 +232,7 @@ def build_cv_profile_apply_plan(
         education_entries: Current persisted education entries.
         experience_entries: Current persisted experience entries.
         language_entries: Current persisted language entries.
+        certification_entries: Current persisted generic certification entries.
 
     Returns:
         A deterministic apply plan that prefers safe, additive changes.
@@ -253,6 +282,10 @@ def build_cv_profile_apply_plan(
         language_entries=_build_language_entry_plans(
             draft.language_entries,
             language_entries,
+        ),
+        certification_entries=_build_certification_entry_plans(
+            draft.certification_entries,
+            certification_entries,
         ),
     )
 
@@ -485,6 +518,41 @@ def _build_language_entry_plans(
     return tuple(plans)
 
 
+def _build_certification_entry_plans(
+    draft_entries: tuple[CvDraftCertificationEntry, ...],
+    existing_entries: Sequence[SubscriberCertificationEntry],
+) -> tuple[CvCertificationEntryApplyPlan, ...]:
+    """Build apply plans for generic certification entries."""
+    existing_by_key = {
+        _certification_entry_key(entry): entry for entry in existing_entries
+    }
+    plans: list[CvCertificationEntryApplyPlan] = []
+
+    for draft_entry in draft_entries:
+        matching_entry = existing_by_key.get(_certification_entry_key(draft_entry))
+        if matching_entry is None:
+            plans.append(
+                CvCertificationEntryApplyPlan(
+                    draft_entry=draft_entry,
+                    matched_existing_id=None,
+                    action=CV_APPLY_ACTION_ADD_UNIQUE,
+                    default_selected=True,
+                )
+            )
+            continue
+
+        plans.append(
+            CvCertificationEntryApplyPlan(
+                draft_entry=draft_entry,
+                matched_existing_id=matching_entry.id,
+                action=CV_APPLY_ACTION_NOOP,
+                default_selected=False,
+            )
+        )
+
+    return tuple(plans)
+
+
 def _clean_optional_string(value: str | None) -> str | None:
     """Normalize an optional string.
 
@@ -591,3 +659,14 @@ def _language_entry_key(
         A canonical comparison key.
     """
     return _string_key(entry.language_name)
+
+
+def _certification_entry_key(
+    entry: CvDraftCertificationEntry | SubscriberCertificationEntry,
+) -> tuple[str, str, int | None]:
+    """Build a stable comparison key for certification entries."""
+    return (
+        _string_key(entry.certificate_name),
+        _string_key(entry.issuer_name or ""),
+        entry.issued_year,
+    )

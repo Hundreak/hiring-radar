@@ -47,3 +47,23 @@ logs/*
 
 
 config/companies.local.yml
+# Python local env/cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Runtime/local outputs
+logs/
+data/cv_inspect/
+
+# Local generated artifacts
+*.zip
+*.tar.xz
+
+# Frontend build/cache
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
+frontend/node_modules/

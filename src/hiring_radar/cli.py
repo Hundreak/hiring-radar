@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+import asyncio
+import json
+from pathlib import Path
 
 import typer
 
@@ -15,6 +18,7 @@ from hiring_radar.filtering import (
 )
 from hiring_radar.models import CrawlSourceResult, NotificationRun, Subscriber
 from hiring_radar.services.crawl import run_multi_source_crawl
+from hiring_radar.services.ai.web_context import WebContextService
 from hiring_radar.services.digest import (
     DigestFilterResult,
     DigestResult,
@@ -22,6 +26,10 @@ from hiring_radar.services.digest import (
     filter_digest_result_by_keyword_settings,
     render_digest_subject,
     render_digest_text,
+)
+from hiring_radar.services.cv_local_diagnostics import (
+    LocalCvInspectionResult,
+    inspect_local_cv_directory,
 )
 from hiring_radar.services.email import (
     EmailDeliveryError,
@@ -39,6 +47,7 @@ from hiring_radar.services.retrieval.embedding_jobs import (
     run_embedding_job_batch,
 )
 from hiring_radar.services.summary import SummaryResult, build_summary
+from hiring_radar.services.jobs.feature_engine import refresh_matching_readiness_features
 from hiring_radar.settings import AppSettings, load_app_settings
 
 DEFAULT_COMPANIES_CONFIG_PATH = "config/companies.example.yml"
@@ -650,12 +659,204 @@ def _print_filter_preview_result(
     )
 
 
+
+
+def _find_canonical_job_ids_for_url(
+    repository: HiringRadarRepository,
+    *,
+    source_url: str,
+) -> list[int]:
+    normalized = source_url.strip()
+    if not normalized:
+        return []
+    return [
+        job.id for job in repository.list_canonical_jobs(active_only=False)
+        if job.id is not None and (job.apply_url or '').strip() == normalized
+    ]
+
+
+def _hydrate_single_job_url(
+    repository: HiringRadarRepository,
+    *,
+    source_url: str,
+    force_refresh: bool,
+    verbose: bool,
+) -> None:
+    observed_at = _utc_now_iso()
+    service = WebContextService(repository=repository)
+    insights = asyncio.run(
+        service.get_external_source_insights(
+            source_url=source_url,
+            observed_at=observed_at,
+            force_refresh=force_refresh,
+        )
+    )
+
+    canonical_job_ids = _find_canonical_job_ids_for_url(repository, source_url=source_url)
+    refreshed_feature_count = 0
+    if canonical_job_ids:
+        refresh_result = refresh_matching_readiness_features(
+            repository,
+            refreshed_at=observed_at,
+            canonical_job_ids=canonical_job_ids,
+        )
+        refreshed_feature_count = refresh_result.refreshed_features
+
+    metadata = insights.original_source_metadata
+    typer.secho("Hydrated job URL", bold=True)
+    typer.echo(f"  source_url={metadata.source_url}")
+    typer.echo(f"  hydration_status={insights.enrichment_status}")
+    typer.echo(f"  fetch_status={metadata.fetch_status}")
+    typer.echo(f"  http_status={metadata.http_status}")
+    typer.echo(f"  final_url={metadata.final_url}")
+    typer.echo(f"  page_title={metadata.page_title or '-'}")
+    typer.echo(f"  site_name={metadata.site_name or '-'}")
+    typer.echo(f"  text_char_count={metadata.text_char_count}")
+    typer.echo(f"  clean_text_chars={len(insights.clean_text)}")
+    typer.echo(f"  content_digest={metadata.content_digest or '-'}")
+    typer.echo(f"  matched_canonical_jobs={len(canonical_job_ids)}")
+    typer.echo(f"  refreshed_feature_count={refreshed_feature_count}")
+    typer.echo(
+        "  requirements="
+        f"{len(insights.site_specific_requirements)} "
+        "responsibilities="
+        f"{len(insights.responsibility_clues)} "
+        "culture="
+        f"{len(insights.company_culture_clues)} "
+        "tech_terms="
+        f"{len(insights.technology_stack_terms)}"
+    )
+
+    if not verbose:
+        return
+
+    def _print_block(title: str, values: tuple[str, ...]) -> None:
+        typer.echo("")
+        typer.secho(title, bold=True)
+        if not values:
+            typer.echo("  -")
+            return
+        for item in values:
+            typer.echo(f"  - {item}")
+
+    _print_block("Technology terms", insights.technology_stack_terms)
+    _print_block("Requirements", insights.site_specific_requirements)
+    _print_block("Responsibilities", insights.responsibility_clues)
+    _print_block("Culture / benefits", insights.company_culture_clues)
+
+    typer.echo("")
+    typer.secho("Section lines", bold=True)
+    section_lines = insights.section_lines or {}
+    printed_any = False
+    for section_name in ("requirements", "responsibilities", "culture"):
+        values = tuple(section_lines.get(section_name, ()))
+        if not values:
+            continue
+        printed_any = True
+        typer.echo(f"  [{section_name}]")
+        for item in values[:8]:
+            typer.echo(f"    - {item}")
+    if not printed_any:
+        typer.echo("  -")
+
+    typer.echo("")
+    typer.secho("Clean text preview", bold=True)
+    preview = insights.clean_text[:1200].strip()
+    typer.echo(f"  {preview or '-'}")
+
+
+def _hydrate_active_canonical_job_pages(
+    repository: HiringRadarRepository,
+    *,
+    force_refresh: bool,
+) -> tuple[int, int]:
+    hydrated_urls = 0
+    refreshed_features = 0
+    processed_urls: set[str] = set()
+    observed_at = _utc_now_iso()
+    service = WebContextService(repository=repository)
+
+    for job in repository.list_canonical_jobs(active_only=True):
+        source_url = (job.apply_url or '').strip()
+        if not source_url or source_url in processed_urls:
+            continue
+        processed_urls.add(source_url)
+        asyncio.run(
+            service.get_external_source_insights(
+                source_url=source_url,
+                observed_at=observed_at,
+                force_refresh=force_refresh,
+            )
+        )
+        hydrated_urls += 1
+
+    if processed_urls:
+        refresh_result = refresh_matching_readiness_features(
+            repository,
+            refreshed_at=observed_at,
+            canonical_job_ids=[job.id for job in repository.list_canonical_jobs(active_only=True) if job.id is not None],
+        )
+        refreshed_features = refresh_result.refreshed_features
+
+    return hydrated_urls, refreshed_features
+
+
+@app.command(name="hydrate-job-url")
+def hydrate_job_url(
+    url: str = typer.Option(..., "--url", help="Exact external job page URL to hydrate."),
+    force_refresh: bool = typer.Option(False, "--force-refresh", help="Ignore cache and refetch the page."),
+    verbose: bool = typer.Option(False, "--verbose", help="Print extracted sections and clean text preview."),
+) -> None:
+    connection = None
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+        _hydrate_single_job_url(
+            repository,
+            source_url=url,
+            force_refresh=force_refresh,
+            verbose=verbose,
+        )
+    except Exception as exc:
+        typer.secho(f"Unexpected hydration error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        close_connection(connection)
+
+
+@app.command(name="hydrate-job-pages")
+def hydrate_job_pages(
+    force_refresh: bool = typer.Option(False, "--force-refresh", help="Ignore cache and refetch all active canonical job pages."),
+) -> None:
+    connection = None
+    try:
+        connection = initialize_database(DEFAULT_DB_PATH)
+        repository = HiringRadarRepository(connection)
+        hydrated, refreshed = _hydrate_active_canonical_job_pages(
+            repository,
+            force_refresh=force_refresh,
+        )
+        typer.secho("Job page hydration", bold=True)
+        typer.echo(f"  hydrated_urls={hydrated}")
+        typer.echo(f"  refreshed_features={refreshed}")
+    except Exception as exc:
+        typer.secho(f"Unexpected hydration error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        close_connection(connection)
+
+
 @app.command()
 def crawl(
     config_path: str = typer.Option(
         DEFAULT_COMPANIES_CONFIG_PATH,
         "--config-path",
         help="Path to the YAML source configuration file.",
+    ),
+    hydrate_job_pages: bool = typer.Option(
+        False,
+        "--hydrate-job-pages",
+        help="Refresh external job-page snapshots after crawl for active canonical jobs.",
     ),
 ) -> None:
     """Run configured job source crawls."""
@@ -676,6 +877,12 @@ def crawl(
             source_configs=source_configs,
             repository=repository,
         )
+
+        if hydrate_job_pages:
+            hydrated, refreshed = _hydrate_active_canonical_job_pages(repository=repository, force_refresh=False)
+            typer.echo("")
+            typer.secho("Job page hydration", bold=True)
+            typer.echo(f"  hydrated_urls={hydrated} refreshed_features={refreshed}")
 
         for result in results:
             _print_crawl_result(result)
@@ -768,6 +975,12 @@ def crawl_and_notify(
             source_configs=source_configs,
             repository=repository,
         )
+
+        if hydrate_job_pages:
+            hydrated, refreshed = _hydrate_active_canonical_job_pages(repository=repository, force_refresh=False)
+            typer.echo("")
+            typer.secho("Job page hydration", bold=True)
+            typer.echo(f"  hydrated_urls={hydrated} refreshed_features={refreshed}")
 
         for result in results:
             _print_crawl_result(result)
@@ -1700,6 +1913,226 @@ def process_retrieval_embeddings(
 
     finally:
         close_connection(connection)
+
+
+
+
+def _truncate_cli_text(value: str | None, max_chars: int = 180) -> str:
+    if not value:
+        return "-"
+    if len(value) <= max_chars:
+        return value
+    return f"{value[:max_chars].rstrip()}…"
+
+
+def _format_year_span(start_year: object, end_year: object) -> str:
+    start = str(start_year) if start_year else "-"
+    end = str(end_year) if end_year else "present"
+    if start == "-" and end == "present":
+        return "-"
+    return f"{start}-{end}"
+
+
+def _format_education_years(start_year: object, end_year: object) -> str:
+    if start_year and end_year and start_year != end_year:
+        return f"{start_year}-{end_year}"
+    if end_year:
+        return str(end_year)
+    if start_year:
+        return str(start_year)
+    return "-"
+
+
+def _print_mapping_entries(
+    *,
+    title: str,
+    entries: list[dict] | tuple[dict, ...],
+    formatter,
+) -> None:
+    if not entries:
+        return
+    typer.echo(f"    {title}:")
+    for entry in entries:
+        typer.echo(f"      - {formatter(entry)}")
+
+
+def _print_cv_inspection_result(result: LocalCvInspectionResult) -> None:
+    status_label = "OK" if result.success else "FAILED"
+    status_color = "green" if result.success else "red"
+    typer.secho(f"[{status_label}] {result.filename}", fg=status_color, bold=True)
+    typer.echo(
+        "  "
+        f"format={result.file_format} "
+        f"content_type={result.content_type or '-'} "
+        f"size={result.file_size_bytes} "
+        f"status={result.parse_status}"
+    )
+    if result.extraction_method is not None:
+        quality_band = "-"
+        quality_score = "-"
+        if result.quality:
+            quality_band = str(result.quality.get("band", "-"))
+            quality_score = str(result.quality.get("score", "-"))
+        typer.echo(
+            "  "
+            f"method={result.extraction_method} "
+            f"used_ocr={_format_bool(result.used_ocr)} "
+            f"pages={result.page_count} "
+            f"chars={result.extracted_character_count} "
+            f"quality={quality_band}/{quality_score}"
+        )
+    if result.error:
+        typer.secho(f"  error={result.error}", fg="red")
+        return
+
+    snapshot_payload = result.to_dict().get("snapshot") or {}
+    draft = snapshot_payload.get("draft") or {}
+    profile_after = (result.profile_after_apply or {}).get("profile") or {}
+    applied = (result.profile_after_apply or {}).get("applied") or {}
+
+    typer.echo("  Draft")
+    typer.echo(f"    full_name={draft.get('full_name') or '-'}")
+    typer.echo(
+        "    "
+        f"email={draft.get('email') or '-'} "
+        f"phone={draft.get('phone') or '-'} "
+        f"linkedin={draft.get('linkedin_url') or '-'} "
+        f"github={draft.get('github_url') or '-'}"
+    )
+    typer.echo(f"    headline={draft.get('headline') or '-'}")
+    typer.echo(f"    summary={_truncate_cli_text(draft.get('summary'))}")
+    typer.echo(f"    skills={', '.join(draft.get('skills') or []) or '-'}")
+    typer.echo(f"    target_roles={', '.join(draft.get('target_roles') or []) or '-'}")
+    typer.echo(f"    preferred_locations={', '.join(draft.get('preferred_locations') or []) or '-'}")
+    typer.echo(
+        "    "
+        f"education={len(draft.get('education_entries') or [])} "
+        f"experience={len(draft.get('experience_entries') or [])} "
+        f"languages={len(draft.get('language_entries') or [])} "
+        f"certifications={len(draft.get('certification_entries') or [])}"
+    )
+    _print_mapping_entries(
+        title="education_entries",
+        entries=draft.get('education_entries') or [],
+        formatter=lambda item: (
+            f"{_format_education_years(item.get('start_year'), item.get('end_year'))} | "
+            f"{item.get('degree_name') or '-'} | "
+            f"{item.get('field_of_study') or '-'} | "
+            f"{item.get('school_name') or '-'}"
+        ),
+    )
+    _print_mapping_entries(
+        title="experience_entries",
+        entries=draft.get('experience_entries') or [],
+        formatter=lambda item: (
+            f"{_format_year_span(item.get('start_year'), item.get('end_year'))} | "
+            f"{item.get('title') or '-'} | "
+            f"{item.get('company_name') or '-'} | "
+            f"{_truncate_cli_text(item.get('summary'), max_chars=120)}"
+        ),
+    )
+    _print_mapping_entries(
+        title="certification_entries",
+        entries=draft.get('certification_entries') or [],
+        formatter=lambda item: (
+            f"{item.get('issued_year') or '-'} | "
+            f"{item.get('certificate_name') or '-'} | "
+            f"{item.get('issuer_name') or '-'}"
+        ),
+    )
+    typer.echo("  Profile placement simulation")
+    typer.echo(f"    headline={profile_after.get('headline') or '-'}")
+    typer.echo(f"    skills={', '.join(profile_after.get('skills') or []) or '-'}")
+    typer.echo(
+        "    "
+        f"applied_total={applied.get('total_applied_changes', 0)} "
+        f"scalars={','.join(applied.get('scalar_fields') or []) or '-'} "
+        f"lists={','.join(applied.get('list_fields') or []) or '-'} "
+        f"contacts={','.join(applied.get('contact_fields') or []) or '-'} "
+        f"edu={applied.get('added_education_entry_count', 0)} "
+        f"exp={applied.get('added_experience_entry_count', 0)} "
+        f"lang={applied.get('added_language_entry_count', 0)} "
+        f"cert={applied.get('added_certification_entry_count', 0)}"
+    )
+    certification_after = (result.profile_after_apply or {}).get('certification_entries') or []
+    if certification_after:
+        typer.echo(f"    certification_entries={len(certification_after)}")
+    if result.text_preview:
+        typer.echo("  Text preview")
+        for line in result.text_preview.splitlines():
+            typer.echo(f"    {line}")
+
+
+@app.command(name="cv-inspect-folder")
+def cv_inspect_folder(
+    directory: str = typer.Option(
+        "/home/remzi/Desktop/CV",
+        "--directory",
+        "-d",
+        help="Folder containing CV files to extract and parse.",
+    ),
+    ai_structuring: str = typer.Option(
+        "ocr",
+        "--ai-structuring",
+        help="Ollama structuring mode: off, ocr, auto, or all.",
+    ),
+    json_output: str | None = typer.Option(
+        None,
+        "--json-output",
+        help="Optional path to write full inspection results as JSON.",
+    ),
+    text_preview_chars: int = typer.Option(
+        0,
+        "--text-preview-chars",
+        min=0,
+        help="Print this many extracted-text characters per CV (0 disables preview).",
+    ),
+    include_unsupported: bool = typer.Option(
+        False,
+        "--include-unsupported",
+        help="Also report files outside supported CV extensions instead of skipping them.",
+    ),
+) -> None:
+    """Inspect local CV files and show extraction + profile-placement results."""
+    try:
+        results = inspect_local_cv_directory(
+            directory,
+            ai_structuring_mode=ai_structuring,
+            text_preview_chars=text_preview_chars,
+            include_unsupported=include_unsupported,
+        )
+    except Exception as exc:
+        typer.secho(f"CV inspection error: {exc}", fg="red", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.secho("CV inspection", bold=True)
+    typer.echo(f"  directory={directory}")
+    typer.echo(f"  files={len(results)} ai_structuring={ai_structuring}")
+    if not include_unsupported:
+        typer.echo("  unsupported_files=skipped (use --include-unsupported to show them)")
+    typer.echo("")
+
+    for index, result in enumerate(results):
+        if index:
+            typer.echo("")
+        _print_cv_inspection_result(result)
+
+    if json_output:
+        output_path = Path(json_output).expanduser()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(
+            json.dumps(
+                [result.to_dict() for result in results],
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        typer.echo("")
+        typer.secho(f"Wrote JSON report: {output_path}", fg="green")
+
+    if any(not result.success for result in results):
+        raise typer.Exit(code=1)
 
 
 @app.command()

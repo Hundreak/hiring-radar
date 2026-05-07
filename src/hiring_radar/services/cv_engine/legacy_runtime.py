@@ -50,10 +50,18 @@ from hiring_radar.services.cv_profile_parser import parse_cv_text_to_profile_dra
 
 _EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
 _PHONE_RE = re.compile(
-    r"(?:\+?\d[\d\s().-]{7,}\d)",
+    # Keep the candidate on a single visual line. Using \s here made education
+    # date ranges bleed across newlines and show up as false phone numbers.
+    r"(?:\+?\d[\d \t().-]{7,}\d)",
     re.IGNORECASE,
 )
-_LINK_RE = re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE)
+_YEAR_TOKEN_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
+_YEAR_RANGE_RE = re.compile(
+    r"(?P<start>(?:19|20)\d{2})\s*(?:-|–|—|to)\s*"
+    r"(?P<end>(?:19|20)\d{2}|present|current|ongoing|heute|devam)",
+    re.IGNORECASE,
+)
+_LINK_RE = re.compile(r"(?:https?://|www\.|linkedin\.com/|github\.com/)\S+", re.IGNORECASE)
 _NAME_DISALLOWED_TOKENS = {
     "cv",
     "resume",
@@ -284,10 +292,19 @@ def _merge_skills(
         key = skill.canonical_name.casefold()
         if key in seen:
             continue
+        if _is_redundant_skill_name(key, seen):
+            continue
         ordered.append(skill)
         seen.add(key)
 
     return ordered
+
+
+def _is_redundant_skill_name(candidate_key: str, existing_keys: set[str]) -> bool:
+    if len(candidate_key) <= 4:
+        return False
+    pattern = re.compile(rf"(?<![a-z0-9]){re.escape(candidate_key)}(?![a-z0-9])")
+    return any(pattern.search(existing_key) for existing_key in existing_keys)
 
 
 
@@ -415,6 +432,8 @@ def _normalize_phone_numbers(values: list[str]) -> list[str]:
     seen: set[str] = set()
     for value in values:
         cleaned = re.sub(r"\s+", " ", value).strip(" .,-")
+        if _looks_like_phone_false_positive(cleaned):
+            continue
         digits = re.sub(r"\D", "", cleaned)
         if len(digits) < 8:
             continue
@@ -424,6 +443,23 @@ def _normalize_phone_numbers(values: list[str]) -> list[str]:
         seen.add(key)
         normalized.append(cleaned)
     return normalized
+
+
+def _looks_like_phone_false_positive(value: str) -> bool:
+    stripped = value.strip()
+    if not stripped:
+        return True
+    if _YEAR_RANGE_RE.fullmatch(stripped) or _YEAR_TOKEN_RE.fullmatch(stripped):
+        return True
+
+    # Common CV dates such as "2012 - 2017" have exactly two four-digit years.
+    # They satisfy broad phone regexes unless explicitly filtered here.
+    digits = re.sub(r"\D", "", stripped)
+    years = _YEAR_TOKEN_RE.findall(stripped)
+    has_phone_marker = "+" in stripped or "(" in stripped or ")" in stripped
+    if len(years) >= 2 and len(digits) <= 8 and not has_phone_marker:
+        return True
+    return False
 
 
 
@@ -505,11 +541,45 @@ def _extract_certifications(sections: list[SectionBlock]) -> list[dict[str, str]
     )
     if certification_section is None:
         return []
+
+    records: list[str] = []
+    current: str | None = None
+    for raw_line in certification_section.lines:
+        line = raw_line.strip()
+        if not line:
+            continue
+        if _line_starts_new_certification(line) or current is None:
+            if current is not None:
+                records.append(current)
+            current = line
+            continue
+        current = f"{current} {line}".strip()
+
+    if current is not None:
+        records.append(current)
+
     return [
-        {"certificate_name": line.strip(), "issuer": "", "issued_at": ""}
-        for line in certification_section.lines
-        if line.strip()
+        {"certificate_name": record, "issuer": "", "issued_at": ""}
+        for record in records
+        if record
     ][:5]
+
+
+def _line_starts_new_certification(line: str) -> bool:
+    lowered = line.casefold()
+    return bool(_YEAR_TOKEN_RE.search(line)) or any(
+        marker in lowered
+        for marker in (
+            "certified",
+            "certification",
+            "certificate",
+            "professional",
+            "license",
+            "licence",
+            "sertifika",
+            "sertifikalı",
+        )
+    )
 
 
 

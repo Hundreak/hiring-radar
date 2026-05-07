@@ -1,4 +1,4 @@
-import {ArrowRight, Clock3, Search, Sparkles, Star, Target, Shield, Cpu, BarChart3} from 'lucide-react';
+import {ArrowRight, CheckCircle2, Clock3, Search, Sparkles, Star, Target, Shield, Cpu, BarChart3} from 'lucide-react';
 
 import {LandingHero} from '@/components/landing/hero';
 import {PublicFooter} from '@/components/layout/public-footer';

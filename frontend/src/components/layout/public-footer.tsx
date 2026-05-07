@@ -80,67 +80,67 @@ export function PublicFooter({locale}: PublicFooterProps) {
   const t = copy[safeLocale];
 
   return (
-    <footer className="border-t border-white/8 bg-[#07090d]">
+    <footer className="border-t border-border bg-surface-elevated">
       <div className="container-shell py-14">
         <div className="grid gap-10 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1fr]">
           <div>
             <BrandLogo locale={safeLocale} size="lg" showSubtitle={false} />
-            <p className="mt-6 max-w-sm text-lg leading-9 text-white/62">{t.description}</p>
+            <p className="mt-6 max-w-sm text-lg leading-9 text-muted-foreground">{t.description}</p>
           </div>
 
           <div>
-            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {t.company}
             </div>
-            <div className="mt-6 space-y-4 text-lg text-white/82">
-              <Link href={`/${safeLocale}/about`} className="block transition hover:text-[#8fa0ff]">
+            <div className="mt-6 space-y-4 text-lg text-foreground">
+              <Link href={`/${safeLocale}/about`} className="block transition hover:text-primary">
                 {t.about}
               </Link>
-              <Link href={`/${safeLocale}/principles`} className="block transition hover:text-[#8fa0ff]">
+              <Link href={`/${safeLocale}/principles`} className="block transition hover:text-primary">
                 {t.principles}
               </Link>
-              <Link href={`/${safeLocale}/faq`} className="block transition hover:text-[#8fa0ff]">
+              <Link href={`/${safeLocale}/faq`} className="block transition hover:text-primary">
                 {t.faq}
               </Link>
-              <Link href={`/${safeLocale}/contact`} className="block transition hover:text-[#8fa0ff]">
+              <Link href={`/${safeLocale}/contact`} className="block transition hover:text-primary">
                 {t.contact}
               </Link>
             </div>
           </div>
 
           <div>
-            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {t.policies}
             </div>
-            <div className="mt-6 space-y-4 text-lg text-white/82">
-              <Link href={`/${safeLocale}/privacy`} className="block transition hover:text-[#8fa0ff]">
+            <div className="mt-6 space-y-4 text-lg text-foreground">
+              <Link href={`/${safeLocale}/privacy`} className="block transition hover:text-primary">
                 {t.privacy}
               </Link>
-              <Link href={`/${safeLocale}/terms`} className="block transition hover:text-[#8fa0ff]">
+              <Link href={`/${safeLocale}/terms`} className="block transition hover:text-primary">
                 {t.terms}
               </Link>
-              <Link href={`/${safeLocale}/cookies`} className="block transition hover:text-[#8fa0ff]">
+              <Link href={`/${safeLocale}/cookies`} className="block transition hover:text-primary">
                 {t.cookies}
               </Link>
             </div>
           </div>
 
           <div>
-            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {t.support}
             </div>
-            <div className="mt-6 rounded-[28px] border border-white/10 bg-[#0d1117] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#eef0ff] text-[#4b61ff]">
+            <div className="mt-6 surface-card p-6">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5">
                   <circle cx="12" cy="12" r="8" />
                   <path d="M8.5 12.5l2.1 2.1 4.9-5.1" />
                 </svg>
               </div>
-              <div className="mt-5 text-2xl font-semibold text-white">{t.supportTitle}</div>
-              <p className="mt-4 text-base leading-8 text-white/60">{t.supportBody}</p>
+              <div className="mt-5 text-2xl font-semibold text-foreground">{t.supportTitle}</div>
+              <p className="mt-4 text-base leading-8 text-muted-foreground">{t.supportBody}</p>
               <a
                 href="mailto:destek@coresift.com"
-                className="mt-5 inline-flex items-center gap-2 text-lg font-semibold text-white transition hover:text-[#8fa0ff]"
+                className="mt-5 inline-flex items-center gap-2 text-lg font-semibold text-foreground transition hover:text-primary"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5">
                   <path d="M4 7h16v10H4z" />
@@ -152,13 +152,13 @@ export function PublicFooter({locale}: PublicFooterProps) {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-white/8 pt-8 text-sm text-white/42 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-12 flex flex-col gap-4 border-t border-border pt-8 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
           <div>© 2026 CoreSift. {t.rights}</div>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             <span>{t.legalLine1}</span>
             <span>{t.legalLine2}</span>
             <span>
-              {t.supportLine} <a href="mailto:destek@coresift.com" className="hover:text-white">destek@coresift.com</a>
+              {t.supportLine} <a href="mailto:destek@coresift.com" className="hover:text-foreground">destek@coresift.com</a>
             </span>
           </div>
         </div>

@@ -9,25 +9,28 @@ import {
   useState
 } from 'react';
 
-type Theme = 'dark' | 'light';
+export type Theme = 'onyx' | 'nova' | 'aura';
+
+const THEMES: Theme[] = ['onyx', 'nova', 'aura'];
+
+function isTheme(value: string | null): value is Theme {
+  return THEMES.includes(value as Theme);
+}
 
 type ThemeContextValue = {
   theme: Theme;
   resolvedTheme: Theme;
   setTheme: (theme: Theme) => void;
+  cycleTheme: () => void;
 };
 
-const STORAGE_KEY = 'hiring-radar-theme';
+const STORAGE_KEY = 'hiring-radar-theme-v2';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function isTheme(value: string | null): value is Theme {
-  return value === 'dark' || value === 'light';
-}
-
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') {
-    return 'dark';
+    return 'onyx';
   }
 
   const storedTheme = window.localStorage.getItem(STORAGE_KEY);
@@ -35,14 +38,14 @@ function getInitialTheme(): Theme {
     return storedTheme;
   }
 
-  return 'dark';
+  return 'onyx';
 }
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
-  root.classList.remove('light', 'dark');
+  THEMES.forEach((t) => root.classList.remove(t));
   root.classList.add(theme);
-  root.style.colorScheme = theme;
+  root.setAttribute('data-theme', theme);
 }
 
 export function ThemeProvider({
@@ -61,13 +64,21 @@ export function ThemeProvider({
     setThemeState(nextTheme);
   }, []);
 
+  const cycleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const idx = THEMES.indexOf(prev);
+      return THEMES[(idx + 1) % THEMES.length];
+    });
+  }, []);
+
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
       resolvedTheme: theme,
-      setTheme
+      setTheme,
+      cycleTheme
     }),
-    [theme, setTheme]
+    [theme, setTheme, cycleTheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

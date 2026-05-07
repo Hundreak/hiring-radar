@@ -12,11 +12,11 @@ export default async function LoginPage({
   const {locale} = await params;
 
   return (
-    <div className="min-h-screen bg-[#07090d] text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <PublicHeader locale={locale} />
       <Suspense
         fallback={
-          <section className="container-shell py-16 text-sm text-white/55">
+          <section className="container-shell py-16 text-sm text-muted-foreground">
             Loading sign-in…
           </section>
         }

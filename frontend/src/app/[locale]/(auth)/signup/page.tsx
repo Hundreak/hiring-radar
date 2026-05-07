@@ -10,7 +10,7 @@ export default async function SignupPage({
   const {locale} = await params;
 
   return (
-    <div className="min-h-screen bg-[#07090d] text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <PublicHeader locale={locale} />
       <SignupView locale={locale} />
       <PublicFooter locale={locale} />

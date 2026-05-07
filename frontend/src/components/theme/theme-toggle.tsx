@@ -1,7 +1,7 @@
 'use client';
 
 import {useSyncExternalStore} from 'react';
-import {MoonStar, SunMedium} from 'lucide-react';
+import {Palette} from 'lucide-react';
 
 import {useTheme} from '@/components/theme/theme-provider';
 import {IconButton} from '@/components/ui/icon-button';
@@ -14,37 +14,27 @@ function useIsHydrated(): boolean {
   return useSyncExternalStore(subscribe, () => true, () => false);
 }
 
-export function ThemeToggle() {
-  const {resolvedTheme, setTheme} = useTheme();
-  const isHydrated = useIsHydrated();
+const themeLabels: Record<string, string> = {
+  onyx: 'Onyx (Premium)',
+  nova: 'Nova (Corporate)',
+  aura: 'Aura (Vibrant)'
+};
 
-  const isDark = resolvedTheme === 'dark';
+export function ThemeToggle() {
+  const {resolvedTheme, cycleTheme} = useTheme();
+  const isHydrated = useIsHydrated();
 
   return (
     <IconButton
       aria-label="Toggle theme"
-      title={
-        isHydrated
-          ? isDark
-            ? 'Switch to light mode'
-            : 'Switch to dark mode'
-          : 'Toggle theme'
-      }
+      title={isHydrated ? themeLabels[resolvedTheme] || 'Toggle theme' : 'Toggle theme'}
       type="button"
       onClick={() => {
         if (!isHydrated) return;
-        setTheme(isDark ? 'light' : 'dark');
+        cycleTheme();
       }}
     >
-      {isHydrated ? (
-        isDark ? (
-          <SunMedium className="size-4" />
-        ) : (
-          <MoonStar className="size-4" />
-        )
-      ) : (
-        <span className="size-4" aria-hidden="true" />
-      )}
+      <Palette className="size-4" />
     </IconButton>
   );
 }

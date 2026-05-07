@@ -222,7 +222,7 @@ export function JobCard({job}: {job: JobCardModel}) {
                 matchScore: job.matchScore ?? null,
                 matchedKeywords,
                 href: job.href,
-                explanationSummary: job.explanation?.summary ?? null,
+                explanation: job.explanation,
                 evidenceTerms,
                 gapTerms,
               })

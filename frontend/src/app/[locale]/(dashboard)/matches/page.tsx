@@ -43,7 +43,7 @@ export default function MatchesPage() {
       .then(([res, ins, savedRes, profileRes]) => {
         if (!active) return;
         setJobs(res.items);
-        setRankingMode(res.ranking_mode);
+        setRankingMode(res.ranking_mode ?? 'legacy_keyword');
         setInsights(ins);
         setProfileAggregate(profileRes);
         setSavedJobIds(new Set(savedRes.items.map((s) => s.job_id)));

@@ -79,4 +79,4 @@ export function PublicHeader({locale}: PublicHeaderProps) {
   );
 }
 
-export default PublicH
+export default PublicHeader;

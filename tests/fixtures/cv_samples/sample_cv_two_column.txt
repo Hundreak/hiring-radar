@@ -1,0 +1,35 @@
+"""
+İki kolonlu CV örneği — OCR veya layout-aware extraction testi için.
+Sol kolon: İletişim, beceriler, diller, sertifikalar
+Sağ kolon: Profil, deneyim, eğitim
+Extraction sırasında sütunlar doğru sırayla birleştirilmeli.
+"""
+
+İLETİŞİM                          PROFİL
+İstanbul, Türkiye                 Yazılım mühendisi. 6 yıllık deneyim.
+mehmet.kaya@email.com             Backend ve sistem mimarisi uzmanı.
++90 555 987 65 43
+linkedin.com/in/mehmetkaya
+
+BECERİLER                         İŞ DENEYİMİ
+Java                              Senior Backend Engineer — Hepsiburada
+Python                            İstanbul | 2021 – günümüz
+Go                                • Microservices migration lead
+PostgreSQL                        • Kafka event streaming
+Redis                             • Performance optimization (%50 latency drop)
+Kubernetes
+AWS                               Backend Developer — Yemeksepeti
+Docker                            İstanbul | 2019 – 2021
+                                  • Payment gateway integration
+                                  • PostgreSQL query optimization
+DİLLER                            • CI/CD pipeline design (GitLab CI)
+Türkçe (ana dil)
+İngilizce (akıcı)                 Junior Developer — SoftTech
+Almanca (temel)                   Ankara | 2018 – 2019
+                                  • Spring Boot REST API
+                                  • Hibernate ORM
+
+SERTİFİKALAR                      EĞİTİM
+AWS SAA (2023)                    ODTÜ — Bilgisayar Mühendisliği
+CKA (2022)                        Ankara | 2014 – 2018
+Terraform Assoc. (2021)           GPA: 3.65/4.00

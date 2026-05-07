@@ -1,0 +1,44 @@
+"""
+OCR hatalı / düşük kaliteli tarama CV örneği.
+Görsel tabanlı CV'den OCR çıktısı simülasyonu.
+Hedef: OCR hatalarının güvenli şekilde düzeltilmesi, şüpheli alanların review_required
+işaretlenmesi.
+"""
+
+CAN DEMiR
+i stanbuI, TtJ rki ye
+E-posta: can.demir@ema i l . com
+Te I e fon: +90 53 4 567 89 O1
+LinkedIn: | inkedin . com/i n / candem i r
+
+PROF i L
+Yazilim geliştirme aIaninda 4 yil Iik deneyime sahip backend mühendisi. Python, Django
+ve FastAPI üzerine uzman I aşmiş. Mikroservis mimarisi ve olay tabanli sistemIerde
+tecrübeli.
+
+BECERiLER
+Pyt hon, Django, FastAPI, Flask
+Postg reSQL, MongoDB, Red i s
+Doc ker, Kubernete s, AWS Lambda
+Cel ery, Rabbi tMQ, Kafka
+
+iŞ DENEYiMi
+
+Backend DeveIoper — Hepsiburada Tech
+İs tanbuI | 2021 – Günümüz
+• Order serv i ce m i kroservis geçi şi
+• Performance optim i zasyonu
+• Event-driven arch i tecture w i th Apache Kafka
+
+Junior DeveIoper — Eski Ş irket
+Ankara | 2019 – 2021
+• Python scr i pt i ng
+• SQL database ma i ntenance
+
+EĞiTiM
+Hacettepe Üniversitesi — B i lgisayar Mühendi sliği
+Ankara | 2015 – 2019
+
+DiLLER
+Türkçe — Ana diI
+İngiIizce — İleri düzey

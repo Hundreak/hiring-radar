@@ -1,0 +1,59 @@
+"""
+Türkçe CV örneği — temel bölümler doğru şekilde ayrılmalı.
+İsim, e-posta, telefon, LinkedIn, GitHub, eğitim, deneyim, sertifika, dil, beceriler.
+"""
+
+AHMET YILMAZ
+İstanbul, Türkiye
+E-posta: ahmet.yilmaz@email.com | Telefon: +90 532 123 45 67
+LinkedIn: linkedin.com/in/ahmetyilmaz | GitHub: github.com/ahmetyilmaz
+
+PROFİL
+Yazılım geliştirme alanında 5 yıllık deneyime sahip, özellikle frontend ve full-stack
+projelerde uzmanlaşmış bir yazılım mühendisi. React, TypeScript ve Node.js ekosisteminde
+güçlü teknik bilgiye sahip. Agile takımlarda çalışma deneyimi olan, problem çözmeye
+odaklı ve sürekli öğrenmeye açık bir profesyonel.
+
+BECERİLER
+Programlama Dilleri: JavaScript, TypeScript, Python, Go
+Framework / Kütüphane: React, Next.js, Vue.js, Node.js, Express, FastAPI
+Veritabanları: PostgreSQL, MongoDB, Redis
+Araçlar ve Platformlar: Docker, Kubernetes, AWS, Git, CI/CD
+Yöntemler: Agile, Scrum, TDD
+
+İŞ DENEYİMİ
+
+Senior Frontend Developer — Trendyol Tech
+İstanbul, Türkiye | Mart 2022 – Günümüz
+• E-ticaret platformunun ana ürün sayfalarının yeniden tasarımını React + TypeScript ile
+  gerçekleştirdim. Sayfa yükleme süresini %40 azalttım.
+• Mikro-frontend mimarisi kurulumunda lider rol aldım. 4 kişilik frontend ekibini yönettim.
+• Design system kütüphanesi geliştirdim. 15+ UI bileşeni Storybook ile dokümante edildi.
+
+Frontend Developer — Getir
+İstanbul, Türkiye | Haziran 2020 – Şubat 2022
+• React Native ile iOS ve Android uygulamaları geliştirdim. 4.8+ App Store puanı aldı.
+• GraphQL API entegrasyonlarını optimize ettim. Veri fetching süresini %35 azalttım.
+• Unit test kapsamını %45'ten %78'e çıkardım (Jest + React Testing Library).
+
+Junior Software Engineer — StartupX
+Ankara, Türkiye | Ağustos 2019 – Mayıs 2020
+• Python Flask ile REST API geliştirdim.
+• PostgreSQL veritabanı şemalarını tasarladım ve optimize ettim.
+
+EĞİTİM
+
+İstanbul Teknik Üniversitesi — Bilgisayar Mühendisliği, Lisans
+İstanbul | Eylül 2015 – Haziran 2019
+GPA: 3.72 / 4.00
+Bitirme Projesi: "Real-time Collaborative Code Editor with Operational Transformation"
+
+DİLLER
+Türkçe — Ana dil
+İngilizce — İleri düzey (IELTS 7.5)
+Almanca — Orta düzey (B1)
+
+SERTİFİKALAR
+AWS Certified Solutions Architect – Associate (2023)
+Google Cloud Professional Data Engineer (2022)
+MongoDB Certified Developer (2021)

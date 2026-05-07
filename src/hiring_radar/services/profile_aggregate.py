@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from hiring_radar.services.cv_profile_parser import is_valid_spoken_language
 from hiring_radar.api.schemas.profile_contract import (
     CandidateProfileAggregate,
     CompletionSectionStatus,
@@ -183,19 +184,47 @@ def _build_education(raw_items: Any) -> list[ProfileEducationRecord]:
     return result
 
 
+_LEGACY_PROFICIENCY_MAP: dict[str, str] = {
+    "native": "native_or_bilingual",
+    "bilingual": "native_or_bilingual",
+    "native or bilingual": "native_or_bilingual",
+    "fluent": "full_professional",
+    "full professional": "full_professional",
+    "professional": "professional_working",
+    "professional working": "professional_working",
+    "upper intermediate": "upper_intermediate",
+    "upperintermediate": "upper_intermediate",
+    "advanced": "advanced",
+    "intermediate": "intermediate",
+    "elementary": "elementary",
+    "beginner": "beginner",
+    "basic": "beginner",
+}
+
+
+def _normalize_proficiency(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    normalized = _LEGACY_PROFICIENCY_MAP.get(value.lower().strip())
+    return normalized if normalized is not None else value
+
+
 def _build_languages(raw_items: Any) -> list[ProfileLanguageRecord]:
     if not isinstance(raw_items, list):
         return []
 
     result: list[ProfileLanguageRecord] = []
     for index, item in enumerate(raw_items):
+        language_name = str(
+            _read(item, "language_name", _read(item, "name", ""))
+        ).strip()
+        if not is_valid_spoken_language(language_name):
+            continue
         result.append(
             ProfileLanguageRecord(
                 id=str(_read(item, "id", f"lang_{index}")),
-                language_name=str(
-                    _read(item, "language_name", _read(item, "name", ""))
-                ).strip(),
-                proficiency_level=_read(item, "proficiency_level"),
+                language_name=language_name,
+                proficiency_level=_normalize_proficiency(_read(item, "proficiency_level")),
                 certificate_name=_read(item, "certificate_name"),
                 display_order=int(_read(item, "display_order", index)),
                 source_type=ProfileValueSource(

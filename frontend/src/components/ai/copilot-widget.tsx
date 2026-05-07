@@ -20,6 +20,7 @@ import {
   makeConversationTitle,
   type CopilotConversation,
   type CopilotMessage,
+  type CopilotPromptEventDetail,
   type CopilotRightSurfaceDetail,
   type CopilotSection,
   type CopilotViewMode,
@@ -57,6 +58,7 @@ export function CopilotWidget({locale}: {locale: string}) {
   const [conversations, setConversations] = useState<CopilotConversation[]>(() => [buildFreshConversation(locale)]);
   const [currentConversationId, setCurrentConversationId] = useState<string>(() => `boot-${Date.now()}`);
   const activeConversationIdRef = useRef(currentConversationId);
+  const recentPromptDispatchRef = useRef<{key: string; at: number} | null>(null);
 
   useEffect(() => {
     activeConversationIdRef.current = currentConversationId;
@@ -160,15 +162,15 @@ export function CopilotWidget({locale}: {locale: string}) {
     };
   }, [syncRightSurface]);
 
-  const pushUserPromptRef = useRef<(prompt: string) => void>(() => {});
+  const pushUserPromptRef = useRef<(detail: CopilotPromptEventDetail) => void>(() => {});
 
   // Listen for external prompts (e.g. interview prep from saved jobs)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{prompt: string}>).detail;
+      const detail = (e as CustomEvent<CopilotPromptEventDetail>).detail;
       if (detail?.prompt) {
-        pushUserPromptRef.current(detail.prompt);
+        pushUserPromptRef.current(detail);
       }
     };
     window.addEventListener(COPILOT_PROMPT_EVENT, handler);
@@ -183,14 +185,18 @@ export function CopilotWidget({locale}: {locale: string}) {
   const rightOffset = viewMode === 'fullscreen' ? 0 : (rightSurface.open && viewportWidth >= 1280 ? Math.max(0, rightSurface.width + 20) : 0);
   const anchoredLeftOfRightSurface = rightOffset > 0;
 
-  async function pushUserPrompt(prompt: string) {
+  async function pushUserPrompt(prompt: string, detail?: CopilotPromptEventDetail) {
+    const normalizedPrompt = prompt.trim();
+    if (!normalizedPrompt) return;
+
     const activeId = activeConversationIdRef.current;
     const targetConversation = conversations.find((item) => item.id === activeId);
     const now = new Date().toISOString();
+    const visiblePrompt = (detail?.displayPrompt ?? normalizedPrompt).trim() || normalizedPrompt;
     const userMessage: CopilotMessage = {
       id: createCopilotMessageId('user'),
       role: 'user',
-      content: prompt,
+      content: visiblePrompt,
       timestamp: now,
     };
 
@@ -211,8 +217,16 @@ export function CopilotWidget({locale}: {locale: string}) {
     try {
       const response = await api.sendCopilotChat({
         locale,
-        message: prompt,
+        message: normalizedPrompt,
+        display_message: visiblePrompt !== normalizedPrompt ? visiblePrompt : null,
         conversation_id: targetConversation?.backendConversationId ?? null,
+        job_analysis_context: detail?.jobAnalysisContext
+          ? {
+              api_job_id: detail.jobAnalysisContext.apiJobId,
+              source_surface: detail.jobAnalysisContext.sourceSurface,
+              analysis_mode: 'job_fit',
+            }
+          : null,
       });
 
       const assistantMessage: CopilotMessage = {
@@ -263,7 +277,18 @@ export function CopilotWidget({locale}: {locale: string}) {
     }
   }
 
-  pushUserPromptRef.current = pushUserPrompt;
+  pushUserPromptRef.current = (detail) => {
+    const dedupeKey = detail.dedupeKey?.trim();
+    if (dedupeKey) {
+      const now = Date.now();
+      const previous = recentPromptDispatchRef.current;
+      if (previous && previous.key === dedupeKey && now - previous.at < 1500) {
+        return;
+      }
+      recentPromptDispatchRef.current = {key: dedupeKey, at: now};
+    }
+    void pushUserPrompt(detail.prompt, detail);
+  };
 
   function handleNewConversation() {
     const conversation = buildFreshConversation(locale);
@@ -298,7 +323,7 @@ export function CopilotWidget({locale}: {locale: string}) {
 
   return (
     <div data-coresift-copilot-root="true">
-      <CopilotLauncher onClick={() => setExpanded(true)} expanded={expanded} rightOffset={rightOffset} />
+      <CopilotLauncher onClick={() => setExpanded(true)} expanded={expanded} rightOffset={rightOffset} locale={locale} />
       <CopilotPanel
         locale={locale}
         expanded={expanded}

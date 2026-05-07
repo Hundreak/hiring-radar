@@ -3,6 +3,7 @@
 import {useTranslations} from 'next-intl';
 
 import type {MatchInsightsData} from '@/lib/api';
+import {getMeaningfulKeywords} from '@/lib/match-ui';
 
 export function MatchInsightsPanel({
   insights,
@@ -13,22 +14,27 @@ export function MatchInsightsPanel({
 
   if (!insights) return null;
 
+  const strengths = insights.strengths
+    .map((item) => ({...item, keyword: getMeaningfulKeywords([item.keyword])[0] ?? ''}))
+    .filter((item) => item.keyword);
+
+  const gaps = insights.gaps
+    .map((item) => ({...item, keyword: getMeaningfulKeywords([item.keyword])[0] ?? ''}))
+    .filter((item) => item.keyword);
+
   return (
     <aside className="space-y-3">
-      {/* Strengths card */}
       <div className="rounded-xl border border-border bg-surface p-3.5">
         <div className="mb-3 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           <span className="size-1.5 rounded-full bg-primary" />
           {t('insightsTitle')}
         </div>
-        {insights.strengths.length === 0 && insights.remote_count === 0 ? (
-          <p className="text-[11px] text-muted-foreground">—</p>
+        {strengths.length === 0 && insights.remote_count === 0 ? (
+          <p className="text-[11px] leading-relaxed text-muted-foreground">{t('insightsEmpty')}</p>
         ) : (
           <div className="space-y-2.5">
-            {insights.strengths.map((s) => {
-              const pct = s.total_jobs > 0
-                ? Math.round((s.match_count / s.total_jobs) * 100)
-                : 0;
+            {strengths.slice(0, 3).map((s) => {
+              const pct = s.total_jobs > 0 ? Math.round((s.match_count / s.total_jobs) * 100) : 0;
               return (
                 <InsightRow
                   key={s.keyword}
@@ -40,7 +46,7 @@ export function MatchInsightsPanel({
                 />
               );
             })}
-            {insights.remote_count > 0 && (
+            {insights.remote_count > 0 ? (
               <InsightRow
                 color="bg-success/10"
                 iconColor="text-success"
@@ -48,22 +54,21 @@ export function MatchInsightsPanel({
                 title={t('remoteTitle')}
                 sub={t('remoteSub', {remote: insights.remote_count, total: insights.total_matched})}
               />
-            )}
+            ) : null}
           </div>
         )}
       </div>
 
-      {/* Gaps card */}
       <div className="rounded-xl border border-border bg-surface p-3.5">
         <div className="mb-3 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           <span className="size-1.5 rounded-full bg-warning" />
           {t('gapsTitle')}
         </div>
-        {insights.gaps.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground">—</p>
+        {gaps.length === 0 ? (
+          <p className="text-[11px] leading-relaxed text-muted-foreground">{t('gapsEmpty')}</p>
         ) : (
           <div className="space-y-2">
-            {insights.gaps.map((g) => (
+            {gaps.slice(0, 3).map((g) => (
               <GapRow
                 key={g.keyword}
                 skill={g.keyword}
@@ -124,16 +129,11 @@ function GapRow({skill, jobsLabel, pct}: {skill: string; jobsLabel: string; pct:
     <div className="flex items-center justify-between border-b border-border/50 py-1.5 last:border-b-0">
       <div>
         <div className="text-xs text-muted-foreground">{skill}</div>
-        <div className="text-[10px] text-muted-foreground/60">
-          {jobsLabel}
-        </div>
+        <div className="text-[10px] text-muted-foreground/60">{jobsLabel}</div>
       </div>
       <div className="w-14">
         <div className="h-[3px] rounded-full bg-border">
-          <div
-            className="h-[3px] rounded-full bg-warning"
-            style={{width: `${pct}%`}}
-          />
+          <div className="h-[3px] rounded-full bg-warning" style={{width: `${pct}%`}} />
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class SaveJobRequest(BaseModel):
@@ -28,20 +30,20 @@ class SavedJobNoteResponse(BaseModel):
 class SavedJobResponse(BaseModel):
     id: int
     job_id: int
+    job_kind: Literal["legacy", "canonical"] = "legacy"
     status: str
     match_score: int | None
     deadline_at: str | None
     interview_at: str | None
     created_at: str | None
     updated_at: str | None
-    # Denormalized job fields for frontend display
     title: str = ""
     company_name: str = ""
     location: str | None = None
     canonical_url: str = ""
     source_name: str = ""
-    matched_keywords: list[str] = []
-    notes: list[SavedJobNoteResponse] = []
+    matched_keywords: list[str] = Field(default_factory=list)
+    notes: list[SavedJobNoteResponse] = Field(default_factory=list)
 
 
 class SavedJobListResponse(BaseModel):

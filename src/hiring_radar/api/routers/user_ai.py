@@ -12,6 +12,7 @@ from hiring_radar.api.schemas.profile_contract import UserProfileAggregateRespon
 from hiring_radar.api.schemas.user_ai import (
     UserAiCopilotChatRequest,
     UserAiCopilotChatResponse,
+    UserAiJobAnalysisContextRequest,
     UserAiHealthResponse,
     UserAiHeadlineSummaryRequest,
     UserAiHeadlineSummaryResponse,
@@ -26,6 +27,7 @@ from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.services.ai.contracts import AiAuditRecord
 from hiring_radar.services.ai.exceptions import LocalAiGenerationError
 from hiring_radar.services.ai.runtime import build_local_ai_runtime_service
+from hiring_radar.services.ai.job_analysis_grounding import JobAnalysisGroundingBundle, build_job_analysis_grounding_bundle
 from hiring_radar.services.ai.tasks.copilot_chat_task import CopilotChatTask
 from hiring_radar.services.ai.tasks.headline_summary_task import HeadlineSummarySuggestionTask
 from hiring_radar.services.ai.tasks.role_focus_task import RoleFocusSuggestionTask
@@ -346,8 +348,57 @@ def suggest_profile_skill_evidence(
     )
 
 
+def _recover_conversation_job_analysis_context(
+    repository: HiringRadarRepository,
+    *,
+    subscriber_id: int,
+    conversation_id: int,
+) -> UserAiJobAnalysisContextRequest | None:
+    messages = repository.list_subscriber_ai_copilot_messages(
+        subscriber_id,
+        conversation_id=conversation_id,
+        limit=20,
+    )
+    for message in reversed(messages):
+        metadata = message.metadata_json or {}
+        raw_context = metadata.get("job_analysis_context")
+        if not isinstance(raw_context, dict):
+            continue
+        try:
+            return UserAiJobAnalysisContextRequest.model_validate(raw_context)
+        except Exception:
+            continue
+    return None
+
+
+async def _prepare_job_analysis_context(
+    *,
+    payload: UserAiJobAnalysisContextRequest | None,
+    repository: HiringRadarRepository,
+    subscriber_id: int,
+    profile: UserProfileAggregateResponse,
+    observed_at: str,
+) -> JobAnalysisGroundingBundle | None:
+    if payload is None:
+        return None
+
+    try:
+        return await build_job_analysis_grounding_bundle(
+            repository,
+            subscriber_id=subscriber_id,
+            profile=profile.profile,
+            api_job_id=payload.api_job_id,
+            observed_at=observed_at,
+            refresh_external_context=payload.refresh_external_context,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if "could not be found" in detail.lower() else status.HTTP_422_UNPROCESSABLE_ENTITY
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+
 @router.post("/copilot/chat", response_model=UserAiCopilotChatResponse)
-def chat_with_copilot(
+async def chat_with_copilot(
     payload: UserAiCopilotChatRequest,
     user_session: UserSessionDep,
     repository: RepositoryDep,
@@ -389,12 +440,37 @@ def chat_with_copilot(
     if conversation_id_value is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Copilot conversation could not be prepared.")
 
+    effective_job_analysis_context = payload.job_analysis_context
+    if effective_job_analysis_context is None:
+        effective_job_analysis_context = _recover_conversation_job_analysis_context(
+            repository,
+            subscriber_id=user_session.subscriber_id,
+            conversation_id=conversation_id_value,
+        )
+
+    job_analysis_bundle = await _prepare_job_analysis_context(
+        payload=effective_job_analysis_context,
+        repository=repository,
+        subscriber_id=user_session.subscriber_id,
+        profile=aggregate,
+        observed_at=started_at,
+    )
+    job_analysis_summary = job_analysis_bundle.job_analysis_summary if job_analysis_bundle is not None else ""
+    extra_sources = job_analysis_bundle.sources if job_analysis_bundle is not None else []
+    extra_warnings = job_analysis_bundle.warnings if job_analysis_bundle is not None else []
+    task_mode = effective_job_analysis_context.analysis_mode if effective_job_analysis_context is not None else "general_copilot"
+
+    displayed_content = (payload.display_message or payload.message).strip()
     repository.create_subscriber_ai_copilot_message(
         user_session.subscriber_id,
         conversation_id=conversation_id_value,
         role="user",
-        content=payload.message.strip(),
-        metadata_json={"locale": payload.locale},
+        content=displayed_content,
+        metadata_json={
+            "locale": payload.locale,
+            "job_analysis_context": effective_job_analysis_context.model_dump() if effective_job_analysis_context is not None else None,
+            **({"raw_message": payload.message.strip()} if payload.display_message else {}),
+        },
         created_at=started_at,
     )
 
@@ -420,6 +496,11 @@ def chat_with_copilot(
             "learned_memory": repository.list_subscriber_ai_learned_memories(user_session.subscriber_id, limit=6),
             "conversation_id": conversation_id_value,
             "observed_at": started_at,
+            "job_analysis_summary": job_analysis_summary,
+            "extra_sources": extra_sources,
+            "extra_warnings": extra_warnings,
+            "task_mode": task_mode,
+            "job_analysis_bundle": job_analysis_bundle,
         }
         parameters = inspect.signature(task.run).parameters
         result = task.run(**{key: value for key, value in task_run_kwargs.items() if key in parameters})
@@ -456,6 +537,7 @@ def chat_with_copilot(
         metadata_json={
             "source_labels": [item.label for item in result.sources],
             "follow_up_suggestions": result.follow_up_suggestions,
+            "job_analysis_context": effective_job_analysis_context.model_dump() if effective_job_analysis_context is not None else None,
         },
         created_at=assistant_created_at,
     )

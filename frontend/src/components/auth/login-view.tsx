@@ -19,6 +19,8 @@ type Copy = {
   submitLoading: string;
   passwordHelp: string;
   divider: string;
+  dividerOrEmail: string;
+  googleButton: string;
   magicLinkTitle: string;
   magicLinkDescription: string;
   magicLinkButton: string;
@@ -31,6 +33,7 @@ type Copy = {
   forgotPassword: string;
   generalError: string;
   invalidCredentials: string;
+  googleAuthError: string;
   backToHome: string;
   required: string;
   tabs: {
@@ -54,6 +57,8 @@ const copy: Record<SupportedLocale, Copy> = {
     submitLoading: 'Giriş yapılıyor...',
     passwordHelp: 'E-posta ve şifrenle doğrudan hesabına giriş yap.',
     divider: 'veya',
+    dividerOrEmail: 'veya e-posta ile devam et',
+    googleButton: 'Google ile giriş yap',
     magicLinkTitle: 'Giriş linki gönder',
     magicLinkDescription:
       'Şifresiz giriş için yalnızca e-posta adresini yazman yeterli. Güvenli bağlantı e-postana gönderilir.',
@@ -70,6 +75,7 @@ const copy: Record<SupportedLocale, Copy> = {
     forgotPassword: 'Şifremi Unuttum?',
     generalError: 'Şu anda giriş yapılamadı. Lütfen tekrar dene.',
     invalidCredentials: 'E-posta veya şifre hatalı.',
+    googleAuthError: 'Google ile giriş sırasında bir sorun oluştu. Lütfen tekrar dene.',
     backToHome: 'Ana sayfaya dön',
     required: 'Zorunlu',
     tabs: {
@@ -104,6 +110,8 @@ const copy: Record<SupportedLocale, Copy> = {
     submitLoading: 'Signing in...',
     passwordHelp: 'Use your email and password to access your account directly.',
     divider: 'or',
+    dividerOrEmail: 'or continue with email',
+    googleButton: 'Sign in with Google',
     magicLinkTitle: 'Send sign-in link',
     magicLinkDescription:
       'For passwordless sign-in, simply enter your email address and we will send a secure link.',
@@ -120,6 +128,7 @@ const copy: Record<SupportedLocale, Copy> = {
     forgotPassword: 'Forgot password?',
     generalError: 'We could not sign you in right now. Please try again.',
     invalidCredentials: 'Invalid email or password.',
+    googleAuthError: 'Something went wrong signing in with Google. Please try again.',
     backToHome: 'Back to home',
     required: 'Required',
     tabs: {
@@ -154,6 +163,8 @@ const copy: Record<SupportedLocale, Copy> = {
     submitLoading: 'Anmeldung läuft...',
     passwordHelp: 'Nutze E-Mail und Passwort für den direkten Zugriff auf dein Konto.',
     divider: 'oder',
+    dividerOrEmail: 'oder mit E-Mail fortfahren',
+    googleButton: 'Mit Google anmelden',
     magicLinkTitle: 'Anmeldelink senden',
     magicLinkDescription:
       'Für die Anmeldung ohne Passwort genügt deine E-Mail-Adresse. Wir senden dir einen sicheren Link.',
@@ -171,6 +182,7 @@ const copy: Record<SupportedLocale, Copy> = {
     generalError:
       'Die Anmeldung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.',
     invalidCredentials: 'E-Mail oder Passwort ist nicht korrekt.',
+    googleAuthError: 'Bei der Anmeldung mit Google ist ein Problem aufgetreten. Bitte versuche es erneut.',
     backToHome: 'Zur Startseite',
     required: 'Pflichtfeld',
     tabs: {
@@ -252,11 +264,24 @@ export function LoginView({locale: localeProp}: LoginViewProps) {
   );
   const magicToken = searchParams.get('token');
   const magicLinkEmailFromUrl = searchParams.get('email');
+  const googleError = searchParams.get('error');
 
   useEffect(() => {
     if (!magicLinkEmailFromUrl?.trim()) return;
     setMagicLinkEmail((currentValue) => currentValue || magicLinkEmailFromUrl.trim());
   }, [magicLinkEmailFromUrl]);
+
+  useEffect(() => {
+    if (
+      googleError === 'google_auth_failed' ||
+      googleError === 'google_not_configured' ||
+      googleError === 'google_auth_cancelled'
+    ) {
+      if (googleError !== 'google_auth_cancelled') {
+        setErrorMessage(currentCopy.googleAuthError);
+      }
+    }
+  }, [googleError, currentCopy.googleAuthError]);
 
   useEffect(() => {
     if (!magicToken || attemptedMagicToken.current === magicToken) return;
@@ -416,6 +441,27 @@ export function LoginView({locale: localeProp}: LoginViewProps) {
           </div>
 
           <div className="space-y-5 px-6 py-6">
+            <a
+              href={`/api/user/auth/google/initiate?redirect_path=${encodeURIComponent(redirectTarget)}`}
+              className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+            >
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                <path fill="none" d="M0 0h48v48H0z"/>
+              </svg>
+              {currentCopy.googleButton}
+            </a>
+
+            <div className="relative py-1">
+              <div className="absolute inset-x-0 top-1/2 border-t border-white/8" />
+              <span className="relative inline-flex bg-[#101828] pr-4 text-xs font-semibold uppercase tracking-[0.12em] text-white/38">
+                {currentCopy.dividerOrEmail}
+              </span>
+            </div>
+
             {magicLinkConsuming ? (
               <div className="rounded-2xl border border-[#4b61ff]/20 bg-[#111d35] px-5 py-4">
                 <div className="text-base font-semibold text-white">
@@ -516,13 +562,6 @@ export function LoginView({locale: localeProp}: LoginViewProps) {
                 {passwordSubmitting ? currentCopy.submitLoading : currentCopy.submit}
               </button>
             </form>
-
-            <div className="relative py-1">
-              <div className="absolute inset-x-0 top-1/2 border-t border-white/8" />
-              <span className="relative inline-flex bg-[#101828] pr-4 text-xs font-semibold uppercase tracking-[0.12em] text-white/38">
-                {currentCopy.divider}
-              </span>
-            </div>
 
             <div className="space-y-4 rounded-[26px] border border-white/8 bg-white/[0.02] p-5">
               <div>

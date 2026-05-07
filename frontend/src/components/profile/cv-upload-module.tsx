@@ -1347,17 +1347,27 @@ export function CvUploadModule({
                 ].join(' ')}
               >
                 {uploading ? (
-                  <div className="space-y-4">
-                    <div className="h-4 w-36 animate-pulse rounded-full bg-muted" />
-                    <div className="h-3 w-full animate-pulse rounded-full bg-muted" />
-                    <div className="h-3 w-4/5 animate-pulse rounded-full bg-muted" />
-                    <div className="h-11 w-40 animate-pulse rounded-2xl bg-muted" />
-                    <div className="text-sm text-muted-foreground">
-                      {currentCopy.uploadLoadingTitle}
+                  <div className="flex flex-col items-center justify-center gap-5 py-6 text-center">
+                    <div className="relative flex h-14 w-14 items-center justify-center">
+                      <div className="absolute inset-0 rounded-full border-2 border-foreground/10" />
+                      <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-foreground/60" style={{animationDuration: '1.1s'}} />
+                      <svg className="h-6 w-6 text-foreground/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
+                      </svg>
                     </div>
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {currentCopy.uploadLoadingSubtitle}
-                    </p>
+                    <div className="space-y-1.5">
+                      <div className="text-base font-semibold text-foreground">
+                        {currentCopy.uploadLoadingTitle}
+                      </div>
+                      <p className="max-w-xs text-sm leading-6 text-muted-foreground">
+                        {currentCopy.uploadLoadingSubtitle}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-full border border-border bg-muted/30 px-4 py-1.5">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50" style={{animationDelay: '0ms'}} />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50" style={{animationDelay: '200ms'}} />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50" style={{animationDelay: '400ms'}} />
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-5">

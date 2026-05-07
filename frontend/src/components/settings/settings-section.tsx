@@ -6,14 +6,14 @@ export function SettingsSection({
   children
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <Card className="p-6">
       <div className="mb-6">
         <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
       </div>
       <div className="space-y-5">{children}</div>
     </Card>

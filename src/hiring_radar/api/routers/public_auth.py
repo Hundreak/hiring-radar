@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import html
 import os
+import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from itsdangerous import BadSignature, URLSafeSerializer
+from pydantic import BaseModel, EmailStr, Field
 
 from hiring_radar.api.dependencies import get_env_path, get_repository, get_user_auth_settings
 from hiring_radar.api.schemas.public_auth import (
@@ -43,6 +46,80 @@ SIGNUP_COMPLETED_MESSAGE = (
 
 RepositoryDep = Annotated[HiringRadarRepository, Depends(get_repository)]
 UserAuthSettingsDep = Annotated[UserAuthSettings, Depends(get_user_auth_settings)]
+
+
+class LegacySignupChallengeResponse(BaseModel):
+    challenge_text: str
+    challenge_token: str
+
+
+class LegacySignupRequest(BaseModel):
+    email: EmailStr
+    full_name: str | None = Field(default=None, max_length=200)
+    challenge_token: str = Field(min_length=1)
+    challenge_answer: str = Field(min_length=1, max_length=32)
+
+
+def _legacy_signup_serializer() -> URLSafeSerializer:
+    secret_key = os.getenv("HIRING_RADAR_AUTH_SECRET") or os.getenv("HIRING_RADAR_SECRET_KEY") or "dev-user-auth-secret"
+    return URLSafeSerializer(secret_key=secret_key, salt="hiring-radar:legacy-signup-challenge:v1")
+
+
+def _build_legacy_challenge_text() -> str:
+    alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+    return "".join(secrets.choice(alphabet) for _ in range(5))
+
+
+def issue_magic_link_for_email(**_: object) -> None:
+    """Backward-compatible hook for the legacy public signup flow.
+
+    Older tests and local scripts monkeypatch this symbol directly. The current
+    product flow uses email verification before account creation, so the legacy
+    endpoint keeps this as a no-op hook rather than sending mail by default.
+    """
+    return None
+
+
+@router.get("/signup-challenge", response_model=LegacySignupChallengeResponse)
+def create_legacy_signup_challenge() -> LegacySignupChallengeResponse:
+    challenge_text = _build_legacy_challenge_text()
+    challenge_token = _legacy_signup_serializer().dumps({"answer": challenge_text})
+    return LegacySignupChallengeResponse(
+        challenge_text=challenge_text,
+        challenge_token=challenge_token,
+    )
+
+
+@router.post("/signup")
+def legacy_public_signup(
+    payload: LegacySignupRequest,
+    repository: RepositoryDep,
+    env_path: Annotated[str, Depends(get_env_path)],
+) -> dict[str, bool]:
+    try:
+        token_payload = _legacy_signup_serializer().loads(payload.challenge_token)
+    except BadSignature as exc:
+        raise HTTPException(status_code=400, detail="Invalid signup challenge.") from exc
+
+    expected_answer = str(token_payload.get("answer", "")).strip().casefold() if isinstance(token_payload, dict) else ""
+    supplied_answer = payload.challenge_answer.strip().casefold()
+    if not expected_answer or supplied_answer != expected_answer:
+        raise HTTPException(status_code=400, detail="Invalid signup challenge answer.")
+
+    normalized_email = normalize_email(str(payload.email))
+    full_name = (payload.full_name or "").strip() or None
+    repository.upsert_subscriber(
+        email=normalized_email,
+        full_name=full_name,
+        updated_at=utc_now_iso(),
+    )
+    issue_magic_link_for_email(
+        email=normalized_email,
+        full_name=full_name,
+        repository=repository,
+        env_path=env_path,
+    )
+    return {"ok": True}
 
 
 def _resolve_frontend_base_url() -> str:

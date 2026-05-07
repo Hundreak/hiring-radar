@@ -18,6 +18,7 @@ from hiring_radar.api.routers.user_match_insights import router as user_match_in
 from hiring_radar.api.routers.user_saved_jobs import router as user_saved_jobs_router
 from hiring_radar.api.routers.user_security import router as user_security_router
 from hiring_radar.api.routers.user_shell import router as user_shell_router
+from hiring_radar.api.routers.oauth_auth import router as google_oauth_router
 
 __all__ = [
     "admin_cv_engine_router",
@@ -40,4 +41,5 @@ __all__ = [
     "user_match_insights_router",
     "user_saved_jobs_router",
     "user_security_router",
+    "google_oauth_router",
 ]

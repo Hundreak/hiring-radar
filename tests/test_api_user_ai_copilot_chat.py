@@ -13,6 +13,8 @@ from hiring_radar.services.user_auth import UserSession
 
 
 class StubRuntime:
+    last_request = None
+
     class config:
         runtime = "ollama"
         default_model = "llama3.1:8b"
@@ -21,10 +23,36 @@ class StubRuntime:
         max_retries = 0
 
     def generate_structured(self, request):
+        StubRuntime.last_request = request
+
         class Response:
             content = {
-                "answer": "**Güçlü yönlerin**\n- Gömülü sistem deneyimin görünür.\n- Python desteğin profilini güçlendiriyor.",
+                "answer": "## Güçlü yönlerin\n- Gömülü sistem deneyimin görünür.\n- Python desteğin profilini güçlendiriyor.\n\n## Sonraki adım\n- Ölçülebilir etkileri öne çıkar.",
                 "follow_up_suggestions": ["Projelerini ölçülebilir çıktılarla yazalım."],
+                "warnings": [],
+                "confidence_band": "medium",
+            }
+
+        return Response()
+
+
+class GenericJobAnalysisRuntime:
+    last_request = None
+
+    class config:
+        runtime = "ollama"
+        default_model = "llama3.1:8b"
+        audit_enabled = False
+        audit_preview_chars = 120
+        max_retries = 0
+
+    def generate_structured(self, request):
+        GenericJobAnalysisRuntime.last_request = request
+
+        class Response:
+            content = {
+                "answer": "Bu işin size uygun olup olmadığını kanıta dayalı olarak açıklayacağım.",
+                "follow_up_suggestions": [],
                 "warnings": [],
                 "confidence_band": "medium",
             }
@@ -100,5 +128,33 @@ def test_user_ai_copilot_chat_endpoint_returns_grounded_reply(tmp_path: Path, mo
         assert len(conversations) == 1
         messages = repository.list_subscriber_ai_copilot_messages(1, conversation_id=conversations[0].id or 0)
         assert len(messages) == 2
+    finally:
+        close_connection(connection)
+
+
+def test_user_ai_copilot_chat_persists_display_message_not_hidden_prompt(tmp_path: Path, monkeypatch) -> None:
+    repository, connection = _make_repo(tmp_path)
+    try:
+        app = create_app()
+        app.dependency_overrides[get_current_user_session] = _make_user_session
+        app.dependency_overrides[get_repository] = lambda: repository
+        monkeypatch.setattr(user_ai_module, "build_local_ai_runtime_service", lambda: StubRuntime())
+
+        client = TestClient(app)
+        response = client.post(
+            "/api/user/ai/copilot/chat",
+            json={
+                "locale": "tr",
+                "message": "Bu işi mevcut profilime göre analiz et.\nİş: Senior Backend Engineer\nŞirket: Acme",
+                "display_message": '"Senior Backend Engineer" ilanını profilime göre analiz et.',
+            },
+        )
+
+        assert response.status_code == 200
+        conversations = repository.list_subscriber_ai_copilot_conversations(1)
+        messages = repository.list_subscriber_ai_copilot_messages(1, conversation_id=conversations[0].id or 0)
+        assert messages[0].content == '"Senior Backend Engineer" ilanını profilime göre analiz et.'
+        assert messages[0].metadata_json["raw_message"].startswith("Bu işi mevcut profilime göre analiz et")
+        assert 'Current user message: Bu işi mevcut profilime göre analiz et.' in StubRuntime.last_request.messages[1].content
     finally:
         close_connection(connection)

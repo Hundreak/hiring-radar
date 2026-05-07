@@ -13,10 +13,11 @@ MAX_LANGUAGE_CERTIFICATE_UPLOAD_BYTES = 5 * 1024 * 1024
 MAX_AVATAR_UPLOAD_BYTES = 5 * 1024 * 1024
 MAX_SKILL_EVIDENCE_UPLOAD_BYTES = 5 * 1024 * 1024
 
-CV_ALLOWED_EXTENSIONS = {".pdf", ".docx", ".png", ".jpg", ".jpeg"}
+CV_ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".png", ".jpg", ".jpeg"}
 CV_ALLOWED_CONTENT_TYPES = {
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
     "image/png",
     "image/jpeg",
 }

@@ -162,6 +162,13 @@ export type AiSystemHealthResponse = {
 };
 
 
+
+export type AiCopilotJobAnalysisContext = {
+  api_job_id: number;
+  source_surface?: string | null;
+  analysis_mode?: string | null;
+};
+
 export type AiCopilotGroundingSource = {
   label: string;
   source_type: string;
@@ -174,7 +181,9 @@ export type AiCopilotGroundingSource = {
 export type AiCopilotChatRequest = {
   locale: string;
   message: string;
+  display_message?: string | null;
   conversation_id?: string | null;
+  job_analysis_context?: AiCopilotJobAnalysisContext | null;
 };
 
 export type AiCopilotChatResponse = {

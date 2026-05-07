@@ -943,6 +943,11 @@ def crawl_and_notify(
         "--no-apply-filter",
         help="Force-disable the keyword filter before sending the digest.",
     ),
+    hydrate_job_pages: bool = typer.Option(
+        False,
+        "--hydrate-job-pages",
+        help="Refresh external job-page snapshots after crawl for active canonical jobs.",
+    ),
 ) -> None:
     """Run crawl and then send a digest using the notification checkpoint."""
     if window_hours < 1:

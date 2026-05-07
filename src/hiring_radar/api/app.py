@@ -23,6 +23,7 @@ from hiring_radar.api.routers import (
     user_saved_jobs_router,
     user_security_router,
     user_shell_router,
+    google_oauth_router,
 )
 
 
@@ -54,7 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_shell_router)
     app.include_router(user_shell_router)
     app.include_router(public_auth_router)
-    
+    app.include_router(google_oauth_router)
 
     return app
 

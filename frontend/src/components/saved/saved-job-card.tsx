@@ -6,6 +6,7 @@ import {useTranslations} from 'next-intl';
 import {Badge} from '@/components/ui/badge';
 import {dispatchCopilotPrompt} from '@/lib/copilot-ui';
 import type {SavedJob, SavedJobStatus} from '@/types/saved';
+import {getMeaningfulKeywords} from '@/lib/match-ui';
 
 function daysUntil(dateStr: string): number {
   const diff = new Date(dateStr).getTime() - Date.now();
@@ -46,6 +47,7 @@ export function SavedJobCard({
     : job.status === 'applied' ? t('colApplied')
     : job.status === 'interview' ? t('colInterview')
     : t('tabArchive');
+  const visibleKeywords = getMeaningfulKeywords(job.matched_keywords).slice(0, 3);
 
   return (
     <div className="rounded-xl border border-border bg-surface p-3.5 space-y-2.5">
@@ -71,7 +73,14 @@ export function SavedJobCard({
 
       {/* Match score bar */}
       {job.match_score != null && (
-        <div className="flex items-center gap-2">
+        <div className="space-y-1">
+          {job.status === 'reviewing' ? (
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{t('colReviewing')}</span>
+              <span>{job.match_score}%</span>
+            </div>
+          ) : null}
+          <div className="flex items-center gap-2">
           <div className="h-[3px] flex-1 rounded-full bg-border">
             <div
               className={`h-[3px] rounded-full ${
@@ -83,12 +92,13 @@ export function SavedJobCard({
             />
           </div>
           <span className="text-[10px] text-muted-foreground">{job.match_score}%</span>
+          </div>
         </div>
       )}
 
       {/* Tags */}
       <div className="flex flex-wrap gap-1">
-        {job.matched_keywords.slice(0, 3).map((kw) => (
+        {visibleKeywords.map((kw) => (
           <Badge key={kw} tone="matched" className="rounded px-1.5 py-0.5 text-[10px]">
             {kw}
           </Badge>

@@ -65,10 +65,32 @@ class UserAiSkillEvidenceResponse(SkillEvidenceSuggestionResponse):
     telemetry_ref: str | None = None
 
 
+
+
+class UserAiJobAnalysisContextRequest(BaseModel):
+    api_job_id: int = Field(gt=0, description="Public job identifier used by Jobs, Matches, and saved-job surfaces.")
+    source_surface: str = Field(default="jobs", min_length=1, max_length=32, description="Frontend surface that initiated the AI job-analysis request.")
+    analysis_mode: str = Field(default="job_fit", min_length=1, max_length=32, description="Deterministic AI analysis mode. Reserved for future expansion.")
+    refresh_external_context: bool = Field(
+        default=True,
+        description="When true, the backend may refresh the external source snapshot before building the AI evidence packet.",
+    )
+
+
 class UserAiCopilotChatRequest(BaseModel):
     locale: str = "tr"
     message: str = Field(min_length=1, max_length=6000)
+    display_message: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=600,
+        description="Optional user-visible prompt shown in the copilot conversation while the backend uses the hidden message for orchestration.",
+    )
     conversation_id: str | None = Field(default=None, max_length=64)
+    job_analysis_context: UserAiJobAnalysisContextRequest | None = Field(
+        default=None,
+        description="Optional deterministic job-analysis context that scopes the copilot conversation to a specific job.",
+    )
 
 
 class UserAiCopilotChatResponse(CopilotChatResponse):

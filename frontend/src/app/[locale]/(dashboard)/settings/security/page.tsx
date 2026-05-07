@@ -136,6 +136,7 @@ export default function SettingsSecurityPage() {
       login_failed: t('failedLogin'),
       password_changed: t('passwordChanged'),
       login_magic_link: t('loginMagicLink'),
+      login_google_oauth: t('loginGoogleOauth'),
       email_changed: t('emailChanged'),
     };
     return map[type] ?? type;
@@ -143,7 +144,7 @@ export default function SettingsSecurityPage() {
 
   const eventStatus = (type: string): 'success' | 'danger' | 'info' => {
     if (type === 'login_failed') return 'danger';
-    if (type === 'login_success' || type === 'login_magic_link') return 'success';
+    if (type === 'login_success' || type === 'login_magic_link' || type === 'login_google_oauth') return 'success';
     return 'info';
   };
 
@@ -290,11 +291,11 @@ export default function SettingsSecurityPage() {
           <p className="text-xs text-muted-foreground">{t('noHistory')}</p>
         ) : (
           <div className="space-y-1">
-            {history.map((e) => {
+            {history.slice(0, 5).map((e) => {
               const st = eventStatus(e.event_type);
               const dotColor = st === 'success' ? 'bg-success' : st === 'danger' ? 'bg-danger' : 'bg-primary';
               return (
-                <div key={e.id} className="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-muted/50 transition">
+                <div key={e.id} className="flex items-center justify-between rounded-lg border border-border/40 bg-surface-muted/40 px-3 py-2.5 transition hover:bg-surface-muted">
                   <div className="flex items-center gap-2.5">
                     <span className={`size-2 shrink-0 rounded-full ${dotColor}`} />
                     <div>

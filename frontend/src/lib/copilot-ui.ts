@@ -27,6 +27,20 @@ export type CopilotSuggestion = {
   prompt: string;
 };
 
+export type CopilotPromptJobAnalysisContext = {
+  apiJobId: number;
+  sourceSurface: 'jobs' | 'matches' | 'saved';
+  title?: string;
+  companyName?: string;
+};
+
+export type CopilotPromptEventDetail = {
+  prompt: string;
+  displayPrompt?: string;
+  dedupeKey?: string;
+  jobAnalysisContext?: CopilotPromptJobAnalysisContext;
+};
+
 export type CopilotCopy = {
   title: string;
   subtitle: string;
@@ -59,10 +73,13 @@ export const COPILOT_HISTORY_STORAGE_KEY = 'coresift:copilot-history:v3';
 export const COPILOT_ACTIVE_CONVERSATION_STORAGE_KEY = 'coresift:copilot-active-conversation:v3';
 export const COPILOT_ROOT_SELECTOR = '[data-coresift-copilot-root="true"]';
 
-export function dispatchCopilotPrompt(prompt: string) {
+export function dispatchCopilotPrompt(detail: string | CopilotPromptEventDetail) {
   if (typeof window === 'undefined') return;
+  const normalized: CopilotPromptEventDetail =
+    typeof detail === 'string' ? {prompt: detail} : detail;
+  if (!normalized.prompt.trim()) return;
   window.dispatchEvent(
-    new CustomEvent<{prompt: string}>(COPILOT_PROMPT_EVENT, {detail: {prompt}})
+    new CustomEvent<CopilotPromptEventDetail>(COPILOT_PROMPT_EVENT, {detail: normalized})
   );
 }
 

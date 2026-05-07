@@ -29,6 +29,8 @@ def test_initialize_database_creates_subscribers_table_with_expected_columns(
             "id",
             "email",
             "full_name",
+            "password_hash",
+            "password_updated_at",
             "is_active",
             "digest_enabled",
             "created_at",

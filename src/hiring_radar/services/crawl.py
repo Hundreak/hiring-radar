@@ -16,6 +16,9 @@ from hiring_radar.scrapers.greenhouse import (
     extract_greenhouse_board_token,
     parse_greenhouse_jobs_api_payload,
 )
+from hiring_radar.services.jobs.external_context_refresh import (
+    refresh_external_context_for_job_urls,
+)
 
 DEFAULT_HTTP_TIMEOUT_SECONDS = 20.0
 DEFAULT_HTTP_HEADERS: dict[str, str] = {
@@ -231,6 +234,8 @@ def run_single_source_crawl(
     repository: HiringRadarRepository,
     fetch_html: FetchHtmlCallable,
     started_at: str,
+    hydrate_external_job_pages: bool = False,
+    force_refresh_external_job_pages: bool = False,
 ) -> CrawlSourceResult:
     """
     Run a full crawl flow for one configured source.
@@ -279,6 +284,14 @@ def run_single_source_crawl(
             updated_at=finished_at,
         )
 
+        if hydrate_external_job_pages:
+            refresh_external_context_for_job_urls(
+                repository,
+                source_urls=[job.canonical_url for job in unique_jobs],
+                observed_at=finished_at,
+                force_refresh=force_refresh_external_job_pages,
+            )
+
         repository.finish_crawl_run(
             run_id=crawl_run_id,
             finished_at=finished_at,
@@ -326,6 +339,8 @@ def run_multi_source_crawl(
     repository: HiringRadarRepository,
     fetch_html: FetchHtmlCallable = fetch_html_with_httpx,
     started_at_factory: StartedAtFactory = _utc_now_iso,
+    hydrate_external_job_pages: bool = False,
+    force_refresh_external_job_pages: bool = False,
 ) -> list[CrawlSourceResult]:
     """
     Run crawl orchestration sequentially for multiple configured sources.
@@ -344,6 +359,8 @@ def run_multi_source_crawl(
             repository=repository,
             fetch_html=fetch_html,
             started_at=started_at,
+            hydrate_external_job_pages=hydrate_external_job_pages,
+            force_refresh_external_job_pages=force_refresh_external_job_pages,
         )
         results.append(result)
 

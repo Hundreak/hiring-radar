@@ -404,21 +404,23 @@ def consume_magic_link(
     ip = _client_ip(request)
     ua = request.headers.get("user-agent", "")
     token_hash = _hashlib.sha256(session_token.encode("utf-8")).hexdigest()
-    repository.create_session(
-        subscriber_id=subscriber.id or 0,
-        session_token_hash=token_hash,
-        device_label=_parse_device_label(ua),
-        ip_address=ip,
-        user_agent=ua,
-        now=now,
-    )
-    repository.add_login_history(
-        subscriber_id=subscriber.id or 0,
-        event_type="login_magic_link",
-        ip_address=ip,
-        user_agent=ua,
-        now=now,
-    )
+    if hasattr(repository, "create_session"):
+        repository.create_session(
+            subscriber_id=subscriber.id or 0,
+            session_token_hash=token_hash,
+            device_label=_parse_device_label(ua),
+            ip_address=ip,
+            user_agent=ua,
+            now=now,
+        )
+    if hasattr(repository, "add_login_history"):
+        repository.add_login_history(
+            subscriber_id=subscriber.id or 0,
+            event_type="login_magic_link",
+            ip_address=ip,
+            user_agent=ua,
+            now=now,
+        )
 
     return UserAuthMeResponse(
         subscriber_id=subscriber.id or 0,

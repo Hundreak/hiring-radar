@@ -1501,3 +1501,546 @@ def test_apply_selected_user_cv_profile_operations_allows_manual_review_apply_wh
         assert "profile" not in payload
     finally:
         close_connection(connection)
+
+def test_upload_user_cv_auto_applies_safe_additive_changes_end_to_end(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    upload_root = tmp_path / "uploads"
+    monkeypatch.setenv("HIRING_RADAR_UPLOAD_DIR", str(upload_root))
+
+    client, repo, connection, subscriber_id = _build_authed_client(
+        tmp_path,
+        db_filename="profile_uploads_auto_apply.db",
+    )
+
+    extracted_cv_text = """
+Olivia Campos
+Senior Software Engineer
+olivia@example.com | +1 415 555 0123 | San Francisco, CA
+
+Summary
+Seasoned backend engineer with 6+ years shipping distributed systems.
+
+Experience
+Senior Software Engineer | Wish | Remote
+Jan 2020 - Present
+- Led backend platform overhaul.
+- Designed scalable REST APIs.
+
+Software Engineer | PostMates | San Francisco
+2018 - 2020
+- Built logistics services.
+
+Software Engineering Intern | Mosaic | New York
+2016 - 2017
+- Prototyped data pipelines.
+
+Education
+B.S. Computer Science | University of California, Los Angeles (UCLA) | 2016 - 2020
+
+Technical Skills
+Programming Languages: Python, JavaScript
+Frameworks: Django, Angular
+Tools: AWS, Git, SQL
+Concepts: REST, HTML, CSS
+
+Languages
+English - Native
+Spanish - Fluent
+"""
+
+    try:
+        monkeypatch.setattr(
+            user_profile,
+            "extract_text_from_cv_file",
+            lambda _file_path: CvExtractionResult(
+                extracted_text=extracted_cv_text,
+                parse_status=CV_PARSE_STATUS_PARSED,
+                page_count=1,
+            ),
+        )
+
+        response = client.post(
+            "/api/user/profile/upload/cv",
+            files={
+                "file": (
+                    "olivia_cv.pdf",
+                    b"%PDF-1.4 example cv bytes",
+                    "application/pdf",
+                )
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        assert response.json()["parse_status"] == "parsed"
+
+        profile = repo.get_subscriber_profile(subscriber_id)
+        assert profile.headline == "Senior Software Engineer"
+        assert profile.summary and profile.summary.startswith("Seasoned backend engineer")
+        assert profile.phone == "+1 415 555 0123"
+
+        skill_set = set(profile.skills)
+        for expected_skill in (
+            "Python",
+            "JavaScript",
+            "Django",
+            "Angular",
+            "AWS",
+            "Git",
+            "SQL",
+        ):
+            assert expected_skill in skill_set, f"missing skill: {expected_skill}"
+
+        experiences = repo.list_subscriber_experience_entries(subscriber_id)
+        exp_titles = {e.title for e in experiences}
+        assert "Senior Software Engineer" in exp_titles
+        assert "Software Engineer" in exp_titles
+        assert "Software Engineering Intern" in exp_titles
+
+        wish_entry = next(e for e in experiences if e.title == "Senior Software Engineer")
+        assert wish_entry.company_name == "Wish"
+        assert wish_entry.start_year == 2020
+
+        education = repo.list_subscriber_education_entries(subscriber_id)
+        assert len(education) == 1
+        assert education[0].school_name == "University of California, Los Angeles (UCLA)"
+        assert education[0].degree_name == "B.S. Computer Science"
+        assert education[0].start_year == 2016
+        assert education[0].end_year == 2020
+
+        languages = repo.list_subscriber_language_entries(subscriber_id)
+        lang_names = {entry.language_name for entry in languages}
+        assert "English" in lang_names
+        assert "Spanish" in lang_names
+    finally:
+        close_connection(connection)
+
+
+def test_upload_user_cv_replaces_stale_profile_with_new_cv_as_source_of_truth(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """A new CV upload must make the freshly uploaded CV the active profile source.
+
+    When the profile already holds stale scalar fields and prior structured
+    entries from an earlier CV, uploading a new CV should overwrite scalar
+    fields and replace the structured sections with entries derived from
+    the new CV — not append to the stale sections or leave stale scalars
+    in place.
+    """
+    from hiring_radar.models import (
+        SubscriberEducationEntry,
+        SubscriberExperienceEntry,
+        SubscriberLanguageEntry,
+    )
+
+    upload_root = tmp_path / "uploads"
+    monkeypatch.setenv("HIRING_RADAR_UPLOAD_DIR", str(upload_root))
+
+    client, repo, connection, subscriber_id = _build_authed_client(
+        tmp_path,
+        db_filename="profile_uploads_replace_semantics.db",
+    )
+
+    seed_updated_at = "2026-04-04T09:00:00Z"
+    repo.upsert_subscriber_profile(
+        subscriber_id,
+        phone="+90 555 000 0000",
+        headline="Stale Headline From Old CV",
+        summary="Outdated summary left over from a previous CV upload.",
+        target_roles=("Frontend Developer",),
+        skills=("COBOL", "Fortran"),
+        preferred_locations=("Istanbul",),
+        remote_preference="onsite",
+        cv_filename=None,
+        cv_uploaded_at=None,
+        updated_at=seed_updated_at,
+    )
+    repo.replace_subscriber_education_entries(
+        subscriber_id,
+        entries=[
+            SubscriberEducationEntry(
+                subscriber_id=subscriber_id,
+                school_name="Old University",
+                degree_name="B.A.",
+                field_of_study="History",
+                start_year=2005,
+                end_year=2009,
+            )
+        ],
+        updated_at=seed_updated_at,
+    )
+    repo.replace_subscriber_experience_entries(
+        subscriber_id,
+        entries=[
+            SubscriberExperienceEntry(
+                subscriber_id=subscriber_id,
+                title="Old Title",
+                company_name="Legacy Corp",
+                start_year=2010,
+                end_year=2015,
+                summary="Did old things at a legacy company.",
+            )
+        ],
+        updated_at=seed_updated_at,
+    )
+    repo.replace_subscriber_language_entries(
+        subscriber_id,
+        entries=[
+            SubscriberLanguageEntry(
+                subscriber_id=subscriber_id,
+                language_name="Turkish",
+                proficiency_level="Native",
+                notes=None,
+            )
+        ],
+        updated_at=seed_updated_at,
+    )
+
+    extracted_cv_text = """
+Olivia Campos
+Senior Software Engineer
+olivia@example.com | +1 415 555 0123 | San Francisco, CA
+
+Summary
+Seasoned backend engineer with 6+ years shipping distributed systems.
+
+Experience
+Senior Software Engineer | Wish | Remote
+Jan 2020 - Present
+- Led backend platform overhaul.
+
+Software Engineer | PostMates | San Francisco
+2018 - 2020
+- Built logistics services.
+
+Education
+B.S. Computer Science | University of California, Los Angeles (UCLA) | 2016 - 2020
+
+Technical Skills
+Programming Languages: Python, JavaScript
+Frameworks: Django, Angular
+
+Languages
+English - Native
+Spanish - Fluent
+"""
+
+    try:
+        monkeypatch.setattr(
+            user_profile,
+            "extract_text_from_cv_file",
+            lambda _file_path: CvExtractionResult(
+                extracted_text=extracted_cv_text,
+                parse_status=CV_PARSE_STATUS_PARSED,
+                page_count=1,
+            ),
+        )
+
+        response = client.post(
+            "/api/user/profile/upload/cv",
+            files={
+                "file": (
+                    "olivia_cv.pdf",
+                    b"%PDF-1.4 replacement cv bytes",
+                    "application/pdf",
+                )
+            },
+        )
+        assert response.status_code == 200, response.text
+
+        profile = repo.get_subscriber_profile(subscriber_id)
+        assert profile.headline == "Senior Software Engineer"
+        assert profile.summary and profile.summary.startswith("Seasoned backend engineer")
+        assert profile.phone == "+1 415 555 0123"
+        assert "COBOL" not in profile.skills
+        assert "Fortran" not in profile.skills
+        assert "Python" in profile.skills
+        assert "Django" in profile.skills
+
+        experiences = repo.list_subscriber_experience_entries(subscriber_id)
+        exp_titles = {e.title for e in experiences}
+        assert "Old Title" not in exp_titles, "stale experience entry was not removed"
+        assert "Senior Software Engineer" in exp_titles
+        assert "Software Engineer" in exp_titles
+
+        education = repo.list_subscriber_education_entries(subscriber_id)
+        schools = {e.school_name for e in education}
+        assert "Old University" not in schools, "stale education entry was not removed"
+        assert any("UCLA" in name for name in schools)
+
+        languages = repo.list_subscriber_language_entries(subscriber_id)
+        lang_names = {entry.language_name for entry in languages}
+        assert "Turkish" not in lang_names, "stale language entry was not removed"
+        assert "English" in lang_names
+        assert "Spanish" in lang_names
+    finally:
+        close_connection(connection)
+
+
+def test_upload_user_cv_preserves_existing_profile_when_draft_has_no_signal(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """An unsubstantive draft must not pivot (and therefore wipe) the profile.
+
+    Pivoting is gated on a substantive draft — a draft with at least one
+    CV-derived scalar, list item, or structured entry. When the draft has
+    no signal at all (e.g. parse status ``empty``), the helper must
+    preserve the user's existing structured sections rather than
+    replacing them with empty lists.
+    """
+    from hiring_radar.services.cv_extraction import CV_PARSE_STATUS_EMPTY
+    from hiring_radar.models import (
+        SubscriberEducationEntry,
+        SubscriberExperienceEntry,
+        SubscriberLanguageEntry,
+    )
+
+    upload_root = tmp_path / "uploads"
+    monkeypatch.setenv("HIRING_RADAR_UPLOAD_DIR", str(upload_root))
+
+    client, repo, connection, subscriber_id = _build_authed_client(
+        tmp_path,
+        db_filename="profile_uploads_preserve_when_empty.db",
+    )
+
+    seed_updated_at = "2026-04-04T09:00:00Z"
+    repo.replace_subscriber_education_entries(
+        subscriber_id,
+        entries=[
+            SubscriberEducationEntry(
+                subscriber_id=subscriber_id,
+                school_name="Existing University",
+                degree_name="M.S.",
+                field_of_study="Computer Science",
+                start_year=2018,
+                end_year=2020,
+            )
+        ],
+        updated_at=seed_updated_at,
+    )
+    repo.replace_subscriber_experience_entries(
+        subscriber_id,
+        entries=[
+            SubscriberExperienceEntry(
+                subscriber_id=subscriber_id,
+                title="Existing Engineer",
+                company_name="Existing Co",
+                start_year=2020,
+                end_year=None,
+                summary=None,
+            )
+        ],
+        updated_at=seed_updated_at,
+    )
+    repo.replace_subscriber_language_entries(
+        subscriber_id,
+        entries=[
+            SubscriberLanguageEntry(
+                subscriber_id=subscriber_id,
+                language_name="German",
+                proficiency_level="B2",
+                notes=None,
+            )
+        ],
+        updated_at=seed_updated_at,
+    )
+
+    try:
+        monkeypatch.setattr(
+            user_profile,
+            "extract_text_from_cv_file",
+            lambda _file_path: CvExtractionResult(
+                extracted_text="",
+                parse_status=CV_PARSE_STATUS_EMPTY,
+                page_count=1,
+            ),
+        )
+
+        response = client.post(
+            "/api/user/profile/upload/cv",
+            files={
+                "file": (
+                    "sparse_cv.pdf",
+                    b"%PDF-1.4 sparse cv bytes",
+                    "application/pdf",
+                )
+            },
+        )
+        assert response.status_code == 200, response.text
+
+        education = repo.list_subscriber_education_entries(subscriber_id)
+        assert len(education) == 1
+        assert education[0].school_name == "Existing University"
+
+        experiences = repo.list_subscriber_experience_entries(subscriber_id)
+        assert len(experiences) == 1
+        assert experiences[0].title == "Existing Engineer"
+
+        languages = repo.list_subscriber_language_entries(subscriber_id)
+        assert len(languages) == 1
+        assert languages[0].language_name == "German"
+    finally:
+        close_connection(connection)
+
+
+def test_upload_user_cv_pivots_profile_and_clears_stale_scalars_from_prior_cv(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """A substantive new CV must clear stale scalars left by a prior CV.
+
+    The prior CV left Turkish scalars on the profile (headline, summary,
+    target_roles). The new CV is substantive (has structured sections
+    and other scalars) but does not carry those specific fields. After
+    the upload the stale scalars must be gone — the new CV is now the
+    authoritative CV-derived source for the profile, not the old one.
+    """
+    upload_root = tmp_path / "uploads"
+    monkeypatch.setenv("HIRING_RADAR_UPLOAD_DIR", str(upload_root))
+
+    client, repo, connection, subscriber_id = _build_authed_client(
+        tmp_path,
+        db_filename="profile_uploads_pivot.db",
+    )
+
+    seed_updated_at = "2026-04-04T09:00:00Z"
+    repo.upsert_subscriber_profile(
+        subscriber_id,
+        phone="+90 555 000 0000",
+        headline="Mühendis",
+        summary=(
+            "Mühendislik sektöründe uzun yıllardır aktif olarak görev alan bir uzman. "
+            "Elektronik sistemler geliştirme, ürün tasarımı ve proje yönetimi konularında deneyimli."
+        ),
+        target_roles=("Elektrik Elektronik Mühendisliği", "Proje Yönetimi Uzmanı"),
+        skills=(),
+        preferred_locations=(),
+        remote_preference=None,
+        cv_filename="old-turkish-cv.pdf",
+        cv_uploaded_at=seed_updated_at,
+        updated_at=seed_updated_at,
+    )
+
+    extracted_cv_text = """
+Olivia Campos
+Software Developer
+olivia@example.com
+
+Experience
+Software Developer | Acme Corp
+2022 - Present
+- Built services.
+
+Education
+B.S. Computer Science | State University | 2018 - 2022
+
+Technical Skills
+Python, JavaScript
+"""
+
+    try:
+        monkeypatch.setattr(
+            user_profile,
+            "extract_text_from_cv_file",
+            lambda _file_path: CvExtractionResult(
+                extracted_text=extracted_cv_text,
+                parse_status=CV_PARSE_STATUS_PARSED,
+                page_count=1,
+            ),
+        )
+
+        response = client.post(
+            "/api/user/profile/upload/cv",
+            files={
+                "file": (
+                    "olivia_cv.pdf",
+                    b"%PDF-1.4 pivot cv bytes",
+                    "application/pdf",
+                )
+            },
+        )
+        assert response.status_code == 200, response.text
+
+        profile = repo.get_subscriber_profile(subscriber_id)
+        assert profile.headline != "Mühendis", "stale Turkish headline was not cleared"
+        assert profile.headline == "Software Developer"
+        assert profile.summary is None or "Mühendislik" not in (profile.summary or "")
+        assert "Elektrik Elektronik Mühendisliği" not in profile.target_roles
+        assert "Proje Yönetimi Uzmanı" not in profile.target_roles
+
+        experiences = repo.list_subscriber_experience_entries(subscriber_id)
+        assert any(e.company_name == "Acme Corp" for e in experiences)
+
+        education = repo.list_subscriber_education_entries(subscriber_id)
+        assert any("State University" in (e.school_name or "") for e in education)
+    finally:
+        close_connection(connection)
+
+
+def test_upload_user_cv_with_failed_extraction_preserves_existing_profile(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """A failed extraction must never wipe a populated profile.
+
+    When OCR / extraction fails (e.g. tesseract unavailable, corrupt
+    image), the profile keeps whatever data it had — the pivot helper
+    is gated on a substantive draft so the failed upload cannot
+    destroy the user's existing profile content.
+    """
+    upload_root = tmp_path / "uploads"
+    monkeypatch.setenv("HIRING_RADAR_UPLOAD_DIR", str(upload_root))
+
+    client, repo, connection, subscriber_id = _build_authed_client(
+        tmp_path,
+        db_filename="profile_uploads_pivot_failed.db",
+    )
+
+    seed_updated_at = "2026-04-04T09:00:00Z"
+    repo.upsert_subscriber_profile(
+        subscriber_id,
+        phone="+90 555 000 0000",
+        headline="Mühendis",
+        summary="Some existing summary.",
+        target_roles=("Existing Role",),
+        skills=("Python",),
+        preferred_locations=(),
+        remote_preference=None,
+        cv_filename="old-cv.pdf",
+        cv_uploaded_at=seed_updated_at,
+        updated_at=seed_updated_at,
+    )
+
+    def _fail_extraction(_file_path):
+        raise CvExtractionError("OCR engine unavailable in this environment.")
+
+    try:
+        monkeypatch.setattr(
+            user_profile,
+            "extract_text_from_cv_file",
+            _fail_extraction,
+        )
+
+        response = client.post(
+            "/api/user/profile/upload/cv",
+            files={
+                "file": (
+                    "broken.png",
+                    b"\x89PNG not-a-real-image",
+                    "image/png",
+                )
+            },
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["parse_status"] == "failed"
+
+        profile = repo.get_subscriber_profile(subscriber_id)
+        assert profile.headline == "Mühendis"
+        assert profile.summary == "Some existing summary."
+        assert profile.target_roles == ("Existing Role",)
+        assert profile.skills == ("Python",)
+    finally:
+        close_connection(connection)

@@ -10,6 +10,7 @@ export interface SavedJobNote {
 export interface SavedJob {
   id: number;
   job_id: number;
+  job_kind: 'legacy' | 'canonical';
   status: SavedJobStatus;
   match_score: number | null;
   deadline_at: string | null;

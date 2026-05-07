@@ -86,6 +86,11 @@ def test_upload_parse_plan_apply_flow_exposes_consistent_enterprise_metadata(
                 page_count=1,
             ),
         )
+        monkeypatch.setattr(
+            user_profile,
+            "_auto_apply_latest_cv_parse_run",
+            lambda *_args, **_kwargs: None,
+        )
 
         upload_response = client.post(
             "/api/user/profile/upload/cv",

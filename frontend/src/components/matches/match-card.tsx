@@ -1,9 +1,20 @@
 'use client';
 
-import {Bookmark} from 'lucide-react';
-import {useTranslations} from 'next-intl';
+import {Bookmark, Sparkles} from 'lucide-react';
+import {useLocale, useTranslations} from 'next-intl';
 
 import {Badge} from '@/components/ui/badge';
+import {dispatchCopilotPrompt} from '@/lib/copilot-ui';
+import {
+  buildLocalizedDeterministicReason,
+  buildMatchAnalysisPrompt,
+  buildMatchReason,
+  getMeaningfulKeywords,
+  getPrimaryGapTerms,
+  getSkillAlignmentSnapshot,
+  type SupportedLocale,
+} from '@/lib/match-ui';
+import type {JobMatchExplanation} from '@/types/job';
 
 export type MatchCardModel = {
   id: string;
@@ -14,9 +25,12 @@ export type MatchCardModel = {
   postedLabel: string;
   contractType: string;
   matchedKeywords: string[];
+  targetRoles?: string[];
+  isScorePreview?: boolean;
   href?: string;
   saved?: boolean;
   onToggleSave?: () => void;
+  explanation?: JobMatchExplanation | null;
 };
 
 function scoreColor(score: number) {
@@ -25,9 +39,63 @@ function scoreColor(score: number) {
   return {ring: 'border-match-low bg-match-low/10', text: 'text-match-low', fill: 'bg-match-low'};
 }
 
+function uniqueVisibleTerms(values: string[], limit = 4): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    const normalized = trimmed.toLowerCase();
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(trimmed);
+    if (result.length >= limit) break;
+  }
+
+  return result;
+}
+
 export function MatchCard({match}: {match: MatchCardModel}) {
   const t = useTranslations('matches');
+  const locale = useLocale() as SupportedLocale;
   const colors = scoreColor(match.matchScore);
+  const meaningfulKeywords = getMeaningfulKeywords(match.matchedKeywords);
+  const fallbackReason = buildMatchReason({
+    matchedKeywords: match.matchedKeywords,
+    targetRoles: match.targetRoles,
+    location: match.location,
+    matchScore: match.matchScore,
+  });
+  const deterministicReason = buildLocalizedDeterministicReason(locale, match.explanation);
+  const skillSnapshot = getSkillAlignmentSnapshot(match.explanation);
+  const gapTerms = getPrimaryGapTerms(match.explanation);
+  const analysisCoverage = match.explanation?.analysis_coverage ?? null;
+  const analysisCoverageLabel = analysisCoverage
+    ? analysisCoverage.level === 'strong'
+      ? t('analysisStrong')
+      : analysisCoverage.level === 'moderate'
+        ? t('analysisModerate')
+        : t('analysisLimited')
+    : null;
+
+  const reasonDetail = deterministicReason?.detail ?? (
+    fallbackReason?.kind === 'keyword'
+      ? t('whyKeyword', {keyword: fallbackReason.keyword})
+      : fallbackReason?.kind === 'role'
+        ? t('whyRole', {role: fallbackReason.role})
+        : fallbackReason?.kind === 'location'
+          ? t('whyLocation', {location: fallbackReason.location})
+          : null
+  );
+
+  const reasonTerms = uniqueVisibleTerms(
+    deterministicReason?.supportingTerms.length ? deterministicReason.supportingTerms : meaningfulKeywords,
+    4
+  );
+
+  const scoreLabel = match.isScorePreview ? t('scorePreviewShort') : `${match.matchScore}%`;
+  const scoreSubLabel = match.isScorePreview ? t('scoreNeedsContext') : t('matchingScoreLabel');
 
   return (
     <div
@@ -37,24 +105,18 @@ export function MatchCard({match}: {match: MatchCardModel}) {
           : 'border-border bg-surface hover:border-primary/30'
       }`}
     >
-      <div className="flex flex-col gap-2.5 p-4">
-        {/* Header with score ring */}
+      <div className="flex flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <div
               className={`flex size-11 shrink-0 items-center justify-center rounded-full border-2 ${colors.ring}`}
             >
-              <span className={`text-[13px] font-bold ${colors.text}`}>
-                {match.matchScore}%
-              </span>
+              <span className={`text-[13px] font-bold ${colors.text}`}>{scoreLabel}</span>
             </div>
             <div className="min-w-0">
-              <h3 className="text-[13px] font-medium leading-snug text-foreground">
-                {match.title}
-              </h3>
-              <p className="text-[11px] text-muted-foreground">
-                {match.company} · {match.location}
-              </p>
+              <h3 className="text-[13px] font-medium leading-snug text-foreground">{match.title}</h3>
+              <p className="text-[11px] text-muted-foreground">{match.company} · {match.location}</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground/80">{scoreSubLabel}</p>
             </div>
           </div>
           <button
@@ -73,62 +135,99 @@ export function MatchCard({match}: {match: MatchCardModel}) {
           </button>
         </div>
 
-        {/* Skill bars */}
-        {match.matchedKeywords.length > 0 && (
-          <div>
-            <div className="mb-1 text-[10px] text-muted-foreground">
-              {t('skillMatch')}
+        {reasonDetail ? (
+          <div className="rounded-lg border border-primary/20 bg-primary/[0.04] px-3 py-2.5">
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+              {t('whyHighlighted')}
             </div>
-            {match.matchedKeywords.slice(0, 3).map((kw, i) => {
-              const pct = Math.max(40, 95 - i * 12);
-              const barColor =
-                pct >= 80 ? 'bg-match-high' : pct >= 60 ? 'bg-match-mid' : 'bg-match-low';
-              return (
-                <div key={kw} className="mb-0.5 flex items-center gap-2">
-                  <span className="min-w-[72px] shrink-0 text-[11px] text-muted-foreground">
-                    {kw}
-                  </span>
-                  <div className="h-[3px] flex-1 rounded-full bg-border">
-                    <div
-                      className={`h-[3px] rounded-full ${barColor}`}
-                      style={{width: `${pct}%`}}
-                    />
-                  </div>
-                  <span className="min-w-[24px] text-right text-[10px] text-muted-foreground">
-                    {pct}%
-                  </span>
-                </div>
-              );
-            })}
+            <p className="text-[11px] leading-relaxed text-muted-foreground">{reasonDetail}</p>
+            {reasonTerms.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {reasonTerms.map((term) => (
+                  <Badge key={term} tone="matched" className="rounded px-1.5 py-0.5 text-[10px]">
+                    {term}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
           </div>
-        )}
+        ) : null}
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1">
-          {match.matchedKeywords.slice(0, 2).map((kw) => (
-            <Badge key={kw} tone="matched" className="rounded px-1.5 py-0.5 text-[10px]">
-              {kw} {t('skillMatch').toLowerCase().includes('eşleşti') ? '' : '✓'}
-            </Badge>
-          ))}
-          {match.location.toLowerCase().includes('remote') && (
-            <Badge tone="remote" className="rounded px-1.5 py-0.5 text-[10px]">
-              Remote
-            </Badge>
-          )}
-        </div>
+        {analysisCoverage && analysisCoverageLabel ? (
+          <div className="rounded-lg border border-border/70 bg-surface-muted/70 px-3 py-2">
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('analysisCoverage')}
+            </div>
+            <p className="text-[11px] leading-relaxed text-foreground/80">{analysisCoverageLabel}</p>
+          </div>
+        ) : null}
 
-        {/* Footer */}
+        {(skillSnapshot.score != null || skillSnapshot.evidenceTerms.length > 0) ? (
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+              <span>{t('skillMatch')}</span>
+              {skillSnapshot.score != null ? (
+                <span className="font-medium text-foreground/70">{skillSnapshot.score}%</span>
+              ) : null}
+            </div>
+            {skillSnapshot.score != null ? (
+              <div className="mb-2 h-[4px] rounded-full bg-border">
+                <div
+                  className={`h-[4px] rounded-full ${colors.fill}`}
+                  style={{width: `${skillSnapshot.score}%`}}
+                />
+              </div>
+            ) : null}
+            {skillSnapshot.evidenceTerms.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {skillSnapshot.evidenceTerms.map((term) => (
+                  <Badge key={term} tone="matched" className="rounded px-1.5 py-0.5 text-[10px]">
+                    {term}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {gapTerms.length > 0 ? (
+          <div>
+            <div className="mb-1 text-[10px] text-muted-foreground">{t('missingSkills')}</div>
+            <div className="flex flex-wrap gap-1">
+              {gapTerms.map((term) => (
+                <Badge key={term} tone="warning" className="rounded px-1.5 py-0.5 text-[10px]">
+                  {term}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-between border-t border-border/50 pt-2">
-          <span className="text-[10px] text-muted-foreground">
-            {match.postedLabel}
-          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatchCopilotPrompt(
+                buildMatchAnalysisPrompt({
+                  title: match.title,
+                  company: match.company,
+                  location: match.location,
+                  matchScore: match.matchScore,
+                  matchedKeywords: match.matchedKeywords,
+                  explanationSummary: match.explanation?.summary ?? null,
+                  evidenceTerms: skillSnapshot.evidenceTerms,
+                  gapTerms,
+                })
+              );
+            }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground hover:bg-primary/20"
+          >
+            <Sparkles className="size-3" />
+            {t('analyzeWithAi')}
+          </button>
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-surface-muted"
-            >
-              {t('detail')}
-            </button>
+            <span className="text-[10px] text-muted-foreground">{match.postedLabel}</span>
             {match.href ? (
               <a
                 href={match.href}

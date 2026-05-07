@@ -256,17 +256,18 @@ def list_sessions(
     ]
 
 
-@router.delete("/sessions/{session_id}", status_code=204)
+@router.delete("/sessions/{session_id}", status_code=204, response_class=Response)
 def end_session(
     session_id: int,
     user_session: UserSessionDep,
     repository: RepositoryDep,
-) -> None:
+) -> Response:
     ok = repository.expire_session(
         session_id, subscriber_id=user_session.subscriber_id, now=utc_now_iso()
     )
     if not ok:
         raise HTTPException(404, "Session not found.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/sessions/end-all-others")
@@ -444,12 +445,13 @@ def verify_totp(
     return {"ok": True}
 
 
-@router.delete("/totp", status_code=204)
+@router.delete("/totp", status_code=204, response_class=Response)
 def disable_totp(
     user_session: UserSessionDep,
     repository: RepositoryDep,
-) -> None:
+) -> Response:
     repository.delete_totp_secret(user_session.subscriber_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/totp/status")

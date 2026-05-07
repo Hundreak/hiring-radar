@@ -6,7 +6,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from hiring_radar.api.dependencies import get_db
 
 router = APIRouter(prefix="/employer", tags=["employer"])
 

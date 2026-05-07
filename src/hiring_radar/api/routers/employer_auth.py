@@ -7,7 +7,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPBearer
 
-from hiring_radar.api.dependencies import get_db
 from hiring_radar.api.security import create_access_token, hash_password, verify_password
 from hiring_radar.models import User, UserRole
 

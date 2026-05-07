@@ -85,6 +85,10 @@ import type {
   UserPasswordLoginRequest,
   UserPasswordLoginResponse,
   UserProfile,
+  EmployerLoginRequest,
+  EmployerLoginResponse,
+  EmployerRegisterRequest,
+  EmployerRegisterResponse,
 } from '@/types/user';
 
 export interface SignupVerificationStartRequest {
@@ -271,6 +275,20 @@ export const api = {
 
   loginWithPassword(payload: UserPasswordLoginRequest) {
     return apiFetch<UserPasswordLoginResponse>('/user/auth/login-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  loginEmployer(payload: EmployerLoginRequest) {
+    return apiFetch<EmployerLoginResponse>('/employer/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  registerEmployer(payload: EmployerRegisterRequest) {
+    return apiFetch<EmployerRegisterResponse>('/employer/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     });

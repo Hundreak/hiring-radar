@@ -1,7 +1,7 @@
 import type {AiAuditEvent, AiAuditMarker} from '@/types/ai';
 import type {AiAuditFinalizeContext} from '@/types/profile';
 
-export const PROFILE_AI_AUDIT_STORAGE_KEY = 'coresift:profile-ai-audit';
+export const PROFILE_AI_AUDIT_STORAGE_KEY = 'noytera:profile-ai-audit';
 
 export type PersistedProfileAiAuditState = {
   basicDraft: {

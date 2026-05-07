@@ -6,6 +6,8 @@ from hiring_radar.api.routers.admin_runs import router as admin_runs_router
 from hiring_radar.api.routers.admin_settings import router as admin_settings_router
 from hiring_radar.api.routers.admin_shell import router as admin_shell_router
 from hiring_radar.api.routers.admin_subscribers import router as admin_subscribers_router
+from hiring_radar.api.routers.employer_auth import router as employer_auth_router
+from hiring_radar.api.routers.employer_dashboard import router as employer_dashboard_router
 from hiring_radar.api.routers.health import router as health_router
 from hiring_radar.api.routers.public_auth import router as public_auth_router
 from hiring_radar.api.routers.user_auth import router as user_auth_router
@@ -29,6 +31,8 @@ __all__ = [
     "admin_settings_router",
     "admin_shell_router",
     "admin_subscribers_router",
+    "employer_auth_router",
+    "employer_dashboard_router",
     "health_router",
     "user_auth_router",
     "user_me_router",

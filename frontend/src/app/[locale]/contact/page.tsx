@@ -11,7 +11,7 @@ function resolveLocale(locale: string): SupportedLocale {
 const copy = {
   tr: {
     eyebrow: 'İletişim',
-    title: 'CoreSift ekibine ulaşın',
+    title: 'NoyTera ekibine ulaşın',
     description:
       'Ürün, güvenlik, veri talepleri, iş birliği veya genel geri bildirim konularında bizimle iletişime geçebilirsiniz. Tüm destek süreçlerini yazılı ve izlenebilir bir kanal üzerinden yürütüyoruz.',
     supportTitle: 'Resmî iletişim kanalı',
@@ -45,7 +45,7 @@ const copy = {
   },
   en: {
     eyebrow: 'Contact',
-    title: 'Get in touch with the CoreSift team',
+    title: 'Get in touch with the NoyTera team',
     description:
       'You can contact us for product issues, security, privacy requests, partnerships or general feedback. We handle support through a written and traceable channel.',
     supportTitle: 'Official contact channel',
@@ -79,7 +79,7 @@ const copy = {
   },
   de: {
     eyebrow: 'Kontakt',
-    title: 'Kontaktiere das CoreSift-Team',
+    title: 'Kontaktiere das NoyTera-Team',
     description:
       'Du kannst uns zu Produktfragen, Sicherheit, Datenschutzanfragen, Partnerschaften oder allgemeinem Feedback kontaktieren. Wir bearbeiten Anfragen über einen schriftlichen und nachvollziehbaren Kanal.',
     supportTitle: 'Offizieller Kontaktkanal',
@@ -136,10 +136,10 @@ export default async function ContactPage({
             <div className="rounded-[28px] border border-white/10 bg-[#171717] p-8">
               <div className="text-lg font-semibold text-white">{t.supportTitle}</div>
               <a
-                href="mailto:destek@coresift.com"
+                href="mailto:destek@noytera.com"
                 className="mt-4 block text-2xl font-semibold text-[#8fa0ff]"
               >
-                destek@coresift.com
+                destek@noytera.com
               </a>
 
               <p className="mt-6 text-base leading-8 text-white/68">{t.supportBody}</p>

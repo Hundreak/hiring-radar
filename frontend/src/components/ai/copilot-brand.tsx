@@ -17,7 +17,7 @@ function getMetrics(size: CopilotSize): SizeMetrics {
 
 // Bold C-arc mark: 270° sweep with gradient, two terminal dots.
 // Reads at any size; unique gradient IDs prevent DOM collisions when multiple instances coexist.
-function CoreSiftEmblem({size}: {size: number}) {
+function NoyTeraEmblem({size}: {size: number}) {
   const uid = useId().replace(/:/g, 'x');
   const bgId = `cs-bg-${uid}`;
   const arcId = `cs-arc-${uid}`;
@@ -30,7 +30,7 @@ function CoreSiftEmblem({size}: {size: number}) {
       viewBox="0 0 100 100"
       fill="none"
       role="img"
-      aria-label="CoreSift AI"
+      aria-label="NoyTera AI"
     >
       <defs>
         <radialGradient id={bgId} cx="38%" cy="32%" r="68%" gradientUnits="userSpaceOnUse">
@@ -83,7 +83,7 @@ export function CopilotMark({size = 'md'}: {size?: CopilotSize}) {
     <span
       className={`relative inline-flex shrink-0 items-center justify-center rounded-full drop-shadow-[0_4px_18px_rgba(129,140,248,0.38)] ${metrics.wrapper}`}
     >
-      <CoreSiftEmblem size={metrics.emblem} />
+      <NoyTeraEmblem size={metrics.emblem} />
     </span>
   );
 }
@@ -96,7 +96,7 @@ export function CopilotBrand({subtitle, stacked = true}: {subtitle?: string | nu
       <CopilotMark size={stacked ? 'md' : 'sm'} />
       <div className="min-w-0">
         <div className="text-[13px] font-semibold leading-none tracking-[-0.01em] text-white/90">
-          CoreSift AI
+          NoyTera AI
         </div>
         {subtitleText ? (
           <div className={`mt-1 leading-tight text-slate-400 ${stacked ? 'text-xs' : 'text-[11px]'}`}>

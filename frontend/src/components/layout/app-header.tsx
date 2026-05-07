@@ -36,7 +36,7 @@ export function AppHeader({locale}: {locale: string}) {
               <Radar className="size-5" />
             </div>
             <div>
-              <div className="text-sm font-semibold tracking-tight">CoreSift</div>
+              <div className="text-sm font-semibold tracking-tight">NoyTera</div>
               <div className="text-xs text-muted-foreground">{t('appNavigation.jobs')}</div>
             </div>
           </Link>

@@ -132,7 +132,7 @@ export function CopilotWidget({locale}: {locale: string}) {
         const target = mutation.target as HTMLElement;
         if (!target) continue;
         if (
-          target.hasAttribute('data-coresift-right-surface') ||
+          target.hasAttribute('data-noytera-right-surface') ||
           target.hasAttribute('data-right-drawer') ||
           target.hasAttribute('data-drawer-side') ||
           target.hasAttribute('data-copilot-right-surface') ||
@@ -148,7 +148,7 @@ export function CopilotWidget({locale}: {locale: string}) {
       attributes: true,
       childList: false,
       subtree: true,
-      attributeFilter: ['data-coresift-right-surface', 'data-right-drawer', 'data-drawer-side', 'data-copilot-right-surface', 'data-side-panel', 'data-state'],
+      attributeFilter: ['data-noytera-right-surface', 'data-right-drawer', 'data-drawer-side', 'data-copilot-right-surface', 'data-side-panel', 'data-state'],
     });
 
     window.addEventListener('resize', handleResize);
@@ -322,7 +322,7 @@ export function CopilotWidget({locale}: {locale: string}) {
   }
 
   return (
-    <div data-coresift-copilot-root="true">
+    <div data-noytera-copilot-root="true">
       <CopilotLauncher onClick={() => setExpanded(true)} expanded={expanded} rightOffset={rightOffset} locale={locale} />
       <CopilotPanel
         locale={locale}

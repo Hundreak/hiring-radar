@@ -91,7 +91,7 @@ export function ProfileHealthDrawer({open, onClose, completionScore, sections, s
 
       <aside
         ref={drawerRef}
-        data-coresift-right-surface={open ? 'open' : 'closed'}
+        data-noytera-right-surface={open ? 'open' : 'closed'}
         data-right-drawer={open ? 'open' : 'closed'}
         data-drawer-side="right"
         data-state={open ? 'open' : 'closed'}

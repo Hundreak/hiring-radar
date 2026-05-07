@@ -1,4 +1,4 @@
-import {ArrowRight, CheckCircle2, Clock3, Search, Sparkles, Star, Target, Shield, Cpu, BarChart3} from 'lucide-react';
+import {ArrowRight, Clock3, Search, Sparkles, Star, Target, Shield, Cpu, BarChart3} from 'lucide-react';
 
 import {LandingHero} from '@/components/landing/hero';
 import {PublicFooter} from '@/components/layout/public-footer';
@@ -68,7 +68,7 @@ const pageCopy = {
       eyebrow: 'Yapay Zeka Desteği',
       title: 'Sadece iş bulma aracı değil, kariyer danışmanın',
       description: 'CV analizi, strateji geliştirme, başvuru hazırlığı — her şey tek yerde.',
-      assistantName: 'CoreSift AI',
+      assistantName: 'NoyTera AI',
       status: 'Aktif',
       inputPlaceholder: 'Bir şey sor…',
       bubbles: [
@@ -154,7 +154,7 @@ const pageCopy = {
       eyebrow: 'AI Support',
       title: 'Not just a job tool, but your career advisor',
       description: 'CV analysis, strategy guidance and application preparation — everything in one place.',
-      assistantName: 'CoreSift AI',
+      assistantName: 'NoyTera AI',
       status: 'Active',
       inputPlaceholder: 'Ask something…',
       bubbles: [
@@ -240,7 +240,7 @@ const pageCopy = {
       eyebrow: 'KI-Unterstützung',
       title: 'Nicht nur ein Job-Tool, sondern dein Karriereberater',
       description: 'CV-Analyse, Strategieempfehlungen und Bewerbungsunterstützung — alles an einem Ort.',
-      assistantName: 'CoreSift AI',
+      assistantName: 'NoyTera AI',
       status: 'Aktiv',
       inputPlaceholder: 'Stelle eine Frage…',
       bubbles: [

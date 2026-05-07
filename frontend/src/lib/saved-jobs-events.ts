@@ -5,7 +5,7 @@
  * mounted pages can update their local `savedJobIds` without a full reload.
  */
 
-export const SAVED_JOBS_CHANGED_EVENT = 'coresift:saved-jobs-changed';
+export const SAVED_JOBS_CHANGED_EVENT = 'noytera:saved-jobs-changed';
 
 export type SavedJobsChangedDetail = {
   jobId: number;

@@ -13,7 +13,7 @@ const copy = {
   tr: {
     login: 'Giriş yap',
     signup: 'Ücretsiz başla',
-    subtitle: 'AI destekli iş keşfi'
+    subtitle: 'AI destekli kariyer platformu'
   },
   en: {
     login: 'Log in',
@@ -41,14 +41,14 @@ export function PublicHeader({locale}: PublicHeaderProps) {
       <div className="container-shell flex min-h-[76px] items-center justify-between gap-4 py-3">
         <Link
           href={`/${safeLocale}`}
-          aria-label="CoreSift home"
+          aria-label="NoyTera home"
           className="inline-flex min-w-0 items-center gap-3"
         >
           <BrandLogo size="lg" priority className="shrink-0" />
 
           <div className="min-w-0">
             <div className="truncate text-[1.85rem] font-semibold leading-none tracking-tight text-foreground sm:text-[2rem]">
-              CoreSift
+              NoyTera
             </div>
             <div className="mt-1 truncate text-sm leading-none text-muted-foreground">
               {t.subtitle}
@@ -79,4 +79,4 @@ export function PublicHeader({locale}: PublicHeaderProps) {
   );
 }
 
-export default PublicHeader;
+export default PublicH

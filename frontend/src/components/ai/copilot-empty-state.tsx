@@ -34,7 +34,7 @@ export function CopilotEmptyState({
         <div className="flex items-center gap-3">
           <CopilotMark size={isCompact ? 'sm' : 'md'} />
           <div>
-            <div className="text-[13px] font-semibold leading-none tracking-[-0.01em] text-white/90">CoreSift AI</div>
+            <div className="text-[13px] font-semibold leading-none tracking-[-0.01em] text-white/90">NoyTera AI</div>
             <div className={`mt-1 leading-tight text-slate-400 ${isCompact ? 'text-[11px]' : 'text-xs'}`}>{tagline}</div>
           </div>
         </div>

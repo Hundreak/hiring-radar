@@ -1,161 +1,373 @@
 @import "tailwindcss";
 
-/* ============================================================
-   BASE / NOVA THEME (Clean Corporate — light professional)
-   ============================================================ */
-:root, .nova {
-  --background: #f6f7f9;
-  --surface: #ffffff;
-  --surface-elevated: #ffffff;
-  --surface-muted: #f1f3f7;
-  --surface-strong: #e6e9f0;
-  --foreground: #0b0f1a;
-  --muted-foreground: #5a6278;
-  --border: #d8dde8;
-  --border-strong: #c5ccdb;
-  --primary: #2d3ff0;
-  --primary-foreground: #ffffff;
-  --secondary: #eef0fe;
-  --secondary-foreground: #2d3ff0;
-  --accent: #7c5cfc;
-  --accent-soft: #f0ecff;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --ring: rgba(45, 63, 240, 0.22);
-  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 32px rgba(15, 23, 42, 0.04);
-  --hero-gradient-start: #f6f7f9;
-  --hero-gradient-end: #eef0fe;
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.45);
-  --chip-bg: #eef0fe;
-  --chip-text: #2d3ff0;
-  --radar-pulse: rgba(45, 63, 240, 0.35);
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --match-high: #2d3ff0;
-  --match-mid: #639922;
-  --match-low: #d97706;
-  --match-miss: #BF4040;
+/* ═══════════════════════════════════════════════════════════════
+   NoyTera — Premium Theme System v3.0
+   Four meticulously crafted themes:
+   • OBSIDIAN — Ultra-premium dark (Linear.app inspired)
+   • PLATINUM — Clean investor-grade light
+   • CRIMSON  — Bold, energetic dark
+   • AURUM    — Gold luxury flagship
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ================================================================
+   1. OBSIDIAN — Ultra-Premium Dark
+      Deep warm charcoal. Electric indigo + soft violet.
+      Inspired by Linear.app, Vercel dark mode.
+   ================================================================ */
+:root, .obsidian {
+  /* ── Background & Surfaces ── */
+  --background:        #0a0a0f;
+  --surface:           rgba(255,255,255,0.025);
+  --surface-elevated:  #111118;
+  --surface-muted:     rgba(255,255,255,0.04);
+  --surface-strong:    rgba(255,255,255,0.07);
+
+  /* ── Foreground ── */
+  --foreground:        #f0f0f5;
+  --muted-foreground:  rgba(240,240,245,0.42);
+
+  /* ── Borders ── */
+  --border:            rgba(255,255,255,0.065);
+  --border-strong:     rgba(255,255,255,0.11);
+
+  /* ── Primary: Electric Indigo ── */
+  --primary:           #6366F1;
+  --primary-foreground:#ffffff;
+  --secondary:         rgba(99,102,241,0.14);
+  --secondary-foreground:#818CF8;
+
+  /* ── Accent: Soft Violet ── */
+  --accent:            #8B5CF6;
+  --accent-soft:       rgba(139,92,246,0.12);
+
+  /* ── Semantic ── */
+  --success:           #22c55e;
+  --warning:           #f59e0b;
+  --danger:            #ef4444;
+  --ring:              rgba(99,102,241,0.22);
+
+  /* ── Shadows ── */
+  --shadow-card:       0 1px 2px rgba(0,0,0,0.35), 0 8px 32px rgba(0,0,0,0.28);
+  --shadow-elevated:   0 12px 48px rgba(0,0,0,0.45);
+
+  /* ── Hero Gradient ── */
+  --hero-gradient-start: #0a0a0f;
+  --hero-gradient-end:   #11102a;
+
+  /* ── Glassmorphism ── */
+  --glass-bg:          rgba(17,17,24,0.65);
+  --glass-border:      rgba(255,255,255,0.07);
+
+  /* ── Chip ── */
+  --chip-bg:           rgba(99,102,241,0.13);
+  --chip-text:         #818CF8;
+
+  /* ── Radar ── */
+  --radar-pulse:       rgba(99,102,241,0.40);
+
+  /* ── Match Scores ── */
+  --match-high:        #6366F1;
+  --match-mid:         #22c55e;
+  --match-low:         #f59e0b;
+  --match-miss:        #ef4444;
+
+  /* ── Typography ── */
+  --font-sans:         -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
-/* ============================================================
-   ONYX THEME (Premium Dark AI — default)
-   ============================================================ */
-.onyx {
-  --background: #06080c;
-  --surface: rgba(255,255,255,0.03);
-  --surface-elevated: #0d1117;
-  --surface-muted: rgba(255,255,255,0.04);
-  --surface-strong: rgba(255,255,255,0.06);
-  --foreground: #ffffff;
-  --muted-foreground: rgba(255,255,255,0.45);
-  --border: rgba(255,255,255,0.07);
-  --border-strong: rgba(255,255,255,0.12);
-  --primary: #5B6FFF;
-  --primary-foreground: #ffffff;
-  --secondary: rgba(91,111,255,0.15);
-  --secondary-foreground: #8B9FFF;
-  --accent: #a67cff;
-  --accent-soft: rgba(166,124,255,0.12);
-  --success: #16a34a;
-  --warning: #EF9F27;
-  --danger: #E24B4A;
-  --ring: rgba(91, 111, 255, 0.26);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
-  --hero-gradient-start: #06080c;
-  --hero-gradient-end: #0a0e1a;
-  --glass-bg: rgba(13, 17, 23, 0.68);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --chip-bg: rgba(91,111,255,0.12);
-  --chip-text: #8B9FFF;
-  --radar-pulse: rgba(91, 111, 255, 0.45);
+/* ================================================================
+   2. PLATINUM — Clean Investor-Grade Light
+      Soft whites, warm grays. Deep navy + coral.
+      Inspired by Notion, Linear light mode.
+   ================================================================ */
+.platinum {
+  /* ── Background & Surfaces ── */
+  --background:        #fafaf8;
+  --surface:           #ffffff;
+  --surface-elevated:  #ffffff;
+  --surface-muted:     #f3f3f0;
+  --surface-strong:    #e8e8e4;
+
+  /* ── Foreground ── */
+  --foreground:        #0f172a;
+  --muted-foreground:  #64748b;
+
+  /* ── Borders ── */
+  --border:            #e2e2dc;
+  --border-strong:     #d0d0c8;
+
+  /* ── Primary: Deep Navy ── */
+  --primary:           #1E293B;
+  --primary-foreground:#ffffff;
+  --secondary:         #f1f5f9;
+  --secondary-foreground:#334155;
+
+  /* ── Accent: Coral / Salmon ── */
+  --accent:            #F97066;
+  --accent-soft:       #fff1ef;
+
+  /* ── Semantic ── */
+  --success:           #16a34a;
+  --warning:           #d97706;
+  --danger:            #dc2626;
+  --ring:              rgba(30,41,59,0.18);
+
+  /* ── Shadows ── */
+  --shadow-card:       0 1px 3px rgba(15,23,42,0.05), 0 8px 28px rgba(15,23,42,0.04);
+  --shadow-elevated:   0 12px 48px rgba(15,23,42,0.08);
+
+  /* ── Hero Gradient ── */
+  --hero-gradient-start: #fafaf8;
+  --hero-gradient-end:   #f1f5f9;
+
+  /* ── Glassmorphism ── */
+  --glass-bg:          rgba(255,255,255,0.78);
+  --glass-border:      rgba(255,255,255,0.50);
+
+  /* ── Chip ── */
+  --chip-bg:           #f1f5f9;
+  --chip-text:         #334155;
+
+  /* ── Radar ── */
+  --radar-pulse:       rgba(249,112,102,0.35);
+
+  /* ── Match Scores ── */
+  --match-high:        #1E293B;
+  --match-mid:         #16a34a;
+  --match-low:         #d97706;
+  --match-miss:        #dc2626;
+
+  /* ── Typography ── */
+  --font-sans:         -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
-/* ============================================================
-   AURA THEME (Modern Colorful Friendly)
-   ============================================================ */
-.aura {
-  --background: #faf8f5;
-  --surface: #ffffff;
-  --surface-elevated: #ffffff;
-  --surface-muted: #f5f1eb;
-  --surface-strong: #ebe5dc;
-  --foreground: #1a1612;
-  --muted-foreground: #6e665e;
-  --border: #e2dbd2;
-  --border-strong: #d4cbc0;
-  --primary: #e05a33;
-  --primary-foreground: #ffffff;
-  --secondary: #fff0e8;
-  --secondary-foreground: #c2410c;
-  --accent: #0d9488;
-  --accent-soft: #e0f2f1;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --ring: rgba(224, 90, 51, 0.22);
-  --shadow-card: 0 1px 3px rgba(26, 22, 18, 0.06), 0 8px 32px rgba(26, 22, 18, 0.04);
-  --hero-gradient-start: #faf8f5;
-  --hero-gradient-end: #fff0e8;
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.45);
-  --chip-bg: #fff0e8;
-  --chip-text: #c2410c;
-  --radar-pulse: rgba(224, 90, 51, 0.35);
+/* ================================================================
+   3. CRIMSON — Bold, Energetic, Modern
+      Dark base with wine/burgundy undertones.
+      Vibrant crimson + amber/gold secondary.
+   ================================================================ */
+.crimson {
+  /* ── Background & Surfaces ── */
+  --background:        #0f0406;
+  --surface:           rgba(255,255,255,0.02);
+  --surface-elevated:  #18050a;
+  --surface-muted:     rgba(255,255,255,0.035);
+  --surface-strong:    rgba(255,255,255,0.06);
+
+  /* ── Foreground ── */
+  --foreground:        #f8f0f0;
+  --muted-foreground:  rgba(248,240,240,0.40);
+
+  /* ── Borders ── */
+  --border:            rgba(255,255,255,0.06);
+  --border-strong:     rgba(255,255,255,0.10);
+
+  /* ── Primary: Vibrant Crimson ── */
+  --primary:           #DC2626;
+  --primary-foreground:#ffffff;
+  --secondary:         rgba(220,38,38,0.14);
+  --secondary-foreground:#f87171;
+
+  /* ── Accent: Amber / Gold ── */
+  --accent:            #f59e0b;
+  --accent-soft:       rgba(245,158,11,0.12);
+
+  /* ── Semantic ── */
+  --success:           #22c55e;
+  --warning:           #f59e0b;
+  --danger:            #ef4444;
+  --ring:              rgba(220,38,38,0.24);
+
+  /* ── Shadows ── */
+  --shadow-card:       0 1px 2px rgba(0,0,0,0.40), 0 8px 32px rgba(0,0,0,0.30);
+  --shadow-elevated:   0 12px 48px rgba(0,0,0,0.50);
+
+  /* ── Hero Gradient ── */
+  --hero-gradient-start: #0f0406;
+  --hero-gradient-end:   #1a0808;
+
+  /* ── Glassmorphism ── */
+  --glass-bg:          rgba(24,5,10,0.70);
+  --glass-border:      rgba(255,255,255,0.06);
+
+  /* ── Chip ── */
+  --chip-bg:           rgba(220,38,38,0.13);
+  --chip-text:         #f87171;
+
+  /* ── Radar ── */
+  --radar-pulse:       rgba(220,38,38,0.42);
+
+  /* ── Match Scores ── */
+  --match-high:        #DC2626;
+  --match-mid:         #22c55e;
+  --match-low:         #f59e0b;
+  --match-miss:        #991b1b;
+
+  /* ── Typography ── */
+  --font-sans:         -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
+/* ================================================================
+   4. AURUM — Gold Luxury Flagship
+      Deep dark navy/black with rich gold accents.
+      Premium fintech, luxury SaaS aesthetic.
+   ================================================================ */
+.aurum {
+  /* ── Background & Surfaces ── */
+  --background:        #060810;
+  --surface:           rgba(212,175,55,0.03);
+  --surface-elevated:  #0c0c14;
+  --surface-muted:     rgba(212,175,55,0.045);
+  --surface-strong:    rgba(212,175,55,0.07);
+
+  /* ── Foreground ── */
+  --foreground:        #f0ebe0;
+  --muted-foreground:  rgba(240,235,224,0.40);
+
+  /* ── Borders ── */
+  --border:            rgba(212,175,55,0.09);
+  --border-strong:     rgba(212,175,55,0.16);
+
+  /* ── Primary: Rich Gold ── */
+  --primary:           #D4AF37;
+  --primary-foreground:#060810;
+  --secondary:         rgba(212,175,55,0.12);
+  --secondary-foreground:#E8C84A;
+
+  /* ── Accent: Amber ── */
+  --accent:            #FFD700;
+  --accent-soft:       rgba(255,215,0,0.10);
+
+  /* ── Semantic ── */
+  --success:           #22c55e;
+  --warning:           #f59e0b;
+  --danger:            #ef4444;
+  --ring:              rgba(212,175,55,0.28);
+
+  /* ── Shadows ── */
+  --shadow-card:       0 1px 2px rgba(0,0,0,0.45), 0 8px 32px rgba(0,0,0,0.32);
+  --shadow-elevated:   0 12px 48px rgba(0,0,0,0.50);
+
+  /* ── Hero Gradient ── */
+  --hero-gradient-start: #060810;
+  --hero-gradient-end:   #0e0e1a;
+
+  /* ── Glassmorphism ── */
+  --glass-bg:          rgba(12,12,20,0.72);
+  --glass-border:      rgba(212,175,55,0.09);
+
+  /* ── Chip ── */
+  --chip-bg:           rgba(212,175,55,0.11);
+  --chip-text:         #E8C84A;
+
+  /* ── Radar ── */
+  --radar-pulse:       rgba(212,175,55,0.45);
+
+  /* ── Match Scores ── */
+  --match-high:        #D4AF37;
+  --match-mid:         #22c55e;
+  --match-low:         #f59e0b;
+  --match-miss:        #ef4444;
+
+  /* ── Typography ── */
+  --font-sans:         -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   @theme inline — Tailwind v4 variable bindings
+   ═══════════════════════════════════════════════════════════════ */
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-elevated: var(--surface-elevated);
-  --color-surface-muted: var(--surface-muted);
-  --color-surface-strong: var(--surface-strong);
-  --color-foreground: var(--foreground);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-primary: var(--primary);
+  --color-background:         var(--background);
+  --color-surface:            var(--surface);
+  --color-surface-elevated:   var(--surface-elevated);
+  --color-surface-muted:      var(--surface-muted);
+  --color-surface-strong:     var(--surface-strong);
+  --color-foreground:         var(--foreground);
+  --color-muted-foreground:   var(--muted-foreground);
+  --color-border:             var(--border);
+  --color-border-strong:      var(--border-strong);
+  --color-primary:            var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
+  --color-secondary:          var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-danger: var(--danger);
-  --color-match-high: var(--match-high);
-  --color-match-mid: var(--match-mid);
-  --color-match-low: var(--match-low);
-  --color-match-miss: var(--match-miss);
-  --font-sans: var(--font-sans);
+  --color-accent:             var(--accent);
+  --color-accent-soft:        var(--accent-soft);
+  --color-success:            var(--success);
+  --color-warning:            var(--warning);
+  --color-danger:             var(--danger);
+  --color-ring:               var(--ring);
+  --color-match-high:         var(--match-high);
+  --color-match-mid:          var(--match-mid);
+  --color-match-low:          var(--match-low);
+  --color-match-miss:         var(--match-miss);
+  --font-sans:                var(--font-sans);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Global Resets & Base Styles
+   ═══════════════════════════════════════════════════════════════ */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+
 body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s ease, color 0.3s ease;
 }
+
 a { color: inherit; text-decoration: none; }
 a[href], button, [role='button'], summary { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 input, textarea, select, button { font: inherit; }
-::selection { background: color-mix(in srgb, var(--primary) 18%, transparent); }
 
-/* Layout utilities */
-.container-shell { width: 100%; max-width: 1320px; margin-inline: auto; padding-inline: 24px; }
-.card-surface { border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 92%, transparent); box-shadow: var(--shadow-card); backdrop-filter: blur(14px); }
-.focus-ring { outline: none; box-shadow: 0 0 0 4px var(--ring); }
-.auth-grid { grid-template-columns: minmax(0, 1.05fr) minmax(400px, 480px); }
-.jobs-grid { grid-template-columns: 280px minmax(0, 1fr); }
-.matches-grid { grid-template-columns: 1fr 300px; }
-.match-cards-grid { grid-template-columns: 1fr 1fr; }
-.saved-body { grid-template-columns: 1fr 290px; }
-.saved-cols { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+/* Selection — theme-aware */
+::selection {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  color: var(--foreground);
+}
 
-/* Glassmorphism */
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+.container-shell {
+  width: 100%;
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+.card-surface {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(14px);
+}
+
+.focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.auth-grid       { grid-template-columns: minmax(0, 1.05fr) minmax(400px, 480px); }
+.jobs-grid       { grid-template-columns: 280px minmax(0, 1fr); }
+.matches-grid    { grid-template-columns: 1fr 300px; }
+.match-cards-grid{ grid-template-columns: 1fr 1fr; }
+.saved-body      { grid-template-columns: 1fr 290px; }
+.saved-cols      { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+/* ═══════════════════════════════════════════════════════════════
+   GLASSMORPHISM UTILITY
+   ═══════════════════════════════════════════════════════════════ */
 .glass {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -163,37 +375,72 @@ input, textarea, select, button { font: inherit; }
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
 }
 
-/* Premium surface card */
+/* Glass variant with stronger blur */
+.glass-strong {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(32px) saturate(1.6);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SURFACE CARD — Elevated card with premium hover effects
+   ═══════════════════════════════════════════════════════════════ */
 .surface-card {
   background: var(--surface-elevated);
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--shadow-card);
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
-}
-.surface-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
-  border-color: var(--border-strong);
-}
-.onyx .surface-card:hover {
-  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 240ms ease;
 }
 
-/* Chip */
+.surface-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--border-strong);
+}
+
+/* Theme-specific hover enhancements */
+.obsidian .surface-card:hover {
+  box-shadow: 0 12px 48px rgba(99,102,241,0.08), var(--shadow-elevated);
+}
+.platinum .surface-card:hover {
+  box-shadow: 0 12px 48px rgba(15,23,42,0.06), var(--shadow-elevated);
+}
+.crimson .surface-card:hover {
+  box-shadow: 0 12px 48px rgba(220,38,38,0.07), var(--shadow-elevated);
+}
+.aurum .surface-card:hover {
+  box-shadow: 0 12px 48px rgba(212,175,55,0.06), var(--shadow-elevated);
+  border-color: rgba(212,175,55,0.20);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHIP — Pill Badge
+   ═══════════════════════════════════════════════════════════════ */
 .chip {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
   background: var(--chip-bg);
   color: var(--chip-text);
-  padding: 4px 12px;
+  padding: 5px 14px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  transition: background 200ms ease, color 200ms ease;
 }
 
-/* Animated gradient text */
+.chip-interactive:hover {
+  background: color-mix(in srgb, var(--chip-bg) 80%, var(--primary));
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GRADIENT TEXT — Primary + Accent blend
+   ═══════════════════════════════════════════════════════════════ */
 .gradient-text {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   -webkit-background-clip: text;
@@ -201,10 +448,142 @@ input, textarea, select, button { font: inherit; }
   background-clip: text;
 }
 
-/* Radar pulse animation */
+/* Obsidian: indigo → violet gradient */
+.obsidian .gradient-text {
+  background: linear-gradient(135deg, #6366F1, #A78BFA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Platinum: navy → coral gradient */
+.platinum .gradient-text {
+  background: linear-gradient(135deg, #1E293B, #F97066);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Crimson: crimson → amber gradient */
+.crimson .gradient-text {
+  background: linear-gradient(135deg, #DC2626, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AURUM-SPECIFIC LUXURY EFFECTS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Gold gradient text — the signature Aurum look */
+.aurum-gradient-text {
+  background: linear-gradient(
+    135deg,
+    #D4AF37 0%,
+    #FFD700 35%,
+    #E8C84A 55%,
+    #F0D878 70%,
+    #D4AF37 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: aurum-shimmer 4s ease-in-out infinite;
+}
+
+@keyframes aurum-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* Gold glow effect for cards, buttons, accents */
+.aurum-glow {
+  box-shadow:
+    0 0 20px rgba(212,175,55,0.10),
+    0 0 60px rgba(212,175,55,0.05);
+}
+
+.aurum-glow-strong {
+  box-shadow:
+    0 0 30px rgba(212,175,55,0.15),
+    0 0 80px rgba(212,175,55,0.08);
+}
+
+/* Aurum border glow on hover */
+.aurum-border-glow {
+  transition: border-color 300ms ease, box-shadow 300ms ease;
+}
+.aurum-border-glow:hover {
+  border-color: rgba(212,175,55,0.25);
+  box-shadow:
+    0 0 16px rgba(212,175,55,0.08),
+    inset 0 1px 0 rgba(255,215,0,0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GRID BACKGROUND PATTERN
+   ═══════════════════════════════════════════════════════════════ */
+.grid-bg {
+  position: relative;
+}
+.grid-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: center center;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Fade In Up ── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.animate-fade-in-up-delay-1 { animation-delay: 0.10s; opacity: 0; }
+.animate-fade-in-up-delay-2 { animation-delay: 0.20s; opacity: 0; }
+.animate-fade-in-up-delay-3 { animation-delay: 0.30s; opacity: 0; }
+
+/* ── Float ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-12px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-float-delay-1 { animation: float 6s ease-in-out 1.5s infinite; }
+.animate-float-delay-2 { animation: float 6s ease-in-out 3s infinite; }
+.animate-float-delay-3 { animation: float 6s ease-in-out 4.5s infinite; }
+
+/* ── Pulse Dot ── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.85); }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+
+/* ── Radar Pulse ── */
 @keyframes radar-pulse {
-  0% { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(2.4); opacity: 0; }
+  0%   { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.6); opacity: 0; }
 }
 .animate-radar-pulse::after {
   content: '';
@@ -212,79 +591,106 @@ input, textarea, select, button { font: inherit; }
   inset: 0;
   border-radius: inherit;
   background: var(--radar-pulse);
-  animation: radar-pulse 2s ease-out infinite;
+  animation: radar-pulse 2.2s ease-out infinite;
   z-index: -1;
 }
 
-/* Float animation */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-.animate-float { animation: float 5s ease-in-out infinite; }
-.animate-float-delay-1 { animation: float 5s ease-in-out 1s infinite; }
-.animate-float-delay-2 { animation: float 5s ease-in-out 2s infinite; }
-.animate-float-delay-3 { animation: float 5s ease-in-out 3s infinite; }
-
-/* Fade in up */
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in-up {
-  animation: fade-in-up 0.7s ease-out forwards;
-}
-
-/* Pulse dot */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-.animate-pulse-dot { animation: pulse-dot 2s infinite; }
-
-/* Subtle rotate */
+/* ── Subtle Rotate ── */
 @keyframes subtle-rotate {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
-.animate-subtle-rotate { animation: subtle-rotate 60s linear infinite; }
-
-/* Grid background pattern */
-.grid-bg {
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 48px 48px;
-  background-position: center center;
-  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+.animate-subtle-rotate {
+  animation: subtle-rotate 60s linear infinite;
 }
 
-/* Copilot styles */
+/* ── Shimmer / Loading Skeleton ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface-muted) 25%,
+    var(--surface-strong) 50%,
+    var(--surface-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* ── Scale In ── */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COPILOT STYLES
+   ═══════════════════════════════════════════════════════════════ */
+.copilot-launcher {
+  position: relative;
+}
 .copilot-launcher::after {
   content: '';
   position: absolute;
-  inset: -8px;
+  inset: -10px;
   border-radius: 999px;
   background: radial-gradient(circle, var(--accent-soft), transparent 65%);
   z-index: -1;
-  transition: opacity 260ms ease;
+  opacity: 0.7;
+  transition: opacity 300ms ease;
 }
-.copilot-launcher:hover::after { opacity: 1; }
+.copilot-launcher:hover::after {
+  opacity: 1;
+}
+
 .copilot-elevated-surface {
   background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,247,255,0.98));
 }
-.onyx .copilot-elevated-surface {
-  background: linear-gradient(180deg, rgba(16,26,44,0.94), rgba(7,14,27,0.98));
+
+/* Theme-specific copilot surfaces */
+.obsidian .copilot-elevated-surface {
+  background: linear-gradient(180deg, rgba(17,17,24,0.96), rgba(10,10,15,0.98));
+}
+.platinum .copilot-elevated-surface {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,250,248,0.98));
+}
+.crimson .copilot-elevated-surface {
+  background: linear-gradient(180deg, rgba(24,5,10,0.96), rgba(15,4,6,0.98));
+}
+.aurum .copilot-elevated-surface {
+  background: linear-gradient(180deg, rgba(12,12,20,0.96), rgba(6,8,16,0.98));
 }
 
-/* Responsive */
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR STYLING — Theme-aware
+   ═══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--border-strong) 80%, var(--muted-foreground));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .matches-grid, .saved-body { grid-template-columns: 1fr; }
   .match-cards-grid, .saved-cols { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 1024px) {
   .auth-grid, .jobs-grid { grid-template-columns: 1fr; }
 }
 

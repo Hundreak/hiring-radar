@@ -67,11 +67,11 @@ export type CopilotCopy = {
   switchConversation: string;
 };
 
-export const COPILOT_RIGHT_SURFACE_EVENT = 'coresift:right-surface';
-export const COPILOT_PROMPT_EVENT = 'coresift:copilot-prompt';
-export const COPILOT_HISTORY_STORAGE_KEY = 'coresift:copilot-history:v3';
-export const COPILOT_ACTIVE_CONVERSATION_STORAGE_KEY = 'coresift:copilot-active-conversation:v3';
-export const COPILOT_ROOT_SELECTOR = '[data-coresift-copilot-root="true"]';
+export const COPILOT_RIGHT_SURFACE_EVENT = 'noytera:right-surface';
+export const COPILOT_PROMPT_EVENT = 'noytera:copilot-prompt';
+export const COPILOT_HISTORY_STORAGE_KEY = 'noytera:copilot-history:v3';
+export const COPILOT_ACTIVE_CONVERSATION_STORAGE_KEY = 'noytera:copilot-active-conversation:v3';
+export const COPILOT_ROOT_SELECTOR = '[data-noytera-copilot-root="true"]';
 
 export function dispatchCopilotPrompt(detail: string | CopilotPromptEventDetail) {
   if (typeof window === 'undefined') return;
@@ -96,14 +96,14 @@ function parsePx(raw: string): number {
 
 export function readRightSurfaceWidth(): number {
   if (typeof document === 'undefined') return 0;
-  return parsePx(getComputedStyle(document.documentElement).getPropertyValue('--coresift-right-surface-width').trim());
+  return parsePx(getComputedStyle(document.documentElement).getPropertyValue('--noytera-right-surface-width').trim());
 }
 
 export function publishRightSurface(detail: CopilotRightSurfaceDetail) {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   const width = detail.open ? Math.max(0, Math.round(detail.width)) : 0;
-  document.documentElement.style.setProperty('--coresift-right-surface-width', `${width}px`);
-  document.documentElement.dataset.coresiftRightSurface = detail.open ? 'open' : 'closed';
+  document.documentElement.style.setProperty('--noytera-right-surface-width', `${width}px`);
+  document.documentElement.dataset.noyteraRightSurface = detail.open ? 'open' : 'closed';
   window.dispatchEvent(new CustomEvent<CopilotRightSurfaceDetail>(COPILOT_RIGHT_SURFACE_EVENT, {detail: {...detail, width}}));
 }
 
@@ -152,7 +152,7 @@ export function detectVisibleRightSurface(): CopilotRightSurfaceDetail {
   }
 
   const explicitSelectors = [
-    '[data-coresift-right-surface="open"]',
+    '[data-noytera-right-surface="open"]',
     '[data-right-drawer="open"]',
     '[data-drawer-side="right"][data-state="open"]',
     '[data-copilot-right-surface="open"]',
@@ -192,8 +192,8 @@ const copyByLocale: Record<string, CopilotCopy> = {
     send: 'Gönder',
     newConversation: 'Yeni sohbet',
     close: 'Kapat',
-    thinking: 'CoreSift AI düşünüyor…',
-    welcomeAssistant: 'Merhaba, ben CoreSift AI. Profilini daha net, güçlü ve profesyonel hale getirmen için sana yardımcı olurum.',
+    thinking: 'NoyTera AI düşünüyor…',
+    welcomeAssistant: 'Merhaba, ben NoyTera AI. Profilini daha net, güçlü ve profesyonel hale getirmen için sana yardımcı olurum.',
     privacyNote: 'Yanıtlar burada yalnızca ürün içi yardımcı deneyimi için gösterilir.',
     history: 'Geçmiş sohbetler',
     historyEmpty: 'Henüz kaydedilmiş bir sohbet yok.',
@@ -217,8 +217,8 @@ const copyByLocale: Record<string, CopilotCopy> = {
     send: 'Send',
     newConversation: 'New chat',
     close: 'Close',
-    thinking: 'CoreSift AI is thinking…',
-    welcomeAssistant: 'Hello, I’m CoreSift AI. I can help you make your profile clearer, stronger, and more professional.',
+    thinking: 'NoyTera AI is thinking…',
+    welcomeAssistant: 'Hello, I’m NoyTera AI. I can help you make your profile clearer, stronger, and more professional.',
     privacyNote: 'Responses shown here are for the in-product assistant experience only.',
     history: 'Past chats',
     historyEmpty: 'No saved chats yet.',
@@ -242,8 +242,8 @@ const copyByLocale: Record<string, CopilotCopy> = {
     send: 'Senden',
     newConversation: 'Neuer Chat',
     close: 'Schließen',
-    thinking: 'CoreSift AI denkt nach…',
-    welcomeAssistant: 'Hallo, ich bin CoreSift AI. Ich unterstütze dich dabei, dein Profil klarer, stärker und professioneller zu machen.',
+    thinking: 'NoyTera AI denkt nach…',
+    welcomeAssistant: 'Hallo, ich bin NoyTera AI. Ich unterstütze dich dabei, dein Profil klarer, stärker und professioneller zu machen.',
     privacyNote: 'Antworten werden hier nur für das produktinterne Assistenz-Erlebnis angezeigt.',
     history: 'Chatverlauf',
     historyEmpty: 'Noch keine gespeicherten Gespräche.',

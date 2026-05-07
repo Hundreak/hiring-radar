@@ -3,9 +3,9 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CoreSift',
+  title: 'NoyTera',
   description:
-    'CoreSift helps candidates structure their profile, discover better-fit roles and move through the hiring market with more clarity.'
+    'NoyTera helps candidates structure their profile, discover better-fit roles and move through the hiring market with more clarity.'
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {

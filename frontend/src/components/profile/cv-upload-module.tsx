@@ -1669,7 +1669,7 @@ export function CvUploadModule({
 
       <aside
         ref={drawerRef}
-        data-coresift-right-surface={drawerOpen ? 'open' : 'closed'}
+        data-noytera-right-surface={drawerOpen ? 'open' : 'closed'}
         data-right-drawer={drawerOpen ? 'open' : 'closed'}
         data-drawer-side="right"
         data-state={drawerOpen ? 'open' : 'closed'}

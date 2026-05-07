@@ -9,9 +9,18 @@ import {
   useState
 } from 'react';
 
-export type Theme = 'onyx' | 'nova' | 'aura';
+/**
+ * ── NoyTera Premium Theme System v3.0 ──
+ *
+ * Four meticulously crafted themes:
+ *   obsidian — Ultra-premium dark (Linear.app inspired)
+ *   platinum — Clean investor-grade light
+ *   crimson  — Bold, energetic dark
+ *   aurum    — Gold luxury flagship
+ */
+export type Theme = 'obsidian' | 'platinum' | 'crimson' | 'aurum';
 
-const THEMES: Theme[] = ['onyx', 'nova', 'aura'];
+const THEMES: Theme[] = ['obsidian', 'platinum', 'crimson', 'aurum'];
 
 function isTheme(value: string | null): value is Theme {
   return THEMES.includes(value as Theme);
@@ -24,13 +33,11 @@ type ThemeContextValue = {
   cycleTheme: () => void;
 };
 
-const STORAGE_KEY = 'hiring-radar-theme-v2';
-
-const ThemeContext = createContext<ThemeContextValue | null>(null);
+const STORAGE_KEY = 'hiring-radar-theme-v3';
 
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') {
-    return 'onyx';
+    return 'obsidian';
   }
 
   const storedTheme = window.localStorage.getItem(STORAGE_KEY);
@@ -38,7 +45,7 @@ function getInitialTheme(): Theme {
     return storedTheme;
   }
 
-  return 'onyx';
+  return 'obsidian';
 }
 
 function applyTheme(theme: Theme) {

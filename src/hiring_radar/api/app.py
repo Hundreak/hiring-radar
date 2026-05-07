@@ -11,6 +11,8 @@ from hiring_radar.api.routers import (
     admin_settings_router,
     admin_shell_router,
     admin_subscribers_router,
+    employer_auth_router,
+    employer_dashboard_router,
     health_router,
     public_auth_router,
     user_auth_router,
@@ -29,7 +31,7 @@ from hiring_radar.api.routers import (
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Hiring Radar API",
+        title="NoyTera API",
         version="0.1.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
@@ -56,6 +58,8 @@ def create_app() -> FastAPI:
     app.include_router(user_shell_router)
     app.include_router(public_auth_router)
     app.include_router(google_oauth_router)
+    app.include_router(employer_auth_router)
+    app.include_router(employer_dashboard_router)
 
     return app
 

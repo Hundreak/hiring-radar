@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState, useCallback} from 'react';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
 
 import {ApiError, api} from '@/lib/api';
@@ -39,6 +39,19 @@ type Copy = {
   tabs: {
     login: string;
     signup: string;
+  };
+  roleTabs: {
+    candidate: string;
+    employer: string;
+  };
+  employer: {
+    emailLabel: string;
+    emailPlaceholder: string;
+    submit: string;
+    submitLoading: string;
+    forgotPassword: string;
+    passwordHelp: string;
+    googleButton: string;
   };
   leftSteps: Array<{title: string; description: string}>;
 };
@@ -81,6 +94,19 @@ const copy: Record<SupportedLocale, Copy> = {
     tabs: {
       login: 'Giriş Yap',
       signup: 'Üye Ol'
+    },
+    roleTabs: {
+      candidate: 'Aday Girişi',
+      employer: 'İşveren Girişi'
+    },
+    employer: {
+      emailLabel: 'Şirket E-postası',
+      emailPlaceholder: 'Sirket e-posta adresinizi giriniz',
+      submit: 'İşveren olarak giriş yap',
+      submitLoading: 'Giriş yapılıyor...',
+      forgotPassword: 'Şifremi unuttum',
+      passwordHelp: 'Şirket e-posta ve şifrenle işveren paneline giriş yap.',
+      googleButton: 'Google ile giriş yap'
     },
     leftSteps: [
       {
@@ -134,6 +160,19 @@ const copy: Record<SupportedLocale, Copy> = {
     tabs: {
       login: 'Sign In',
       signup: 'Sign Up'
+    },
+    roleTabs: {
+      candidate: 'Candidate Login',
+      employer: 'Employer Login'
+    },
+    employer: {
+      emailLabel: 'Company Email',
+      emailPlaceholder: 'Enter your company email address',
+      submit: 'Login as Employer',
+      submitLoading: 'Signing in...',
+      forgotPassword: 'Forgot password?',
+      passwordHelp: 'Use your company email and password to access the employer panel.',
+      googleButton: 'Sign in with Google'
     },
     leftSteps: [
       {
@@ -189,6 +228,19 @@ const copy: Record<SupportedLocale, Copy> = {
       login: 'Anmelden',
       signup: 'Registrieren'
     },
+    roleTabs: {
+      candidate: 'Bewerber-Login',
+      employer: 'Arbeitgeber-Login'
+    },
+    employer: {
+      emailLabel: 'Unternehmens-E-Mail',
+      emailPlaceholder: 'Geben Sie Ihre Unternehmens-E-Mail ein',
+      submit: 'Als Arbeitgeber anmelden',
+      submitLoading: 'Anmeldung läuft...',
+      forgotPassword: 'Passwort vergessen?',
+      passwordHelp: 'Nutze Unternehmens-E-Mail und Passwort für den Arbeitgeber-Zugang.',
+      googleButton: 'Mit Google anmelden'
+    },
     leftSteps: [
       {
         title: 'Daten eingeben',
@@ -227,7 +279,11 @@ type FieldErrors = {
   passwordEmail?: string;
   password?: string;
   magicLinkEmail?: string;
+  employerEmail?: string;
+  employerPassword?: string;
 };
+
+type LoginRole = 'candidate' | 'employer';
 
 type LoginViewProps = {
   locale?: string;
@@ -247,6 +303,26 @@ export function LoginView({locale: localeProp}: LoginViewProps) {
 
   const currentCopy = copy[locale];
 
+  /* ── role tab state ── */
+  const roleFromUrl = searchParams.get('role');
+  const initialRole: LoginRole = roleFromUrl === 'employer' ? 'employer' : 'candidate';
+  const [activeRole, setActiveRole] = useState<LoginRole>(initialRole);
+
+  const updateRole = useCallback(
+    (newRole: LoginRole) => {
+      setActiveRole(newRole);
+      const params = new URLSearchParams(searchParams.toString());
+      if (newRole === 'employer') {
+        params.set('role', 'employer');
+      } else {
+        params.delete('role');
+      }
+      router.replace(`${pathname}?${params.toString()}`, {scroll: false});
+    },
+    [pathname, router, searchParams]
+  );
+
+  /* ── candidate form state ── */
   const [passwordEmail, setPasswordEmail] = useState('');
   const [password, setPassword] = useState('');
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
@@ -254,6 +330,12 @@ export function LoginView({locale: localeProp}: LoginViewProps) {
   const [magicLinkSubmitting, setMagicLinkSubmitting] = useState(false);
   const [magicLinkSuccess, setMagicLinkSuccess] = useState<string | null>(null);
   const [magicLinkConsuming, setMagicLinkConsuming] = useState(false);
+
+  /* ── employer form state ── */
+  const [employerEmail, setEmployerEmail] = useState('');
+  const [employerPassword, setEmployerPassword] = useState('');
+  const [employerSubmitting, setEmployerSubmitting] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const attemptedMagicToken = useRef<string | null>(null);
@@ -356,6 +438,42 @@ export function LoginView({locale: localeProp}: LoginViewProps) {
     }
   }
 
+  async function handleEmployerSubmit(
+    event: React.FormEvent<HTMLFormElement>
+  ): Promise<void> {
+    event.preventDefault();
+    setErrorMessage(null);
+
+    const nextErrors: FieldErrors = {};
+    if (!employerEmail.trim()) nextErrors.employerEmail = currentCopy.required;
+    if (!employerPassword.trim()) nextErrors.employerPassword = currentCopy.required;
+    setFieldErrors((previous) => ({...previous, ...nextErrors}));
+
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setEmployerSubmitting(true);
+
+    try {
+      await api.loginEmployer({
+        email: employerEmail.trim(),
+        password: employerPassword
+      });
+
+      router.push(`/${locale}/employer/dashboard`);
+      router.refresh();
+    } catch (reason) {
+      if (reason instanceof ApiError && reason.status === 401) {
+        setErrorMessage(currentCopy.invalidCredentials);
+      } else if (reason instanceof Error) {
+        setErrorMessage(reason.message || currentCopy.generalError);
+      } else {
+        setErrorMessage(currentCopy.generalError);
+      }
+    } finally {
+      setEmployerSubmitting(false);
+    }
+  }
+
   async function handleMagicLink(): Promise<void> {
     setErrorMessage(null);
     setMagicLinkSuccess(null);
@@ -381,6 +499,23 @@ export function LoginView({locale: localeProp}: LoginViewProps) {
       setMagicLinkSubmitting(false);
     }
   }
+
+  const RoleTab = ({role, label}: {role: LoginRole; label: string}) => (
+    <button
+      type="button"
+      onClick={() => updateRole(role)}
+      className={`relative inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-out ${
+        activeRole === role
+          ? 'text-white'
+          : 'text-white/45 hover:text-white/75'
+      }`}
+    >
+      {activeRole === role && (
+        <span className="absolute inset-0 rounded-full bg-[#3b52f0] shadow-[0_2px_12px_rgba(59,82,240,0.35)] transition-all duration-300 ease-out" />
+      )}
+      <span className="relative z-10">{label}</span>
+    </button>
+  );
 
   return (
     <div className="container-shell py-12 md:py-16">
@@ -441,182 +576,304 @@ export function LoginView({locale: localeProp}: LoginViewProps) {
           </div>
 
           <div className="space-y-5 px-6 py-6">
-            <a
-              href={`/api/user/auth/google/initiate?redirect_path=${encodeURIComponent(redirectTarget)}`}
-              className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
-            >
-              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                <path fill="none" d="M0 0h48v48H0z"/>
-              </svg>
-              {currentCopy.googleButton}
-            </a>
-
-            <div className="relative py-1">
-              <div className="absolute inset-x-0 top-1/2 border-t border-white/8" />
-              <span className="relative inline-flex bg-[#101828] pr-4 text-xs font-semibold uppercase tracking-[0.12em] text-white/38">
-                {currentCopy.dividerOrEmail}
-              </span>
+            {/* ── Role tabs ── */}
+            <div className="flex items-center justify-center">
+              <div className="inline-flex items-center gap-1 rounded-full border border-white/8 bg-white/[0.03] p-1.5">
+                <RoleTab role="candidate" label={currentCopy.roleTabs.candidate} />
+                <RoleTab role="employer" label={currentCopy.roleTabs.employer} />
+              </div>
             </div>
 
-            {magicLinkConsuming ? (
-              <div className="rounded-2xl border border-[#4b61ff]/20 bg-[#111d35] px-5 py-4">
-                <div className="text-base font-semibold text-white">
-                  {currentCopy.magicLinkConsumingTitle}
-                </div>
-                <p className="mt-2 text-sm leading-7 text-white/68">
-                  {currentCopy.magicLinkConsumingDescription}
-                </p>
-              </div>
-            ) : null}
-
-            {errorMessage ? (
-              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-                {errorMessage}
-              </div>
-            ) : null}
-
-            {magicLinkSuccess ? (
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {magicLinkSuccess}
-              </div>
-            ) : null}
-
-            <form className="space-y-4" onSubmit={handlePasswordSubmit}>
-              <div className="space-y-2">
-                <label
-                  htmlFor="login-email"
-                  className="text-xs font-semibold uppercase tracking-[0.12em] text-white/48"
+            {activeRole === 'candidate' ? (
+              <>
+                <a
+                  href={`/api/user/auth/google/initiate?redirect_path=${encodeURIComponent(redirectTarget)}`}
+                  className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
                 >
-                  {currentCopy.emailLabel}
-                </label>
-                <input
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  value={passwordEmail}
-                  onChange={(event) => {
-                    setPasswordEmail(event.target.value);
-                    setFieldErrors((previous) => ({...previous, passwordEmail: undefined}));
-                  }}
-                  placeholder={currentCopy.emailPlaceholder}
-                  className={`h-14 w-full rounded-2xl border bg-[#111827] px-4 text-white outline-none transition ${
-                    fieldErrors.passwordEmail
-                      ? 'border-rose-400/80 bg-rose-500/10'
-                      : 'border-white/10 focus:border-[#5b70ff]'
-                  }`}
-                />
-                {fieldErrors.passwordEmail ? (
-                  <div className="text-sm font-medium text-rose-300">
-                    {fieldErrors.passwordEmail}
+                  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    <path fill="none" d="M0 0h48v48H0z"/>
+                  </svg>
+                  {currentCopy.googleButton}
+                </a>
+
+                <div className="relative py-1">
+                  <div className="absolute inset-x-0 top-1/2 border-t border-white/8" />
+                  <span className="relative inline-flex bg-[#101828] pr-4 text-xs font-semibold uppercase tracking-[0.12em] text-white/38">
+                    {currentCopy.dividerOrEmail}
+                  </span>
+                </div>
+
+                {magicLinkConsuming ? (
+                  <div className="rounded-2xl border border-[#4b61ff]/20 bg-[#111d35] px-5 py-4">
+                    <div className="text-base font-semibold text-white">
+                      {currentCopy.magicLinkConsumingTitle}
+                    </div>
+                    <p className="mt-2 text-sm leading-7 text-white/68">
+                      {currentCopy.magicLinkConsumingDescription}
+                    </p>
                   </div>
                 ) : null}
-              </div>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="login-password"
-                  className="text-xs font-semibold uppercase tracking-[0.12em] text-white/48"
-                >
-                  {currentCopy.passwordLabel}
-                </label>
-                <input
-                  id="login-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value);
-                    setFieldErrors((previous) => ({...previous, password: undefined}));
-                  }}
-                  placeholder={currentCopy.passwordPlaceholder}
-                  className={`h-14 w-full rounded-2xl border bg-[#111827] px-4 text-white outline-none transition ${
-                    fieldErrors.password
-                      ? 'border-rose-400/80 bg-rose-500/10'
-                      : 'border-white/10 focus:border-[#5b70ff]'
-                  }`}
-                />
-                {fieldErrors.password ? (
-                  <div className="text-sm font-medium text-rose-300">{fieldErrors.password}</div>
+                {errorMessage ? (
+                  <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                    {errorMessage}
+                  </div>
                 ) : null}
 
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm leading-6 text-white/48">{currentCopy.passwordHelp}</p>
-                  <Link
-                    href={`/${locale}/forgot-password`}
-                    className="shrink-0 text-sm font-semibold text-[#8fa0ff] transition hover:text-white"
+                {magicLinkSuccess ? (
+                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                    {magicLinkSuccess}
+                  </div>
+                ) : null}
+
+                <form className="space-y-4" onSubmit={handlePasswordSubmit}>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="login-email"
+                      className="text-xs font-semibold uppercase tracking-[0.12em] text-white/48"
+                    >
+                      {currentCopy.emailLabel}
+                    </label>
+                    <input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      value={passwordEmail}
+                      onChange={(event) => {
+                        setPasswordEmail(event.target.value);
+                        setFieldErrors((previous) => ({...previous, passwordEmail: undefined}));
+                      }}
+                      placeholder={currentCopy.emailPlaceholder}
+                      className={`h-14 w-full rounded-2xl border bg-[#111827] px-4 text-white outline-none transition ${
+                        fieldErrors.passwordEmail
+                          ? 'border-rose-400/80 bg-rose-500/10'
+                          : 'border-white/10 focus:border-[#5b70ff]'
+                      }`}
+                    />
+                    {fieldErrors.passwordEmail ? (
+                      <div className="text-sm font-medium text-rose-300">
+                        {fieldErrors.passwordEmail}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="login-password"
+                      className="text-xs font-semibold uppercase tracking-[0.12em] text-white/48"
+                    >
+                      {currentCopy.passwordLabel}
+                    </label>
+                    <input
+                      id="login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        setFieldErrors((previous) => ({...previous, password: undefined}));
+                      }}
+                      placeholder={currentCopy.passwordPlaceholder}
+                      className={`h-14 w-full rounded-2xl border bg-[#111827] px-4 text-white outline-none transition ${
+                        fieldErrors.password
+                          ? 'border-rose-400/80 bg-rose-500/10'
+                          : 'border-white/10 focus:border-[#5b70ff]'
+                      }`}
+                    />
+                    {fieldErrors.password ? (
+                      <div className="text-sm font-medium text-rose-300">{fieldErrors.password}</div>
+                    ) : null}
+
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm leading-6 text-white/48">{currentCopy.passwordHelp}</p>
+                      <Link
+                        href={`/${locale}/forgot-password`}
+                        className="shrink-0 text-sm font-semibold text-[#8fa0ff] transition hover:text-white"
+                      >
+                        {currentCopy.forgotPassword}
+                      </Link>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={passwordSubmitting}
+                    className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#4b61ff] bg-[#3b52f0] px-6 text-sm font-semibold text-white transition hover:bg-[#3348da] disabled:opacity-60"
                   >
-                    {currentCopy.forgotPassword}
-                  </Link>
+                    {passwordSubmitting ? currentCopy.submitLoading : currentCopy.submit}
+                  </button>
+                </form>
+
+                <div className="space-y-4 rounded-[26px] border border-white/8 bg-white/[0.02] p-5">
+                  <div>
+                    <div className="text-lg font-semibold text-white">
+                      {currentCopy.magicLinkTitle}
+                    </div>
+                    <p className="mt-2 text-sm leading-7 text-white/60">
+                      {currentCopy.magicLinkDescription}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="magic-link-email"
+                      className="text-xs font-semibold uppercase tracking-[0.12em] text-white/48"
+                    >
+                      {currentCopy.emailLabel}
+                    </label>
+                    <input
+                      id="magic-link-email"
+                      type="email"
+                      autoComplete="email"
+                      value={magicLinkEmail}
+                      onChange={(event) => {
+                        setMagicLinkEmail(event.target.value);
+                        setFieldErrors((previous) => ({...previous, magicLinkEmail: undefined}));
+                      }}
+                      placeholder={currentCopy.emailPlaceholder}
+                      className={`h-14 w-full rounded-2xl border bg-[#111827] px-4 text-white outline-none transition ${
+                        fieldErrors.magicLinkEmail
+                          ? 'border-rose-400/80 bg-rose-500/10'
+                          : 'border-white/10 focus:border-[#5b70ff]'
+                      }`}
+                    />
+                    {fieldErrors.magicLinkEmail ? (
+                      <div className="text-sm font-medium text-rose-300">
+                        {fieldErrors.magicLinkEmail}
+                      </div>
+                    ) : null}
+                    <p className="text-sm leading-6 text-white/45">
+                      {currentCopy.magicLinkEmailHelp}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleMagicLink()}
+                    disabled={magicLinkSubmitting}
+                    className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-white/12 bg-transparent px-6 text-sm font-semibold text-white transition hover:bg-white/6 disabled:opacity-60"
+                  >
+                    {magicLinkSubmitting
+                      ? currentCopy.magicLinkButtonLoading
+                      : currentCopy.magicLinkButton}
+                  </button>
                 </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={passwordSubmitting}
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#4b61ff] bg-[#3b52f0] px-6 text-sm font-semibold text-white transition hover:bg-[#3348da] disabled:opacity-60"
-              >
-                {passwordSubmitting ? currentCopy.submitLoading : currentCopy.submit}
-              </button>
-            </form>
-
-            <div className="space-y-4 rounded-[26px] border border-white/8 bg-white/[0.02] p-5">
-              <div>
-                <div className="text-lg font-semibold text-white">
-                  {currentCopy.magicLinkTitle}
-                </div>
-                <p className="mt-2 text-sm leading-7 text-white/60">
-                  {currentCopy.magicLinkDescription}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor="magic-link-email"
-                  className="text-xs font-semibold uppercase tracking-[0.12em] text-white/48"
+              </>
+            ) : (
+              <>
+                {/* ── Employer login form ── */}
+                <a
+                  href={`/api/user/auth/google/initiate?redirect_path=${encodeURIComponent(`/${locale}/employer/dashboard`)}&role=employer`}
+                  className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
                 >
-                  {currentCopy.emailLabel}
-                </label>
-                <input
-                  id="magic-link-email"
-                  type="email"
-                  autoComplete="email"
-                  value={magicLinkEmail}
-                  onChange={(event) => {
-                    setMagicLinkEmail(event.target.value);
-                    setFieldErrors((previous) => ({...previous, magicLinkEmail: undefined}));
-                  }}
-                  placeholder={currentCopy.emailPlaceholder}
-                  className={`h-14 w-full rounded-2xl border bg-[#111827] px-4 text-white outline-none transition ${
-                    fieldErrors.magicLinkEmail
-                      ? 'border-rose-400/80 bg-rose-500/10'
-                      : 'border-white/10 focus:border-[#5b70ff]'
-                  }`}
-                />
-                {fieldErrors.magicLinkEmail ? (
-                  <div className="text-sm font-medium text-rose-300">
-                    {fieldErrors.magicLinkEmail}
+                  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    <path fill="none" d="M0 0h48v48H0z"/>
+                  </svg>
+                  {currentCopy.employer.googleButton}
+                </a>
+
+                <div className="relative py-1">
+                  <div className="absolute inset-x-0 top-1/2 border-t border-white/8" />
+                  <span className="relative inline-flex bg-[#101828] pr-4 text-xs font-semibold uppercase tracking-[0.12em] text-white/38">
+                    {currentCopy.dividerOrEmail}
+                  </span>
+                </div>
+
+                {errorMessage ? (
+                  <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                    {errorMessage}
                   </div>
                 ) : null}
-                <p className="text-sm leading-6 text-white/45">
-                  {currentCopy.magicLinkEmailHelp}
-                </p>
-              </div>
 
-              <button
-                type="button"
-                onClick={() => void handleMagicLink()}
-                disabled={magicLinkSubmitting}
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-white/12 bg-transparent px-6 text-sm font-semibold text-white transition hover:bg-white/6 disabled:opacity-60"
-              >
-                {magicLinkSubmitting
-                  ? currentCopy.magicLinkButtonLoading
-                  : currentCopy.magicLinkButton}
-              </button>
-            </div>
+                <form className="space-y-4" onSubmit={handleEmployerSubmit}>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="employer-email"
+                      className="text-xs font-semibold uppercase tracking-[0.12em] text-white/48"
+                    >
+                      {currentCopy.employer.emailLabel}
+                    </label>
+                    <input
+                      id="employer-email"
+                      type="email"
+                      autoComplete="email"
+                      value={employerEmail}
+                      onChange={(event) => {
+                        setEmployerEmail(event.target.value);
+                        setFieldErrors((previous) => ({...previous, employerEmail: undefined}));
+                      }}
+                      placeholder={currentCopy.employer.emailPlaceholder}
+                      className={`h-14 w-full rounded-2xl border bg-[#111827] px-4 text-white outline-none transition ${
+                        fieldErrors.employerEmail
+                          ? 'border-rose-400/80 bg-rose-500/10'
+                          : 'border-white/10 focus:border-[#5b70ff]'
+                      }`}
+                    />
+                    {fieldErrors.employerEmail ? (
+                      <div className="text-sm font-medium text-rose-300">
+                        {fieldErrors.employerEmail}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="employer-password"
+                      className="text-xs font-semibold uppercase tracking-[0.12em] text-white/48"
+                    >
+                      {currentCopy.passwordLabel}
+                    </label>
+                    <input
+                      id="employer-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={employerPassword}
+                      onChange={(event) => {
+                        setEmployerPassword(event.target.value);
+                        setFieldErrors((previous) => ({...previous, employerPassword: undefined}));
+                      }}
+                      placeholder={currentCopy.passwordPlaceholder}
+                      className={`h-14 w-full rounded-2xl border bg-[#111827] px-4 text-white outline-none transition ${
+                        fieldErrors.employerPassword
+                          ? 'border-rose-400/80 bg-rose-500/10'
+                          : 'border-white/10 focus:border-[#5b70ff]'
+                      }`}
+                    />
+                    {fieldErrors.employerPassword ? (
+                      <div className="text-sm font-medium text-rose-300">
+                        {fieldErrors.employerPassword}
+                      </div>
+                    ) : null}
+
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm leading-6 text-white/48">{currentCopy.employer.passwordHelp}</p>
+                      <Link
+                        href={`/${locale}/forgot-password?role=employer`}
+                        className="shrink-0 text-sm font-semibold text-[#8fa0ff] transition hover:text-white"
+                      >
+                        {currentCopy.employer.forgotPassword}
+                      </Link>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={employerSubmitting}
+                    className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#4b61ff] bg-[#3b52f0] px-6 text-sm font-semibold text-white transition hover:bg-[#3348da] disabled:opacity-60"
+                  >
+                    {employerSubmitting ? currentCopy.employer.submitLoading : currentCopy.employer.submit}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </section>
       </div>

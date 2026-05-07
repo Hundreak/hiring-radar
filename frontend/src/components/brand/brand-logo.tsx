@@ -27,8 +27,8 @@ function BrandLogoInner({
     <div className={`inline-flex items-center justify-center ${className ?? ''}`}>
       <div className={`relative shrink-0 ${sizeClasses[size]}`}>
         <Image
-          src="/brand/coresift-logo.png"
-          alt="CoreSift logo"
+          src="/brand/noytera-logo.png"
+          alt="NoyTera logo"
           width={256}
           height={256}
           priority={priority}
@@ -51,7 +51,7 @@ export function BrandLogo(props: BrandLogoProps) {
   return (
     <Link
       href={href}
-      aria-label="CoreSift home"
+      aria-label="NoyTera home"
       className="inline-flex items-center justify-center"
     >
       <BrandLogoInner {...props} />

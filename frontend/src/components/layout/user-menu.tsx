@@ -117,10 +117,10 @@ export function UserMenu({locale}: {locale: SupportedLocale}) {
       void loadProfileSurface();
     }
 
-    window.addEventListener('coresift:profile-surface-updated', handleSurfaceUpdate as EventListener);
+    window.addEventListener('noytera:profile-surface-updated', handleSurfaceUpdate as EventListener);
     window.addEventListener('focus', handleFocus);
     return () => {
-      window.removeEventListener('coresift:profile-surface-updated', handleSurfaceUpdate as EventListener);
+      window.removeEventListener('noytera:profile-surface-updated', handleSurfaceUpdate as EventListener);
       window.removeEventListener('focus', handleFocus);
     };
   }, [loadProfileSurface]);

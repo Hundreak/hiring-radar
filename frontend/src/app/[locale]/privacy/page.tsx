@@ -13,7 +13,7 @@ const copy = {
   tr: {
     title: 'Gizlilik politikası',
     intro:
-      'Bu belge, CoreSift platformunun kişisel verilerinizi nasıl topladığını, işlediğini, sakladığını ve koruduğunu açıklar. KVKK ve ilgili mevzuat çerçevesinde hazırlanmıştır.',
+      'Bu belge, NoyTera platformunun kişisel verilerinizi nasıl topladığını, işlediğini, sakladığını ve koruduğunu açıklar. KVKK ve ilgili mevzuat çerçevesinde hazırlanmıştır.',
     update: 'Son güncelleme: Nisan 2025 · KVKK Uyumlu',
     toc: 'İçindekiler',
     otherTab: 'Kullanım şartları',
@@ -24,8 +24,8 @@ const copy = {
         number: '1',
         title: 'Veri sorumlusu',
         body: [
-          'Kişisel verilerinizin işlenmesinden sorumlu veri sorumlusu CoreSift’tir. KVKK kapsamındaki taleplerinizi privacy@coresift.com adresine iletebilirsiniz.',
-          'CoreSift, verilerinizi yalnızca bu politikada belirtilen amaçlar doğrultusunda işler. Hiçbir koşulda reklam amacıyla üçüncü taraflarla paylaşmaz veya satmaz.'
+          'Kişisel verilerinizin işlenmesinden sorumlu veri sorumlusu NoyTera’tir. KVKK kapsamındaki taleplerinizi privacy@noytera.com adresine iletebilirsiniz.',
+          'NoyTera, verilerinizi yalnızca bu politikada belirtilen amaçlar doğrultusunda işler. Hiçbir koşulda reklam amacıyla üçüncü taraflarla paylaşmaz veya satmaz.'
         ]
       },
       {
@@ -92,7 +92,7 @@ const copy = {
         title: 'KVKK kapsamındaki haklarınız',
         body: [
           'Kişisel verilerinizin işlenip işlenmediğini öğrenme, eksik veya yanlış işlenmiş verilerin düzeltilmesini isteme, yasal koşullar çerçevesinde silinmesini veya yok edilmesini isteme, otomatik sistemler aracılığıyla aleyhinize sonuç doğuran kararlara itiraz etme ve kanuna aykırı işleme nedeniyle uğradığınız zararın giderilmesini talep etme haklarına sahipsiniz.',
-          'Haklarınızı kullanmak için privacy@coresift.com adresine yazabilirsiniz. Talepler en geç 30 gün içinde yanıtlanır.'
+          'Haklarınızı kullanmak için privacy@noytera.com adresine yazabilirsiniz. Talepler en geç 30 gün içinde yanıtlanır.'
         ]
       },
       {
@@ -112,7 +112,7 @@ const copy = {
         number: '10',
         title: 'Çocukların gizliliği',
         body: [
-          'CoreSift hizmetleri 18 yaşından küçük bireylere yönelik değildir. Platform bilerek 18 yaş altı kullanıcılara ait veri toplamaz.'
+          'NoyTera hizmetleri 18 yaşından küçük bireylere yönelik değildir. Platform bilerek 18 yaş altı kullanıcılara ait veri toplamaz.'
         ]
       },
       {
@@ -120,7 +120,7 @@ const copy = {
         number: '11',
         title: 'İletişim',
         body: [
-          'Gizlilik politikasına ilişkin sorularınız için: privacy@coresift.com',
+          'Gizlilik politikasına ilişkin sorularınız için: privacy@noytera.com',
           'Kişisel Verileri Koruma Kurulu hakkında genel bilgi için resmî kurum kaynakları ayrıca incelenebilir.'
         ]
       }
@@ -129,7 +129,7 @@ const copy = {
   en: {
     title: 'Privacy policy',
     intro:
-      'This document explains how the CoreSift platform collects, processes, stores and protects your personal data. It is prepared in line with applicable privacy and data protection obligations.',
+      'This document explains how the NoyTera platform collects, processes, stores and protects your personal data. It is prepared in line with applicable privacy and data protection obligations.',
     update: 'Last updated: April 2025 · Privacy compliant',
     toc: 'Contents',
     otherTab: 'Terms of use',
@@ -140,8 +140,8 @@ const copy = {
         number: '1',
         title: 'Data controller',
         body: [
-          'CoreSift is the data controller responsible for processing your personal data. You may submit privacy-related requests to privacy@coresift.com.',
-          'CoreSift processes data only for the purposes described in this policy and does not sell or share personal data for advertising purposes.'
+          'NoyTera is the data controller responsible for processing your personal data. You may submit privacy-related requests to privacy@noytera.com.',
+          'NoyTera processes data only for the purposes described in this policy and does not sell or share personal data for advertising purposes.'
         ]
       },
       {
@@ -207,7 +207,7 @@ const copy = {
         title: 'Your privacy rights',
         body: [
           'Subject to applicable law, you may request access to your data, correction of inaccurate information, deletion where legally available, objection to certain automated processing outcomes and compensation where unlawful processing causes damage.',
-          'You may send privacy requests to privacy@coresift.com and requests are answered within the legally required timeframe.'
+          'You may send privacy requests to privacy@noytera.com and requests are answered within the legally required timeframe.'
         ]
       },
       {
@@ -227,7 +227,7 @@ const copy = {
         number: '10',
         title: 'Children’s privacy',
         body: [
-          'CoreSift services are not intended for individuals under 18 years of age and the platform does not knowingly collect personal data from children.'
+          'NoyTera services are not intended for individuals under 18 years of age and the platform does not knowingly collect personal data from children.'
         ]
       },
       {
@@ -235,7 +235,7 @@ const copy = {
         number: '11',
         title: 'Contact',
         body: [
-          'For privacy-related questions: privacy@coresift.com',
+          'For privacy-related questions: privacy@noytera.com',
           'Users may also review relevant public authority resources for broader regulatory guidance.'
         ]
       }
@@ -244,7 +244,7 @@ const copy = {
   de: {
     title: 'Datenschutzrichtlinie',
     intro:
-      'Dieses Dokument erläutert, wie die CoreSift-Plattform deine personenbezogenen Daten erhebt, verarbeitet, speichert und schützt. Es wurde im Einklang mit geltenden Datenschutzpflichten erstellt.',
+      'Dieses Dokument erläutert, wie die NoyTera-Plattform deine personenbezogenen Daten erhebt, verarbeitet, speichert und schützt. Es wurde im Einklang mit geltenden Datenschutzpflichten erstellt.',
     update: 'Zuletzt aktualisiert: April 2025 · Datenschutzkonform',
     toc: 'Inhalt',
     otherTab: 'Nutzungsbedingungen',
@@ -255,8 +255,8 @@ const copy = {
         number: '1',
         title: 'Verantwortliche Stelle',
         body: [
-          'CoreSift ist die verantwortliche Stelle für die Verarbeitung deiner personenbezogenen Daten. Datenschutzanfragen können an privacy@coresift.com gesendet werden.',
-          'CoreSift verarbeitet Daten ausschließlich für die in dieser Richtlinie beschriebenen Zwecke und verkauft oder teilt personenbezogene Daten nicht zu Werbezwecken.'
+          'NoyTera ist die verantwortliche Stelle für die Verarbeitung deiner personenbezogenen Daten. Datenschutzanfragen können an privacy@noytera.com gesendet werden.',
+          'NoyTera verarbeitet Daten ausschließlich für die in dieser Richtlinie beschriebenen Zwecke und verkauft oder teilt personenbezogene Daten nicht zu Werbezwecken.'
         ]
       },
       {
@@ -322,7 +322,7 @@ const copy = {
         title: 'Deine Datenschutzrechte',
         body: [
           'Je nach geltendem Recht kannst du Zugang zu deinen Daten, Berichtigung unrichtiger Informationen, Löschung, Widerspruch gegen bestimmte automatisierte Entscheidungen und Schadensersatz bei unrechtmäßiger Verarbeitung verlangen.',
-          'Datenschutzanfragen können an privacy@coresift.com gerichtet werden und werden innerhalb der gesetzlich vorgesehenen Frist beantwortet.'
+          'Datenschutzanfragen können an privacy@noytera.com gerichtet werden und werden innerhalb der gesetzlich vorgesehenen Frist beantwortet.'
         ]
       },
       {
@@ -342,7 +342,7 @@ const copy = {
         number: '10',
         title: 'Datenschutz von Minderjährigen',
         body: [
-          'Die Dienste von CoreSift richten sich nicht an Personen unter 18 Jahren, und die Plattform sammelt wissentlich keine personenbezogenen Daten von Kindern.'
+          'Die Dienste von NoyTera richten sich nicht an Personen unter 18 Jahren, und die Plattform sammelt wissentlich keine personenbezogenen Daten von Kindern.'
         ]
       },
       {
@@ -350,7 +350,7 @@ const copy = {
         number: '11',
         title: 'Kontakt',
         body: [
-          'Für Fragen zum Datenschutz: privacy@coresift.com',
+          'Für Fragen zum Datenschutz: privacy@noytera.com',
           'Zusätzlich können einschlägige öffentliche Quellen zu regulatorischen Anforderungen eingesehen werden.'
         ]
       }

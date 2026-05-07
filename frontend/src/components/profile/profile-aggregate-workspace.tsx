@@ -586,7 +586,7 @@ type PersistedAiReviewState = {
   markers: AiAuditMarkerMap;
 };
 
-const AI_REVIEW_SESSION_KEY = 'coresift:profile-ai-review-state';
+const AI_REVIEW_SESSION_KEY = 'noytera:profile-ai-review-state';
 
 const languageLevelOptions: Array<{value: LanguageProficiency; label: string}> = [
   {value: 'beginner', label: 'Beginner'},
@@ -845,7 +845,7 @@ function LoadingView({copy}: {copy: Copy}) {
 function emitProfileSurfaceUpdate(payload: {fullName?: string | null; avatarUrl?: string | null}) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(
-    new CustomEvent('coresift:profile-surface-updated', {
+    new CustomEvent('noytera:profile-surface-updated', {
       detail: {
         fullName: payload.fullName ?? null,
         avatarUrl: payload.avatarUrl ?? null,

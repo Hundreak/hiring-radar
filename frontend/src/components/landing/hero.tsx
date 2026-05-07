@@ -23,7 +23,7 @@ const content = {
     titleAccent: 'en iyi',
     titleLine2: 'ilanları bul.',
     description:
-      'CoreSift, CV’ni analiz eder, 40+ platformdan ilanları eşleştirir ve başvuru stratejin için AI danışmanlığı sunar.',
+      'NoyTera, CV’ni analiz eder, 40+ platformdan ilanları eşleştirir ve başvuru stratejin için AI danışmanlığı sunar.',
     primaryCta: 'Ücretsiz başla',
     secondaryCta: 'Nasıl çalışır?',
     trustCopy: '2.400+ kişi bu hafta iş arama sürecini hızlandırdı',
@@ -50,7 +50,7 @@ const content = {
     titleAccent: 'best-fit',
     titleLine2: 'opportunities.',
     description:
-      'CoreSift analyzes your CV, matches jobs from 40+ platforms, and provides AI advisory for your application strategy.',
+      'NoyTera analyzes your CV, matches jobs from 40+ platforms, and provides AI advisory for your application strategy.',
     primaryCta: 'Get started free',
     secondaryCta: 'How it works',
     trustCopy: '2,400+ people accelerated their search this week',
@@ -77,7 +77,7 @@ const content = {
     titleAccent: 'besten',
     titleLine2: 'passenden Stellen.',
     description:
-      'CoreSift analysiert deinen Lebenslauf, matched Stellen aus 40+ Quellen und bietet KI-Beratung für deine Bewerbungsstrategie.',
+      'NoyTera analysiert deinen Lebenslauf, matched Stellen aus 40+ Quellen und bietet KI-Beratung für deine Bewerbungsstrategie.',
     primaryCta: 'Kostenlos starten',
     secondaryCta: 'So funktioniert es',
     trustCopy: '2.400+ Menschen haben diese Woche ihre Suche beschleunigt',

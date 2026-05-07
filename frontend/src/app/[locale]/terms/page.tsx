@@ -13,7 +13,7 @@ const copy = {
   tr: {
     title: 'Kullanım şartları',
     intro:
-      'Bu belge, CoreSift platformunu kullanan tüm kişiler için bağlayıcıdır. Kayıt olarak veya platforma erişerek bu şartları okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan etmiş olursunuz.',
+      'Bu belge, NoyTera platformunu kullanan tüm kişiler için bağlayıcıdır. Kayıt olarak veya platforma erişerek bu şartları okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan etmiş olursunuz.',
     update: 'Son güncelleme: Nisan 2025 · Versiyon 1.2',
     toc: 'İçindekiler',
     otherTab: 'Gizlilik politikası',
@@ -24,8 +24,8 @@ const copy = {
         number: '1',
         title: 'Taraflar ve kapsam',
         body: [
-          'Bu Kullanım Şartları; CoreSift platformunu işleten şirket (“CoreSift”) ile platforma kayıt olan veya herhangi bir şekilde erişen gerçek kişi kullanıcılar (“Kullanıcı”) arasındaki ilişkiyi düzenler.',
-          'Şartlar; web sitesi, mobil uygulama ve API dâhil olmak üzere CoreSift’in sunduğu tüm dijital hizmetleri kapsar.',
+          'Bu Kullanım Şartları; NoyTera platformunu işleten şirket (“NoyTera”) ile platforma kayıt olan veya herhangi bir şekilde erişen gerçek kişi kullanıcılar (“Kullanıcı”) arasındaki ilişkiyi düzenler.',
+          'Şartlar; web sitesi, mobil uygulama ve API dâhil olmak üzere NoyTera’in sunduğu tüm dijital hizmetleri kapsar.',
           'Önemli: 18 yaşından küçük bireyler platforma kayıt olamaz.'
         ]
       },
@@ -34,9 +34,9 @@ const copy = {
         number: '2',
         title: 'Hizmet tanımı',
         body: [
-          'CoreSift; iş arayanlar için yapay zeka destekli iş ilanı keşif ve eşleştirme hizmeti sunan bir kariyer platformudur.',
+          'NoyTera; iş arayanlar için yapay zeka destekli iş ilanı keşif ve eşleştirme hizmeti sunan bir kariyer platformudur.',
           'Platformun temel hizmetleri şunları içerir: CV yükleme ve analiz, çoklu platform tarama, yapay zeka eşleştirme, AI kariyer danışmanı ve profil tamamlama skoru.',
-          'CoreSift, ilanları doğrudan yayınlayan bir istihdam ajansı değildir. İlanlar üçüncü taraf platformlardan derlenir; güncellik veya doğruluk konusunda garanti verilemez.'
+          'NoyTera, ilanları doğrudan yayınlayan bir istihdam ajansı değildir. İlanlar üçüncü taraf platformlardan derlenir; güncellik veya doğruluk konusunda garanti verilemez.'
         ]
       },
       {
@@ -45,7 +45,7 @@ const copy = {
         title: 'Hesap oluşturma ve güvenlik',
         body: [
           'Platforma erişmek için geçerli bir e-posta adresiyle kayıt olmanız ve e-posta doğrulamasını tamamlamanız gerekmektedir. Her gerçek kişi yalnızca bir hesap oluşturabilir.',
-          'Kullanıcının sorumluluğundaki güvenlik önlemleri: şifresini kimseyle paylaşmamak, güçlü bir şifre seçmek, yetkisiz erişim fark ettiğinde derhal CoreSift’i bilgilendirmek, başkasına ait bilgilerle hesap açmamak ve ortak cihazlarda oturumu kapatmak.',
+          'Kullanıcının sorumluluğundaki güvenlik önlemleri: şifresini kimseyle paylaşmamak, güçlü bir şifre seçmek, yetkisiz erişim fark ettiğinde derhal NoyTera’i bilgilendirmek, başkasına ait bilgilerle hesap açmamak ve ortak cihazlarda oturumu kapatmak.',
           'Hesabınız üzerinden gerçekleştirilen tüm işlemlerden siz sorumlusunuz.'
         ]
       },
@@ -64,7 +64,7 @@ const copy = {
         number: '5',
         title: 'Ücretlendirme ve abonelik',
         body: [
-          'CoreSift’in temel özellikleri ücretsiz olarak sunulabilir. Gelişmiş özellikler için ücretli planlar tanımlanabilir.',
+          'NoyTera’in temel özellikleri ücretsiz olarak sunulabilir. Gelişmiş özellikler için ücretli planlar tanımlanabilir.',
           'Temel plan; standart eşleştirme ve sınırlı AI danışman erişimi sunabilir. Profesyonel planlar; genişletilmiş eşleşmeler, tam AI danışman erişimi veya öncelikli deneyim katmanları içerebilir.',
           'Abonelik ücretleri aylık veya yıllık olabilir. İptal talepleri bir sonraki dönem için geçerli olur. Aksi belirtilmedikçe kısmi iade yapılmaz.'
         ]
@@ -74,8 +74,8 @@ const copy = {
         number: '6',
         title: 'Fikri mülkiyet hakları',
         body: [
-          'Platform üzerindeki tüm içerik, tasarım, yazılım kodu, algoritma, logo ve marka unsurları CoreSift’in münhasır mülkiyetindedir ve ilgili fikri mülkiyet mevzuatı kapsamında korunur.',
-          'Kullanıcılar platforma yükledikleri CV ve profil bilgilerinin sahibi olmaya devam eder. CoreSift, bu verileri yalnızca hizmeti sunmak amacıyla işleme hakkına sahiptir.',
+          'Platform üzerindeki tüm içerik, tasarım, yazılım kodu, algoritma, logo ve marka unsurları NoyTera’in münhasır mülkiyetindedir ve ilgili fikri mülkiyet mevzuatı kapsamında korunur.',
+          'Kullanıcılar platforma yükledikleri CV ve profil bilgilerinin sahibi olmaya devam eder. NoyTera, bu verileri yalnızca hizmeti sunmak amacıyla işleme hakkına sahiptir.',
           'Platformdan elde edilen içeriklerin ticari amaçla yeniden yayımlanması, satılması veya lisanslanması açıkça yasaktır.'
         ]
       },
@@ -84,7 +84,7 @@ const copy = {
         number: '7',
         title: 'Sorumluluk sınırı',
         body: [
-          'CoreSift; üçüncü taraf platformlardan derlenen ilanların doğruluğu veya güncelliği, işveren kararları, başvuru sonuçları veya işe alım süreçleri, kullanıcının kendi hatasından kaynaklanan veri kayıpları, internet bağlantısı kaynaklı erişim sorunları ve mücbir sebep halleri bakımından sorumluluk kabul etmez.'
+          'NoyTera; üçüncü taraf platformlardan derlenen ilanların doğruluğu veya güncelliği, işveren kararları, başvuru sonuçları veya işe alım süreçleri, kullanıcının kendi hatasından kaynaklanan veri kayıpları, internet bağlantısı kaynaklı erişim sorunları ve mücbir sebep halleri bakımından sorumluluk kabul etmez.'
         ]
       },
       {
@@ -92,7 +92,7 @@ const copy = {
         number: '8',
         title: 'Hesap askıya alma ve sonlandırma',
         body: [
-          'CoreSift, kullanım şartlarına aykırı davranış, sahte veya yanıltıcı bilgi girişi, diğer kullanıcılara veya sisteme zarar verme girişimi ya da ödeme yükümlülüklerinin yerine getirilmemesi gibi durumlarda hesabı uyarısız askıya alabilir veya kalıcı olarak silebilir.',
+          'NoyTera, kullanım şartlarına aykırı davranış, sahte veya yanıltıcı bilgi girişi, diğer kullanıcılara veya sisteme zarar verme girişimi ya da ödeme yükümlülüklerinin yerine getirilmemesi gibi durumlarda hesabı uyarısız askıya alabilir veya kalıcı olarak silebilir.',
           'Kullanıcı da hesabını destek süreci veya uygun profil ayarları üzerinden sonlandırabilir. Hesap kapatma sonrası veri süreçleri ilgili gizlilik politikası ve yasal gerekliliklere göre yürütülür.'
         ]
       },
@@ -109,21 +109,21 @@ const copy = {
         number: '10',
         title: 'Şartlardaki değişiklikler',
         body: [
-          'CoreSift bu şartları gerektiğinde güncelleme hakkını saklı tutar. Önemli değişiklikler e-posta veya platform bildirimi yoluyla kullanıcılara duyurulabilir.'
+          'NoyTera bu şartları gerektiğinde güncelleme hakkını saklı tutar. Önemli değişiklikler e-posta veya platform bildirimi yoluyla kullanıcılara duyurulabilir.'
         ]
       },
       {
         id: 'contact',
         number: '11',
         title: 'İletişim',
-        body: ['Kullanım şartlarına ilişkin sorularınız için: legal@coresift.com']
+        body: ['Kullanım şartlarına ilişkin sorularınız için: legal@noytera.com']
       }
     ]
   },
   en: {
     title: 'Terms of use',
     intro:
-      'This document is binding for all users of the CoreSift platform. By registering or accessing the platform, you declare that you have read, understood and accepted these terms.',
+      'This document is binding for all users of the NoyTera platform. By registering or accessing the platform, you declare that you have read, understood and accepted these terms.',
     update: 'Last updated: April 2025 · Version 1.2',
     toc: 'Contents',
     otherTab: 'Privacy policy',
@@ -134,8 +134,8 @@ const copy = {
         number: '1',
         title: 'Parties and scope',
         body: [
-          'These Terms of Use govern the relationship between CoreSift, the company operating the platform, and the individual users who register for or access the platform in any way.',
-          'The terms cover all digital services provided by CoreSift, including the website, mobile applications and API surfaces.',
+          'These Terms of Use govern the relationship between NoyTera, the company operating the platform, and the individual users who register for or access the platform in any way.',
+          'The terms cover all digital services provided by NoyTera, including the website, mobile applications and API surfaces.',
           'Important: Individuals under the age of 18 may not register for the platform.'
         ]
       },
@@ -144,9 +144,9 @@ const copy = {
         number: '2',
         title: 'Service definition',
         body: [
-          'CoreSift is a career platform that provides AI-supported job discovery and matching for job seekers.',
+          'NoyTera is a career platform that provides AI-supported job discovery and matching for job seekers.',
           'Core platform services include CV upload and parsing, multi-platform job aggregation, AI-based matching, an AI career advisor and a profile completion score.',
-          'CoreSift is not an employment agency that directly publishes jobs. Roles are aggregated from third-party sources and their accuracy or freshness cannot be guaranteed.'
+          'NoyTera is not an employment agency that directly publishes jobs. Roles are aggregated from third-party sources and their accuracy or freshness cannot be guaranteed.'
         ]
       },
       {
@@ -174,7 +174,7 @@ const copy = {
         number: '5',
         title: 'Pricing and subscriptions',
         body: [
-          'CoreSift may offer core features free of charge. Advanced capabilities may be available under paid plans.',
+          'NoyTera may offer core features free of charge. Advanced capabilities may be available under paid plans.',
           'A basic plan may provide standard matching and limited AI advisor access. Professional plans may include broader match visibility, deeper AI access or higher-priority usage layers.',
           'Subscription billing may be monthly or yearly. Cancellation becomes effective in the next billing cycle unless otherwise stated. Partial refunds are not provided unless explicitly required.'
         ]
@@ -184,8 +184,8 @@ const copy = {
         number: '6',
         title: 'Intellectual property rights',
         body: [
-          'All content, design elements, software code, algorithms, logos and brand assets on the platform are the exclusive property of CoreSift and are protected under applicable intellectual property laws.',
-          'Users retain ownership of the CV and profile information they upload. CoreSift may process such data only to provide the service.',
+          'All content, design elements, software code, algorithms, logos and brand assets on the platform are the exclusive property of NoyTera and are protected under applicable intellectual property laws.',
+          'Users retain ownership of the CV and profile information they upload. NoyTera may process such data only to provide the service.',
           'Commercial redistribution, resale or relicensing of platform-derived content is strictly prohibited.'
         ]
       },
@@ -194,7 +194,7 @@ const copy = {
         number: '7',
         title: 'Limitation of liability',
         body: [
-          'CoreSift does not accept liability for the accuracy or freshness of listings collected from third-party platforms, employer decisions, application outcomes, losses caused by user error, connectivity problems or force majeure events.'
+          'NoyTera does not accept liability for the accuracy or freshness of listings collected from third-party platforms, employer decisions, application outcomes, losses caused by user error, connectivity problems or force majeure events.'
         ]
       },
       {
@@ -202,7 +202,7 @@ const copy = {
         number: '8',
         title: 'Account suspension and termination',
         body: [
-          'CoreSift may suspend or permanently remove an account without notice in cases such as breach of these terms, false or misleading information, attempts to harm other users or the platform, or non-compliance with payment obligations.',
+          'NoyTera may suspend or permanently remove an account without notice in cases such as breach of these terms, false or misleading information, attempts to harm other users or the platform, or non-compliance with payment obligations.',
           'Users may also terminate their account through support or relevant profile settings. Data handling after closure follows the privacy policy and applicable legal requirements.'
         ]
       },
@@ -219,21 +219,21 @@ const copy = {
         number: '10',
         title: 'Changes to the terms',
         body: [
-          'CoreSift reserves the right to update these terms when necessary. Material changes may be communicated through email or platform notifications.'
+          'NoyTera reserves the right to update these terms when necessary. Material changes may be communicated through email or platform notifications.'
         ]
       },
       {
         id: 'contact',
         number: '11',
         title: 'Contact',
-        body: ['For questions regarding these terms: legal@coresift.com']
+        body: ['For questions regarding these terms: legal@noytera.com']
       }
     ]
   },
   de: {
     title: 'Nutzungsbedingungen',
     intro:
-      'Dieses Dokument ist für alle Nutzer der CoreSift-Plattform verbindlich. Durch Registrierung oder Zugriff erklärst du, dass du diese Bedingungen gelesen, verstanden und akzeptiert hast.',
+      'Dieses Dokument ist für alle Nutzer der NoyTera-Plattform verbindlich. Durch Registrierung oder Zugriff erklärst du, dass du diese Bedingungen gelesen, verstanden und akzeptiert hast.',
     update: 'Zuletzt aktualisiert: April 2025 · Version 1.2',
     toc: 'Inhalt',
     otherTab: 'Datenschutzrichtlinie',
@@ -244,8 +244,8 @@ const copy = {
         number: '1',
         title: 'Parteien und Geltungsbereich',
         body: [
-          'Diese Nutzungsbedingungen regeln das Verhältnis zwischen CoreSift, dem Unternehmen hinter der Plattform, und den natürlichen Personen, die sich registrieren oder die Plattform auf andere Weise nutzen.',
-          'Die Bedingungen gelten für alle digitalen Dienste von CoreSift, einschließlich Website, mobiler Anwendungen und API-Oberflächen.',
+          'Diese Nutzungsbedingungen regeln das Verhältnis zwischen NoyTera, dem Unternehmen hinter der Plattform, und den natürlichen Personen, die sich registrieren oder die Plattform auf andere Weise nutzen.',
+          'Die Bedingungen gelten für alle digitalen Dienste von NoyTera, einschließlich Website, mobiler Anwendungen und API-Oberflächen.',
           'Wichtig: Personen unter 18 Jahren dürfen sich nicht für die Plattform registrieren.'
         ]
       },
@@ -254,9 +254,9 @@ const copy = {
         number: '2',
         title: 'Leistungsbeschreibung',
         body: [
-          'CoreSift ist eine Karriereplattform, die KI-gestützte Jobentdeckung und Matching-Funktionen für Jobsuchende anbietet.',
+          'NoyTera ist eine Karriereplattform, die KI-gestützte Jobentdeckung und Matching-Funktionen für Jobsuchende anbietet.',
           'Zu den Kernfunktionen gehören CV-Upload und Analyse, plattformübergreifende Stellenaggregation, KI-basiertes Matching, ein KI-Karriereberater und ein Profil-Vervollständigungs-Score.',
-          'CoreSift ist keine Personalvermittlung, die Stellen direkt veröffentlicht. Positionen werden von Drittplattformen aggregiert; Aktualität und Richtigkeit können nicht garantiert werden.'
+          'NoyTera ist keine Personalvermittlung, die Stellen direkt veröffentlicht. Positionen werden von Drittplattformen aggregiert; Aktualität und Richtigkeit können nicht garantiert werden.'
         ]
       },
       {
@@ -284,7 +284,7 @@ const copy = {
         number: '5',
         title: 'Preise und Abonnements',
         body: [
-          'CoreSift kann Kernfunktionen kostenlos anbieten. Erweiterte Funktionen können in kostenpflichtigen Tarifen enthalten sein.',
+          'NoyTera kann Kernfunktionen kostenlos anbieten. Erweiterte Funktionen können in kostenpflichtigen Tarifen enthalten sein.',
           'Ein Basisplan kann Standard-Matching und begrenzten KI-Berater-Zugang umfassen. Professionelle Tarife können breitere Match-Sichtbarkeit, tiefere KI-Nutzung oder priorisierte Nutzungsebenen bieten.',
           'Abrechnungen können monatlich oder jährlich erfolgen. Kündigungen wirken zum nächsten Abrechnungszeitraum, sofern nichts anderes angegeben ist. Teilrückerstattungen erfolgen nur, wenn dies ausdrücklich vorgesehen ist.'
         ]
@@ -294,8 +294,8 @@ const copy = {
         number: '6',
         title: 'Rechte am geistigen Eigentum',
         body: [
-          'Sämtliche Inhalte, Designs, Softwarebestandteile, Algorithmen, Logos und Marken auf der Plattform sind ausschließliches Eigentum von CoreSift und durch geltende Schutzrechte abgesichert.',
-          'Nutzer behalten das Eigentum an den hochgeladenen Lebensläufen und Profildaten. CoreSift darf diese Daten nur zum Zweck der Leistungserbringung verarbeiten.',
+          'Sämtliche Inhalte, Designs, Softwarebestandteile, Algorithmen, Logos und Marken auf der Plattform sind ausschließliches Eigentum von NoyTera und durch geltende Schutzrechte abgesichert.',
+          'Nutzer behalten das Eigentum an den hochgeladenen Lebensläufen und Profildaten. NoyTera darf diese Daten nur zum Zweck der Leistungserbringung verarbeiten.',
           'Die kommerzielle Weiterveröffentlichung, der Weiterverkauf oder die Weiterlizenzierung von Plattforminhalten ist ausdrücklich untersagt.'
         ]
       },
@@ -304,7 +304,7 @@ const copy = {
         number: '7',
         title: 'Haftungsbeschränkung',
         body: [
-          'CoreSift übernimmt keine Haftung für Richtigkeit oder Aktualität von Stellenanzeigen aus Drittquellen, Entscheidungen von Arbeitgebern, Bewerbungsergebnisse, durch Nutzerfehler verursachte Verluste, Verbindungsprobleme oder Fälle höherer Gewalt.'
+          'NoyTera übernimmt keine Haftung für Richtigkeit oder Aktualität von Stellenanzeigen aus Drittquellen, Entscheidungen von Arbeitgebern, Bewerbungsergebnisse, durch Nutzerfehler verursachte Verluste, Verbindungsprobleme oder Fälle höherer Gewalt.'
         ]
       },
       {
@@ -312,7 +312,7 @@ const copy = {
         number: '8',
         title: 'Sperrung und Beendigung von Konten',
         body: [
-          'CoreSift kann Konten ohne Vorankündigung sperren oder dauerhaft löschen, etwa bei Verstößen gegen diese Bedingungen, falschen Angaben, Schädigungsversuchen gegenüber anderen Nutzern oder der Plattform oder bei Nichterfüllung von Zahlungspflichten.',
+          'NoyTera kann Konten ohne Vorankündigung sperren oder dauerhaft löschen, etwa bei Verstößen gegen diese Bedingungen, falschen Angaben, Schädigungsversuchen gegenüber anderen Nutzern oder der Plattform oder bei Nichterfüllung von Zahlungspflichten.',
           'Nutzer können ihr Konto ebenfalls über den Support oder passende Profileinstellungen beenden. Die Datenverarbeitung nach der Schließung richtet sich nach der Datenschutzrichtlinie und den geltenden gesetzlichen Anforderungen.'
         ]
       },
@@ -329,14 +329,14 @@ const copy = {
         number: '10',
         title: 'Änderungen der Bedingungen',
         body: [
-          'CoreSift behält sich das Recht vor, diese Bedingungen bei Bedarf zu aktualisieren. Wesentliche Änderungen können per E-Mail oder über Plattformhinweise kommuniziert werden.'
+          'NoyTera behält sich das Recht vor, diese Bedingungen bei Bedarf zu aktualisieren. Wesentliche Änderungen können per E-Mail oder über Plattformhinweise kommuniziert werden.'
         ]
       },
       {
         id: 'contact',
         number: '11',
         title: 'Kontakt',
-        body: ['Fragen zu diesen Bedingungen: legal@coresift.com']
+        body: ['Fragen zu diesen Bedingungen: legal@noytera.com']
       }
     ]
   }

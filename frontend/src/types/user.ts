@@ -36,6 +36,28 @@ export interface UserPasswordLoginRequest {
 
 export type UserPasswordLoginResponse = UserAuthMe;
 
+export interface EmployerLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface EmployerLoginResponse extends UserAuthMe {
+  company_name: string | null;
+  contact_name: string | null;
+}
+
+export interface EmployerRegisterRequest {
+  company_name: string;
+  company_email: string;
+  contact_name: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface EmployerRegisterResponse extends UserAuthMe {
+  message: string;
+}
+
 export interface PublicSignupChallengeResponse {
   challenge_id: string;
   prompt: string;

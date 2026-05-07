@@ -4,14 +4,14 @@ import {SectionHeading} from '@/components/marketing/section-heading';
 
 const faqItems = [
   {
-    question: 'CoreSift tam olarak ne yapar?',
+    question: 'NoyTera tam olarak ne yapar?',
     answer:
-      'CoreSift, farklı kaynaklardan iş ilanlarını tarar, profilindeki sinyallerle karşılaştırır ve daha güçlü uyum gösteren fırsatları önceliklendirir. Aynı zamanda eksik profil alanlarını görünür hale getirerek eşleşme kalitesini artırmana yardımcı olur.'
+      'NoyTera, farklı kaynaklardan iş ilanlarını tarar, profilindeki sinyallerle karşılaştırır ve daha güçlü uyum gösteren fırsatları önceliklendirir. Aynı zamanda eksik profil alanlarını görünür hale getirerek eşleşme kalitesini artırmana yardımcı olur.'
   },
   {
-    question: 'CoreSift işe alım garantisi verir mi?',
+    question: 'NoyTera işe alım garantisi verir mi?',
     answer:
-      'Hayır. CoreSift bir sonuç garantisi vermez. Platformun amacı; daha iyi filtreleme, daha kaliteli görünürlük ve daha güçlü karar desteği sağlamaktır. Nihai işe alım kararları her zaman işveren ve ilgili süreçlere aittir.'
+      'Hayır. NoyTera bir sonuç garantisi vermez. Platformun amacı; daha iyi filtreleme, daha kaliteli görünürlük ve daha güçlü karar desteği sağlamaktır. Nihai işe alım kararları her zaman işveren ve ilgili süreçlere aittir.'
   },
   {
     question: 'Eşleşme puanı neye göre oluşur?',
@@ -36,7 +36,7 @@ const faqItems = [
   {
     question: 'Bu platformda verilerim satılır mı?',
     answer:
-      'Hayır. CoreSift kullanıcı verilerini reklam ağına, veri komisyoncularına veya üçüncü taraf pazarlama yapılarına satmaz. Veri işleme çerçevesi gizlilik politikası ve ilgili hukuki metinlerde belirtilir.'
+      'Hayır. NoyTera kullanıcı verilerini reklam ağına, veri komisyoncularına veya üçüncü taraf pazarlama yapılarına satmaz. Veri işleme çerçevesi gizlilik politikası ve ilgili hukuki metinlerde belirtilir.'
   },
   {
     question: 'Şifrem ne kadar güçlü olmalı?',
@@ -46,7 +46,7 @@ const faqItems = [
   {
     question: 'Destek ekibine nasıl ulaşabilirim?',
     answer:
-      'Ürün, hesap, güvenlik, veri erişimi veya geri bildirim başlıklarında doğrudan destek@coresift.com üzerinden bize ulaşabilirsin.'
+      'Ürün, hesap, güvenlik, veri erişimi veya geri bildirim başlıklarında doğrudan destek@noytera.com üzerinden bize ulaşabilirsin.'
   },
   {
     question: 'Profil tamamlanma skoru neden önemli?',
@@ -56,7 +56,7 @@ const faqItems = [
   {
     question: 'Platform ücretli mi?',
     answer:
-      'CoreSift temel kullanıcı akışları için ücretsiz kullanım yaklaşımıyla tasarlanmıştır. Gelecekte ek profesyonel katmanlar veya genişletilmiş özellik planları sunulabilir.'
+      'NoyTera temel kullanıcı akışları için ücretsiz kullanım yaklaşımıyla tasarlanmıştır. Gelecekte ek profesyonel katmanlar veya genişletilmiş özellik planları sunulabilir.'
   },
   {
     question: 'Hesabımı silebilir miyim?',
@@ -78,7 +78,7 @@ export default async function FaqPage({
         <SectionHeading
           eyebrow="SSS"
           title="Sık sorulan sorular"
-          description="CoreSift’i kullanmadan önce veya kullanırken en çok merak edilen başlıkları burada topladık."
+          description="NoyTera’i kullanmadan önce veya kullanırken en çok merak edilen başlıkları burada topladık."
         />
 
         <div className="mt-12">

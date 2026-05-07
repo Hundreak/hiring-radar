@@ -10,7 +10,7 @@ type PublicFooterProps = {
 const copy = {
   tr: {
     description:
-      'CoreSift, adayları daha güçlü profil sinyalleriyle daha doğru fırsatlarla buluşturmaya yardımcı olan modern bir kariyer platformudur.',
+      'NoyTera, adayları daha güçlü profil sinyalleriyle daha doğru fırsatlarla buluşturmaya yardımcı olan modern bir kariyer platformudur.',
     company: 'Kurumsal',
     policies: 'Politikalar',
     support: 'Destek',
@@ -30,7 +30,7 @@ const copy = {
   },
   en: {
     description:
-      'CoreSift is a modern career platform that helps candidates discover more relevant opportunities through stronger profile signals.',
+      'NoyTera is a modern career platform that helps candidates discover more relevant opportunities through stronger profile signals.',
     company: 'Company',
     policies: 'Policies',
     support: 'Support',
@@ -50,7 +50,7 @@ const copy = {
   },
   de: {
     description:
-      'CoreSift ist eine moderne Karriereplattform, die Kandidaten mit stärkeren Profilsignalen zu passenderen Chancen führt.',
+      'NoyTera ist eine moderne Karriereplattform, die Kandidaten mit stärkeren Profilsignalen zu passenderen Chancen führt.',
     company: 'Unternehmen',
     policies: 'Richtlinien',
     support: 'Support',
@@ -139,26 +139,26 @@ export function PublicFooter({locale}: PublicFooterProps) {
               <div className="mt-5 text-2xl font-semibold text-foreground">{t.supportTitle}</div>
               <p className="mt-4 text-base leading-8 text-muted-foreground">{t.supportBody}</p>
               <a
-                href="mailto:destek@coresift.com"
+                href="mailto:destek@noytera.com"
                 className="mt-5 inline-flex items-center gap-2 text-lg font-semibold text-foreground transition hover:text-primary"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5">
                   <path d="M4 7h16v10H4z" />
                   <path d="M4 8l8 6 8-6" />
                 </svg>
-                destek@coresift.com
+                destek@noytera.com
               </a>
             </div>
           </div>
         </div>
 
         <div className="mt-12 flex flex-col gap-4 border-t border-border pt-8 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
-          <div>© 2026 CoreSift. {t.rights}</div>
+          <div>© 2026 NoyTera. {t.rights}</div>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             <span>{t.legalLine1}</span>
             <span>{t.legalLine2}</span>
             <span>
-              {t.supportLine} <a href="mailto:destek@coresift.com" className="hover:text-foreground">destek@coresift.com</a>
+              {t.supportLine} <a href="mailto:destek@noytera.com" className="hover:text-foreground">destek@noytera.com</a>
             </span>
           </div>
         </div>

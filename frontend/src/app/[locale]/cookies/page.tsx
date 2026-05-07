@@ -6,7 +6,7 @@ const sections = [
   {
     title: '1. Çerez Aydınlatma Metni hakkında',
     paragraphs: [
-      'Bu Çerez Aydınlatma Metni, CoreSift tarafından işletilen dijital ürün deneyimi sırasında kullanılan çerezler ve benzeri teknolojilere ilişkin bilgilendirme amacı taşır.',
+      'Bu Çerez Aydınlatma Metni, NoyTera tarafından işletilen dijital ürün deneyimi sırasında kullanılan çerezler ve benzeri teknolojilere ilişkin bilgilendirme amacı taşır.',
       'Çerezler; hizmetin çalışmasını sağlamak, oturumları sürdürebilmek, güvenliği artırmak ve kullanıcı deneyimini ölçmek gibi amaçlarla kullanılabilir.'
     ]
   },
@@ -36,7 +36,7 @@ const sections = [
   {
     title: '5. İletişim',
     paragraphs: [
-      'Çerezler ve benzeri teknolojiler hakkında daha fazla bilgi veya veri işleme süreçlerine ilişkin talep için destek@coresift.com adresi üzerinden bizimle iletişime geçebilirsiniz.'
+      'Çerezler ve benzeri teknolojiler hakkında daha fazla bilgi veya veri işleme süreçlerine ilişkin talep için destek@noytera.com adresi üzerinden bizimle iletişime geçebilirsiniz.'
     ]
   }
 ];
@@ -54,7 +54,7 @@ export default async function CookiesPage({
         <SectionHeading
           eyebrow="Çerez Politikası"
           title="Çerezler ve benzeri teknolojiler hakkında bilgilendirme"
-          description="Bu metin, CoreSift hizmetleri kapsamında kullanılabilecek çerezlerin amaçlarını ve kullanıcı tercih alanlarını özetler."
+          description="Bu metin, NoyTera hizmetleri kapsamında kullanılabilecek çerezlerin amaçlarını ve kullanıcı tercih alanlarını özetler."
         />
 
         <div className="mt-12">

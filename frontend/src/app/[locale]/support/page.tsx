@@ -14,7 +14,7 @@ export default async function SupportPage({
         <SectionHeading
           eyebrow="Destek"
           title="Destek ve kullanıcı yardımı"
-          description="CoreSift ile ilgili teknik veya operasyonel bir konuda yardıma ihtiyacın varsa, destek süreçlerimizi buradan inceleyebilirsin."
+          description="NoyTera ile ilgili teknik veya operasyonel bir konuda yardıma ihtiyacın varsa, destek süreçlerimizi buradan inceleyebilirsin."
         />
 
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
@@ -22,7 +22,7 @@ export default async function SupportPage({
             {
               title: 'Hesap ve erişim',
               body:
-                'Giriş, şifre sıfırlama, doğrulama e-postası veya oturum problemlerinde destek@coresift.com üzerinden bizimle iletişime geçebilirsin.'
+                'Giriş, şifre sıfırlama, doğrulama e-postası veya oturum problemlerinde destek@noytera.com üzerinden bizimle iletişime geçebilirsin.'
             },
             {
               title: 'Ürün geri bildirimi',
@@ -47,7 +47,7 @@ export default async function SupportPage({
           <p className="mt-5 max-w-3xl text-base leading-8 text-white/68">
             Destek talepleri yoğunluk durumuna göre önceliklendirilir. Güvenlik, erişim ve
             hesap bütünlüğü başlıkları öncelikli değerlendirilir. Resmî dönüş kanalı yalnızca
-            e-posta üzerinden yürütülür: destek@coresift.com
+            e-posta üzerinden yürütülür: destek@noytera.com
           </p>
         </div>
       </section>

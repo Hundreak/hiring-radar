@@ -25,7 +25,7 @@ export function CopilotLauncher({
     <button
       type="button"
       onClick={onClick}
-      aria-label="Open CoreSift AI"
+      aria-label="Open NoyTera AI"
       style={{right: `${Math.max(24, rightOffset + 24)}px`}}
       className={[
         'copilot-launcher fixed bottom-6 z-[60] flex items-center gap-2.5 rounded-full border px-3.5 py-2.5 shadow-[0_16px_40px_rgba(10,15,35,0.24)] backdrop-blur-2xl transition-[transform,opacity,right,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
@@ -36,7 +36,7 @@ export function CopilotLauncher({
     >
       <CopilotMark size="sm" />
       <span className="hidden pr-0.5 text-left sm:block">
-        <span className="block text-[13px] font-semibold leading-tight tracking-[-0.01em] text-inherit">CoreSift AI</span>
+        <span className="block text-[13px] font-semibold leading-tight tracking-[-0.01em] text-inherit">NoyTera AI</span>
         <span className="block text-[11px] leading-tight text-slate-500 dark:text-slate-400">{subtitle}</span>
       </span>
     </button>

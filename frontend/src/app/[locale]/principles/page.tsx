@@ -5,7 +5,7 @@ const principles = [
   {
     title: 'Açıklanabilirlik',
     description:
-      'Ürettiğimiz öneriler, eşleşmeler ve yönlendirmeler kullanıcı açısından anlaşılır olmalıdır. CoreSift, siyah kutu deneyimi yerine açıklanabilir karar desteği üretmeyi benimser.'
+      'Ürettiğimiz öneriler, eşleşmeler ve yönlendirmeler kullanıcı açısından anlaşılır olmalıdır. NoyTera, siyah kutu deneyimi yerine açıklanabilir karar desteği üretmeyi benimser.'
   },
   {
     title: 'Kalite sinyali odaklılık',
@@ -25,7 +25,7 @@ const principles = [
   {
     title: 'Sürekli iyileştirme',
     description:
-      'CoreSift statik bir ürün değildir. Geri bildirim, kullanım sinyali, kalite ölçümü ve güvenlik ihtiyaçları doğrultusunda sürekli rafine edilen yaşayan bir sistemdir.'
+      'NoyTera statik bir ürün değildir. Geri bildirim, kullanım sinyali, kalite ölçümü ve güvenlik ihtiyaçları doğrultusunda sürekli rafine edilen yaşayan bir sistemdir.'
   },
   {
     title: 'Sadelik ve odak',
@@ -46,7 +46,7 @@ export default async function PrinciplesPage({
       <section className="container-shell py-20">
         <SectionHeading
           eyebrow="Çalışma İlkelerimiz"
-          title="CoreSift’i yöneten temel prensipler"
+          title="NoyTera’i yöneten temel prensipler"
           description="Ürün kararlarından kullanıcı deneyimine, veri yönetiminden güvenlik yaklaşımına kadar her katmanda aynı kalite çizgisini korumaya çalışıyoruz."
         />
 

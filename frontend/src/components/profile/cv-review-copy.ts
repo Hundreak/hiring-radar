@@ -1,3 +1,5 @@
+import type {UserCvFieldReviewSeverity} from '@/types/user';
+
 export type CvReviewLocaleKey = 'tr' | 'en' | 'de';
 
 export type CvReviewCopy = {

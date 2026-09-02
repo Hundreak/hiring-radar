@@ -67,9 +67,18 @@ function JobsPageContent() {
 
   const normalizedFilters = useMemo(() => normalizeJobFilters(filters), [filters]);
 
-  useEffect(() => {
+  // Filtre degisince sayfayi basa al (render sirasinda ayarlama).
+  const filterSignature = `${query}|${pageSize}|${JSON.stringify(normalizedFilters)}`;
+  const [lastFilterSignature, setLastFilterSignature] = useState(filterSignature);
+  if (lastFilterSignature !== filterSignature) {
+    setLastFilterSignature(filterSignature);
     setPage(1);
-  }, [query, normalizedFilters, pageSize]);
+  }
+
+  // "Yeni" filtresi icin referans an. Render sirasinda saat okumak saf
+  // degildir ve ayni render icinde farkli sonuc verebilir; oturum basinda
+  // bir kez sabitlenir.
+  const [sessionNowMs] = useState(() => Date.now());
 
   const filteredJobs = useMemo(() => {
     let result = jobs;
@@ -89,7 +98,7 @@ function JobsPageContent() {
       result = result.filter((job) => {
         if (!job.first_seen_at) return false;
         const firstSeen = new Date(job.first_seen_at);
-        return Date.now() - firstSeen.getTime() < 3 * 24 * 60 * 60 * 1000;
+        return sessionNowMs - firstSeen.getTime() < 3 * 24 * 60 * 60 * 1000;
       });
     }
     if (normalizedFilters.quick.has('fulltime')) {
@@ -179,7 +188,7 @@ function JobsPageContent() {
     }
 
     return result;
-  }, [jobs, normalizedFilters]);
+  }, [jobs, normalizedFilters, sessionNowMs]);
 
   const handleToggleSave = useCallback(
     async (jobId: number, matchScore?: number) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTranslations} from 'next-intl';
 
 import {SavedJobCard} from '@/components/saved/saved-job-card';
@@ -70,9 +70,14 @@ export default function SavedPage() {
   );
   const visibleGroups = useMemo(() => groupSavedJobsByStatus(visibleJobs), [visibleJobs]);
 
-  useEffect(() => {
+  // Filtre degisince sayfayi basa al. Effect yerine render sirasinda
+  // ayarlanir: effect'te setState cagirmak basamakli render tetikler.
+  const filterSignature = `${tab}|${query}|${sortKey}|${pageSize}`;
+  const [lastFilterSignature, setLastFilterSignature] = useState(filterSignature);
+  if (lastFilterSignature !== filterSignature) {
+    setLastFilterSignature(filterSignature);
     setPage(1);
-  }, [query, sortKey, tab, pageSize]);
+  }
 
   const handleStatusChange = useCallback(
     async (savedJobId: number, newStatus: SavedJobStatus) => {

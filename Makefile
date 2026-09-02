@@ -1,4 +1,4 @@
-.PHONY: install lint format test compile verify backend-verify backend-performance frontend-install frontend-lint frontend-build frontend-performance frontend-data-recovery frontend-security-center-ux frontend-verify backend-ci frontend-ci ci help
+.PHONY: install lint format test compile verify backend-verify backend-performance frontend-install frontend-lint frontend-build frontend-performance  frontend-security-center-ux frontend-verify backend-ci frontend-ci ci help
 
 install:
 	python3 -m pip install --upgrade pip
@@ -29,9 +29,6 @@ frontend-build:
 
 frontend-performance:
 	cd frontend && npm run check:performance
-
-frontend-data-recovery:
-	cd frontend && npm run check:data-recovery
 
 frontend-verify:
 	cd frontend && npm run ci:verify

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {ArrowRight, CheckCircle2, CircleDashed, Sparkles, X} from 'lucide-react';
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo, useSyncExternalStore} from 'react';
 
 import {
   buildCandidateOnboardingModel,
@@ -25,6 +25,28 @@ function readDismissedUntil(): number {
   const raw = window.localStorage.getItem(DISMISS_STORAGE_KEY);
   const parsed = raw ? Number.parseInt(raw, 10) : 0;
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+// useSyncExternalStore icin kucuk bir abonelik katmani. localStorage kendi
+// basina degisim bildirmedigi icin kapatma islemi dinleyicileri elle uyarir;
+// baska sekmelerden gelen degisimler `storage` olayindan gelir.
+const dismissalListeners = new Set<() => void>();
+
+function subscribeToDismissal(onStoreChange: () => void): () => void {
+  dismissalListeners.add(onStoreChange);
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', onStoreChange);
+  }
+  return () => {
+    dismissalListeners.delete(onStoreChange);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', onStoreChange);
+    }
+  };
+}
+
+function notifyDismissalChanged(): void {
+  for (const listener of dismissalListeners) listener();
 }
 
 function StepIcon({status}: {status: CandidateOnboardingStepStatus}) {
@@ -57,13 +79,17 @@ function LoadingSkeleton() {
 
 export function CandidateOnboardingPanel({locale}: {locale: string}) {
   const pathname = usePathname();
-  const [dismissed, setDismissed] = useState(false);
   const profileQuery = useUserProfileAggregateQuery();
   const savedJobsQuery = useSavedJobsQuery();
 
-  useEffect(() => {
-    setDismissed(readDismissedUntil() > Date.now());
-  }, []);
+  // Kapatilma bilgisi yalnizca istemcide okunabilir. Effect + setState yerine
+  // useSyncExternalStore: sunucu anlik goruntusu false, istemci gercek deger.
+  // Boylece hidrasyon uyumsuzlugu da olusmaz.
+  const dismissed = useSyncExternalStore(
+    subscribeToDismissal,
+    () => readDismissedUntil() > Date.now(),
+    () => false,
+  );
 
   const copy = useMemo(() => getCandidateOnboardingCopy(locale), [locale]);
   const savedJobCount = savedJobsQuery.data?.items.length ?? 0;
@@ -103,7 +129,7 @@ export function CandidateOnboardingPanel({locale}: {locale: string}) {
         String(Date.now() + DISMISS_DURATION_MS)
       );
     }
-    setDismissed(true);
+    notifyDismissalChanged();
   }
 
   return (

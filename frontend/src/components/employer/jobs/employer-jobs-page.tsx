@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -91,9 +91,13 @@ export function EmployerJobsPage({ locale }: { locale: string }) {
     [filteredJobs, paginationMeta.page, paginationMeta.pageSize],
   );
 
-  useEffect(() => {
+  // Filtre degisince sayfayi basa al (render sirasinda ayarlama).
+  const filterSignature = `${search}|${status}|${risk}|${pageSize}`;
+  const [lastFilterSignature, setLastFilterSignature] = useState(filterSignature);
+  if (lastFilterSignature !== filterSignature) {
+    setLastFilterSignature(filterSignature);
     setPage(1);
-  }, [search, status, risk, pageSize]);
+  }
 
   const activeJobs = employerJobsMock.filter((job) => job.status === "active");
   const riskyJobs = employerJobsMock.filter(

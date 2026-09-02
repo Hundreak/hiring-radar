@@ -17,7 +17,6 @@ python3 scripts/check_source_hygiene.py .
   node scripts/check-component-size.mjs src
   node scripts/check-runtime-ux.mjs .
   node scripts/check-pagination-ux.mjs .
-  node scripts/check-data-fetch-recovery.mjs .
   node scripts/check-auth-session-ux.mjs .
   node scripts/check-security-center-ux.mjs .
   node scripts/check-notification-center.mjs

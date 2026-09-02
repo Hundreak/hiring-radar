@@ -4,12 +4,10 @@ from collections.abc import Mapping
 
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.models import CanonicalJob, CanonicalJobFeature, SubscriberProfileFeature
-from hiring_radar.services.matching.contracts import DeterministicMatchResult, RankedJobMatch
 from hiring_radar.services.jobs.feature_engine import refresh_matching_readiness_features
+from hiring_radar.services.matching.contracts import DeterministicMatchResult, RankedJobMatch
 from hiring_radar.services.matching.profile_features import refresh_subscriber_profile_features
 from hiring_radar.services.matching.scoring import build_match_result
-
-
 
 
 def _ensure_canonical_matching_corpus_ready(

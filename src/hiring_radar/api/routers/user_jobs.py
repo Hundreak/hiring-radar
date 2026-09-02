@@ -2,20 +2,27 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from hiring_radar.api.dependencies import get_current_user_session, get_repository
 from hiring_radar.api.job_identity import (
     encode_canonical_job_api_id,
     resolve_job_reference,
 )
+from hiring_radar.api.pagination import (
+    USER_JOB_LIST_BOUNDS,
+    normalize_page_contract,
+    normalize_query_text,
+    set_pagination_headers,
+    total_pages,
+)
 from hiring_radar.api.schemas.user_jobs import (
+    UserJobAnalysisCoverageResponse,
     UserJobInteractionRequest,
     UserJobInteractionResponse,
-    UserJobAnalysisCoverageResponse,
     UserJobListItemResponse,
     UserJobListResponse,
     UserJobMatchComponentResponse,
@@ -97,14 +104,8 @@ class _LegacyFilterableJobAdapter:
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
-
-
-def _total_pages(*, total_items: int, page_size: int) -> int:
-    if total_items == 0:
-        return 0
-    return (total_items + page_size - 1) // page_size
 
 
 
@@ -609,7 +610,7 @@ def _paginate_items(
         page=page,
         page_size=page_size,
         total_items=total_items,
-        total_pages=_total_pages(total_items=total_items, page_size=page_size),
+        total_pages=total_pages(total_items=total_items, page_size=page_size),
         query=query,
         only_matched=only_matched,
         active_only=active_only,
@@ -628,7 +629,17 @@ def _build_jobs_response(
     page: int,
     page_size: int,
     source_surface: str,
+    http_response: Response | None = None,
 ) -> UserJobListResponse:
+    q = normalize_query_text(q, max_length=160)
+    contract = normalize_page_contract(
+        page=page,
+        page_size=page_size,
+        total_items=0,
+        bounds=USER_JOB_LIST_BOUNDS,
+    )
+    page = contract.page
+    page_size = contract.page_size
     subscriber = repository.get_subscriber_by_id(user_session.subscriber_id)
     if subscriber is None:
         raise HTTPException(status_code=404, detail="Subscriber not found.")
@@ -650,7 +661,7 @@ def _build_jobs_response(
         )
 
     if canonical_context is not None:
-        response = _paginate_items(
+        payload = _paginate_items(
             items=canonical_context.items,
             page=page,
             page_size=page_size,
@@ -659,13 +670,22 @@ def _build_jobs_response(
             active_only=active_only,
             ranking_mode=canonical_context.ranking_mode,
         )
+        set_pagination_headers(
+            http_response,
+            meta=normalize_page_contract(
+                page=payload.page,
+                page_size=payload.page_size,
+                total_items=payload.total_items,
+                bounds=USER_JOB_LIST_BOUNDS,
+            ),
+        )
         _record_page_impressions(
             repository=repository,
             subscriber_id=user_session.subscriber_id,
-            items=response.items,
+            items=payload.items,
             source_surface=source_surface,
         )
-        return response
+        return payload
 
     legacy_context = _build_legacy_context(
         repository=repository,
@@ -674,7 +694,7 @@ def _build_jobs_response(
         only_matched=only_matched,
         query=q,
     )
-    response = _paginate_items(
+    payload = _paginate_items(
         items=legacy_context.items,
         page=page,
         page_size=page_size,
@@ -683,24 +703,34 @@ def _build_jobs_response(
         active_only=active_only,
         ranking_mode=legacy_context.ranking_mode,
     )
+    set_pagination_headers(
+        http_response,
+        meta=normalize_page_contract(
+            page=payload.page,
+            page_size=payload.page_size,
+            total_items=payload.total_items,
+            bounds=USER_JOB_LIST_BOUNDS,
+        ),
+    )
     _record_page_impressions(
         repository=repository,
         subscriber_id=user_session.subscriber_id,
-        items=response.items,
+        items=payload.items,
         source_surface=source_surface,
     )
-    return response
+    return payload
 
 
 @router.get("/jobs", response_model=UserJobListResponse)
 def user_jobs(
     user_session: UserSessionDep,
     repository: RepositoryDep,
-    q: str | None = None,
+    response: Response,
+    q: Annotated[str | None, Query(max_length=160)] = None,
     active_only: bool = True,
     only_matched: bool = False,
-    page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 24,
+    page: Annotated[int, Query(ge=1, le=1000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=50)] = 24,
 ) -> UserJobListResponse:
     return _build_jobs_response(
         user_session=user_session,
@@ -711,6 +741,7 @@ def user_jobs(
         page=page,
         page_size=page_size,
         source_surface="jobs",
+        http_response=response,
     )
 
 
@@ -718,9 +749,10 @@ def user_jobs(
 def user_matches(
     user_session: UserSessionDep,
     repository: RepositoryDep,
-    q: str | None = None,
-    page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 24,
+    response: Response,
+    q: Annotated[str | None, Query(max_length=160)] = None,
+    page: Annotated[int, Query(ge=1, le=1000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=50)] = 24,
 ) -> UserJobListResponse:
     return _build_jobs_response(
         user_session=user_session,
@@ -731,6 +763,7 @@ def user_matches(
         page=page,
         page_size=page_size,
         source_surface="matches",
+        http_response=response,
     )
 
 

@@ -11,7 +11,6 @@ from hiring_radar.models import (
     SubscriberProfileFeature,
     SubscriberSkillDetail,
 )
-from hiring_radar.services.matching.contracts import ProfileFeatureRefreshResult
 from hiring_radar.services.jobs.normalization import (
     extract_domain_signals,
     extract_impact_signals,
@@ -28,6 +27,7 @@ from hiring_radar.services.jobs.normalization import (
     normalize_text,
     tokenize_keywords,
 )
+from hiring_radar.services.matching.contracts import ProfileFeatureRefreshResult
 
 _FEATURE_VERSION = "v6"
 _EDUCATION_RANK = {

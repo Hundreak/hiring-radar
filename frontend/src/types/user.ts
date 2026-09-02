@@ -41,9 +41,35 @@ export interface EmployerLoginRequest {
   password: string;
 }
 
-export interface EmployerLoginResponse extends UserAuthMe {
-  company_name: string | null;
-  contact_name: string | null;
+export interface EmployerCompanySummary {
+  id: number;
+  slug: string;
+  name: string;
+  default_locale: string;
+  plan_tier: string;
+  status: string;
+}
+
+export interface EmployerAuthSession {
+  ok: boolean;
+  user_id: number;
+  company_id: number;
+  member_id: number | null;
+  email: string;
+  name?: string | null;
+  full_name?: string | null;
+  company_name: string;
+  role: 'employer' | string;
+  role_key: string;
+  email_verified?: boolean;
+  created_at?: string | null;
+  company?: EmployerCompanySummary;
+}
+
+export interface EmployerLoginResponse extends EmployerAuthSession {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
 }
 
 export interface EmployerRegisterRequest {
@@ -54,8 +80,102 @@ export interface EmployerRegisterRequest {
   password_confirmation: string;
 }
 
-export interface EmployerRegisterResponse extends UserAuthMe {
-  message: string;
+export type EmployerRegisterResponse = EmployerLoginResponse;
+
+
+export interface EmployerCommunicationPreferences {
+  candidate_alerts_enabled: boolean;
+  campaign_review_enabled: boolean;
+  weekly_leadership_digest_enabled: boolean;
+  product_updates_enabled: boolean;
+  security_alerts_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  timezone: string;
+  default_channel: 'email' | 'in_app' | 'email_and_in_app' | string;
+  notification_emails: string[];
+  route_overdue_candidates_to: 'owner' | 'admin' | 'recruiter' | 'hiring_manager' | string;
+  route_hot_candidates_to: 'owner' | 'admin' | 'recruiter' | 'hiring_manager' | string;
+  route_campaign_review_to: 'owner' | 'admin' | 'recruiter' | 'hiring_manager' | string;
+  route_weekly_digest_to: 'owner' | 'admin' | 'recruiter' | 'hiring_manager' | string;
+}
+
+export type UpdateEmployerCommunicationPreferencesRequest = Partial<EmployerCommunicationPreferences>;
+
+export interface EmployerCommunicationTeamSummary {
+  active_members: number;
+  invited_members: number;
+  roles: Record<string, number>;
+}
+
+export interface EmployerCommunicationPreferencesResponse {
+  ok: boolean;
+  company_id: number;
+  preferences: EmployerCommunicationPreferences;
+  team_summary: EmployerCommunicationTeamSummary;
+  updated_at: string | null;
+}
+
+
+export interface EmployerAuditActor {
+  user_id: number | null;
+  name: string | null;
+  email: string | null;
+}
+
+export type EmployerAuditSensitivity = 'low' | 'medium' | 'high';
+
+export interface EmployerAuditEvent {
+  id: number;
+  company_id: number;
+  actor: EmployerAuditActor;
+  event_type: string;
+  resource_type: string;
+  resource_id: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  sensitivity: EmployerAuditSensitivity;
+  created_at: string;
+}
+
+export interface EmployerAuditEventListResponse {
+  ok: boolean;
+  items: EmployerAuditEvent[];
+  page: number;
+  page_size: number;
+  total_items: number;
+  total_pages: number;
+  filters: Record<string, unknown>;
+}
+
+export interface EmployerAuditExportResponse {
+  ok: boolean;
+  format: 'json' | 'csv';
+  exported_items: number;
+  generated_at: string;
+  items: EmployerAuditEvent[] | null;
+}
+
+export interface EmployerAuditQueryParams {
+  page?: number;
+  pageSize?: number;
+  eventType?: string;
+  resourceType?: string;
+  resourceId?: string;
+  actorUserId?: number;
+  createdFrom?: string;
+  createdTo?: string;
+}
+
+export interface EmployerRuntimeStatus {
+  ok: boolean;
+  environment: string;
+  production: boolean;
+  demo_mode_enabled: boolean;
+  mock_auth_enabled: boolean;
+  data_mode: 'demo' | 'production' | string;
 }
 
 export interface PublicSignupChallengeResponse {
@@ -87,6 +207,31 @@ export interface UserProfile {
   full_name: string | null;
   is_active: boolean;
   digest_enabled: boolean;
+}
+
+
+export interface UserNotificationPreference {
+  subscriber_id: number;
+  job_digest_enabled: boolean;
+  product_updates_enabled: boolean;
+  employer_messages_enabled: boolean;
+  security_alerts_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  timezone: string;
+  updated_at: string | null;
+}
+
+export interface UpdateUserNotificationPreferenceRequest {
+  job_digest_enabled?: boolean;
+  product_updates_enabled?: boolean;
+  employer_messages_enabled?: boolean;
+  security_alerts_enabled?: boolean;
+  quiet_hours_enabled?: boolean;
+  quiet_hours_start?: string;
+  quiet_hours_end?: string;
+  timezone?: string;
 }
 
 export interface UserEducationEntry {

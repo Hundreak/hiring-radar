@@ -5,6 +5,10 @@ import re
 from pathlib import Path
 
 from hiring_radar.services.cv_engine.config import ParserRuntimeConfig
+from hiring_radar.services.cv_engine.enterprise.runtime import (
+    enrich_and_store_parser_result,
+    get_cached_parser_result_for_text,
+)
 from hiring_radar.services.cv_engine.extraction.normalization import (
     DeterministicTextNormalizationStrategy,
 )
@@ -41,10 +45,6 @@ from hiring_radar.services.cv_engine.semantic.location_resolution import (
 )
 from hiring_radar.services.cv_engine.semantic.role_resolution import (
     resolve_role_candidate,
-)
-from hiring_radar.services.cv_engine.enterprise.runtime import (
-    enrich_and_store_parser_result,
-    get_cached_parser_result_for_text,
 )
 from hiring_radar.services.cv_profile_parser import parse_cv_text_to_profile_draft
 
@@ -363,7 +363,7 @@ def _legacy_experience_to_parsed(item: object) -> ParsedExperienceLine:
 
         organization_signal = resolve_organization_candidate(company_name)
     if getattr(item, "summary", None):
-        location_signal = resolve_location_candidate(str(getattr(item, "summary")))
+        location_signal = resolve_location_candidate(str(item.summary))
         if location_signal is not None:
             location = location_signal.location_name
         else:

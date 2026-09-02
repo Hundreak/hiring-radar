@@ -10,7 +10,6 @@ from hiring_radar.models import (
     SubscriberEducationEntry,
     SubscriberExperienceEntry,
     SubscriberLanguageEntry,
-    SubscriberSkillDetail,
 )
 from hiring_radar.services.matching.profile_features import refresh_subscriber_profile_features
 

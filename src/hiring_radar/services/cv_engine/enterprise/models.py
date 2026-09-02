@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class DocumentRelationKind(str, Enum):
+class DocumentRelationKind(StrEnum):
     """Relationship classification between two CV documents."""
 
     EXACT_DUPLICATE = "exact_duplicate"

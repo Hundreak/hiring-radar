@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -21,6 +22,8 @@ from hiring_radar.api.schemas.keyword_preferences import (
 from hiring_radar.api.schemas.user_me import (
     UserFilterPolicyResponse,
     UserMeResponse,
+    UserNotificationPreferenceResponse,
+    UserNotificationPreferenceUpdateRequest,
     UserPreferencesUpdateRequest,
 )
 from hiring_radar.db.repository import HiringRadarRepository
@@ -36,8 +39,54 @@ RepositoryDep = Annotated[HiringRadarRepository, Depends(get_repository)]
 AppSettingsDep = Annotated[AppSettings, Depends(get_app_settings)]
 
 
+_TIME_RE = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+
+
 def _utc_now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+
+
+def _map_notification_preference(preference) -> UserNotificationPreferenceResponse:
+    return UserNotificationPreferenceResponse(
+        subscriber_id=preference.subscriber_id,
+        job_digest_enabled=preference.job_digest_enabled,
+        product_updates_enabled=preference.product_updates_enabled,
+        employer_messages_enabled=preference.employer_messages_enabled,
+        security_alerts_enabled=preference.security_alerts_enabled,
+        quiet_hours_enabled=preference.quiet_hours_enabled,
+        quiet_hours_start=preference.quiet_hours_start,
+        quiet_hours_end=preference.quiet_hours_end,
+        timezone=preference.timezone,
+        updated_at=preference.updated_at,
+    )
+
+
+def _validate_notification_preference_fields(fields: dict[str, object]) -> None:
+    for field_name in ("job_digest_enabled", "product_updates_enabled", "employer_messages_enabled", "security_alerts_enabled", "quiet_hours_enabled"):
+        if field_name in fields and fields[field_name] is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"'{field_name}' cannot be null.",
+            )
+
+    for field_name in ("quiet_hours_start", "quiet_hours_end"):
+        value = fields.get(field_name)
+        if value is not None and not _TIME_RE.match(str(value)):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"'{field_name}' must use HH:MM 24-hour format.",
+            )
+
+    timezone = fields.get("timezone")
+    if timezone is not None:
+        cleaned = str(timezone).strip()
+        if not cleaned or len(cleaned) > 64 or " " in cleaned:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="'timezone' must be a compact IANA timezone name.",
+            )
 
 
 def _map_subscriber(subscriber) -> UserMeResponse:
@@ -161,6 +210,66 @@ def update_user_preferences(
         raise HTTPException(status_code=404, detail="Subscriber not found.")
 
     return _map_subscriber(subscriber)
+
+
+@router.get(
+    "/notification-preferences",
+    response_model=UserNotificationPreferenceResponse,
+)
+def user_notification_preferences(
+    user_session: UserSessionDep,
+    repository: RepositoryDep,
+) -> UserNotificationPreferenceResponse:
+    preference = repository.get_subscriber_notification_preference(user_session.subscriber_id)
+    if preference is None:
+        raise HTTPException(status_code=404, detail="Subscriber not found.")
+
+    return _map_notification_preference(preference)
+
+
+@router.patch(
+    "/notification-preferences",
+    response_model=UserNotificationPreferenceResponse,
+)
+def update_user_notification_preferences(
+    payload: UserNotificationPreferenceUpdateRequest,
+    user_session: UserSessionDep,
+    repository: RepositoryDep,
+) -> UserNotificationPreferenceResponse:
+    fields = payload.provided_update_fields()
+    if not fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one field must be provided.",
+        )
+
+    _validate_notification_preference_fields(fields)
+    updated_at = _utc_now_iso()
+
+    if "job_digest_enabled" in fields:
+        subscriber = repository.update_subscriber_fields_by_id(
+            user_session.subscriber_id,
+            fields={"digest_enabled": bool(fields["job_digest_enabled"])},
+            updated_at=updated_at,
+        )
+        if subscriber is None:
+            raise HTTPException(status_code=404, detail="Subscriber not found.")
+
+    preference = repository.upsert_subscriber_notification_preference(
+        user_session.subscriber_id,
+        product_updates_enabled=fields.get("product_updates_enabled"),
+        employer_messages_enabled=fields.get("employer_messages_enabled"),
+        security_alerts_enabled=fields.get("security_alerts_enabled"),
+        quiet_hours_enabled=fields.get("quiet_hours_enabled"),
+        quiet_hours_start=fields.get("quiet_hours_start"),
+        quiet_hours_end=fields.get("quiet_hours_end"),
+        timezone=fields.get("timezone"),
+        updated_at=updated_at,
+    )
+    if preference is None:
+        raise HTTPException(status_code=404, detail="Subscriber not found.")
+
+    return _map_notification_preference(preference)
 
 
 @router.get("/filter-policy", response_model=UserFilterPolicyResponse)

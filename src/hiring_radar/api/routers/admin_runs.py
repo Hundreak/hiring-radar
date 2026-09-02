@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from hiring_radar.api.dependencies import get_current_admin_session, get_repository
+from hiring_radar.api.pagination import (
+    ADMIN_LIST_BOUNDS,
+    normalize_page_contract,
+    set_pagination_headers,
+    total_pages,
+)
 from hiring_radar.api.schemas.runs import (
     AdminCrawlRunListItemResponse,
     AdminCrawlRunListResponse,
@@ -20,17 +26,12 @@ AdminSessionDep = Annotated[AdminSession, Depends(get_current_admin_session)]
 RepositoryDep = Annotated[HiringRadarRepository, Depends(get_repository)]
 
 
-def _total_pages(*, total_items: int, page_size: int) -> int:
-    if total_items == 0:
-        return 0
-    return (total_items + page_size - 1) // page_size
-
-
 @router.get("/crawl-runs", response_model=AdminCrawlRunListResponse)
 def admin_list_crawl_runs(
     admin_session: AdminSessionDep,
     repository: RepositoryDep,
-    source_name: str | None = None,
+    response: Response,
+    source_name: Annotated[str | None, Query(max_length=120)] = None,
     success: bool | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 25,
@@ -43,6 +44,9 @@ def admin_list_crawl_runs(
         page=page,
         page_size=page_size,
     )
+
+    meta = normalize_page_contract(page=page, page_size=page_size, total_items=total_items, bounds=ADMIN_LIST_BOUNDS)
+    set_pagination_headers(response, meta=meta)
 
     return AdminCrawlRunListResponse(
         items=[
@@ -59,7 +63,7 @@ def admin_list_crawl_runs(
         page=page,
         page_size=page_size,
         total_items=total_items,
-        total_pages=_total_pages(total_items=total_items, page_size=page_size),
+        total_pages=total_pages(total_items=total_items, page_size=page_size),
     )
 
 
@@ -67,8 +71,9 @@ def admin_list_crawl_runs(
 def admin_list_notification_runs(
     admin_session: AdminSessionDep,
     repository: RepositoryDep,
-    notification_type: str | None = None,
-    status: str | None = None,
+    response: Response,
+    notification_type: Annotated[str | None, Query(max_length=80)] = None,
+    status: Annotated[str | None, Query(max_length=40)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 25,
 ) -> AdminNotificationRunListResponse:
@@ -80,6 +85,9 @@ def admin_list_notification_runs(
         page=page,
         page_size=page_size,
     )
+
+    meta = normalize_page_contract(page=page, page_size=page_size, total_items=total_items, bounds=ADMIN_LIST_BOUNDS)
+    set_pagination_headers(response, meta=meta)
 
     return AdminNotificationRunListResponse(
         items=[
@@ -100,5 +108,5 @@ def admin_list_notification_runs(
         page=page,
         page_size=page_size,
         total_items=total_items,
-        total_pages=_total_pages(total_items=total_items, page_size=page_size),
+        total_pages=total_pages(total_items=total_items, page_size=page_size),
     )

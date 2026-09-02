@@ -4,6 +4,7 @@ import {useEffect, useState} from 'react';
 import {usePathname, useRouter} from 'next/navigation';
 
 import {ApiError, api} from '@/lib/api';
+import {buildLoginRedirectHref} from '@/lib/auth-redirect';
 
 export function AuthGuard({
   locale,
@@ -33,10 +34,13 @@ export function AuthGuard({
         }
 
         if (reason instanceof ApiError && reason.status === 401) {
-          const redirect = pathname
-            ? `?redirect=${encodeURIComponent(pathname)}`
-            : '';
-          router.replace(`/${locale}/login${redirect}`);
+          router.replace(
+            buildLoginRedirectHref({
+              locale,
+              pathname: pathname || `/${locale}/jobs`,
+              surface: 'candidate',
+            })
+          );
           return;
         }
 

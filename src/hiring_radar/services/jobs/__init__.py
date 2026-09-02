@@ -1,3 +1,4 @@
+from hiring_radar.services.jobs.canonicalization import refresh_canonical_jobs
 from hiring_radar.services.jobs.contracts import (
     CanonicalRefreshResult,
     JobFeatureRefreshResult,
@@ -6,7 +7,6 @@ from hiring_radar.services.jobs.contracts import (
     JobSourceSyncResult,
     ParsedSourceJob,
 )
-from hiring_radar.services.jobs.canonicalization import refresh_canonical_jobs
 from hiring_radar.services.jobs.feature_engine import (
     build_matching_readiness_features,
     refresh_matching_readiness_features,

@@ -3,6 +3,13 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from hiring_radar.db.employer_schema import init_employer_schema
+from hiring_radar.db.migration_registry import Migration, run_migrations
+from hiring_radar.db.performance import (
+    configure_sqlite_runtime,
+    ensure_query_performance_indexes,
+)
+
 SCHEMA_STATEMENTS: tuple[str, ...] = (
     """
     CREATE TABLE IF NOT EXISTS crawl_runs (
@@ -1676,6 +1683,148 @@ def _ensure_matching_engine_v5_migrations(connection: sqlite3.Connection) -> Non
         column_definition="TEXT NOT NULL DEFAULT '[]'",
     )
 
+
+def _ensure_query_performance_migrations(connection: sqlite3.Connection) -> None:
+    """Create additive indexes for dashboard/list/queue read paths."""
+    ensure_query_performance_indexes(connection)
+
+def _ensure_user_notification_preferences_migrations(connection: sqlite3.Connection) -> None:
+    """Create per-user communication preference table."""
+    with connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS subscriber_notification_preferences (
+                subscriber_id INTEGER PRIMARY KEY,
+                product_updates_enabled INTEGER NOT NULL DEFAULT 0 CHECK (product_updates_enabled IN (0, 1)),
+                employer_messages_enabled INTEGER NOT NULL DEFAULT 1 CHECK (employer_messages_enabled IN (0, 1)),
+                security_alerts_enabled INTEGER NOT NULL DEFAULT 1 CHECK (security_alerts_enabled IN (0, 1)),
+                quiet_hours_enabled INTEGER NOT NULL DEFAULT 0 CHECK (quiet_hours_enabled IN (0, 1)),
+                quiet_hours_start TEXT NOT NULL DEFAULT '22:00',
+                quiet_hours_end TEXT NOT NULL DEFAULT '08:00',
+                timezone TEXT NOT NULL DEFAULT 'Europe/Istanbul',
+                updated_at TEXT,
+                FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_subscriber_notification_preferences_updated_at
+            ON subscriber_notification_preferences (updated_at DESC, subscriber_id)
+            """
+        )
+
+SQLITE_MIGRATIONS: tuple[Migration, ...] = (
+    Migration(
+        identifier="2026_05_25_0001_subscriber_auth",
+        description="Create and backfill subscriber authentication/session tables and columns.",
+        run_always=True,
+        handler=_ensure_subscriber_auth_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0002_profile_assets",
+        description="Create profile asset tables and subscriber profile media columns.",
+        run_always=True,
+        handler=_ensure_profile_asset_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0003_retrieval",
+        description="Create retrieval documents, chunks, embeddings, jobs, and health tables.",
+        run_always=True,
+        handler=_ensure_retrieval_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0004_copilot_ai",
+        description="Create AI copilot conversation, audit, and recommendation tables.",
+        run_always=True,
+        handler=_ensure_copilot_ai_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0005_job_corpus_expansion",
+        description="Create expanded canonical job corpus and source ingestion tables.",
+        run_always=True,
+        handler=_ensure_job_corpus_expansion_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0006_matching_engine_v1",
+        description="Create persisted profile/job features and first matching engine support tables.",
+        run_always=True,
+        handler=_ensure_matching_engine_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0007_job_interaction_memory",
+        description="Create subscriber job interaction memory and event tables.",
+        run_always=True,
+        handler=_ensure_job_interaction_memory_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0008_saved_jobs_api_reference",
+        description="Migrate saved jobs to stable API job references and canonical/legacy metadata.",
+        run_always=True,
+        handler=_ensure_saved_jobs_api_reference_migration,
+    ),
+    Migration(
+        identifier="2026_05_25_0009_job_external_context",
+        description="Create external job context snapshot cache and feature context columns.",
+        run_always=True,
+        handler=_ensure_job_external_context_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0010_google_oauth",
+        description="Create Google OAuth provider linking and OAuth state tables.",
+        run_always=True,
+        handler=_ensure_google_oauth_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0011_matching_engine_v2",
+        description="Add seniority and experience evidence fields to subscriber features.",
+        run_always=True,
+        handler=_ensure_matching_engine_v2_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0012_matching_engine_v3",
+        description="Add required/preferred skill split and domain signal columns.",
+        run_always=True,
+        handler=_ensure_matching_engine_v3_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0013_matching_engine_v4",
+        description="Add external job intelligence fields to canonical job features.",
+        run_always=True,
+        handler=_ensure_matching_engine_v4_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0014_matching_engine_v5",
+        description="Add persisted profile evidence, ownership, and impact signal columns.",
+        run_always=True,
+        handler=_ensure_matching_engine_v5_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0015_profile_certifications",
+        description="Create generic subscriber certification entries for CV-derived awards.",
+        run_always=True,
+        handler=_ensure_profile_certification_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0016_query_performance_indexes",
+        description="Create additive indexes for dashboard, saved-job, session, retrieval, and queue reads.",
+        run_always=True,
+        handler=_ensure_query_performance_migrations,
+    ),
+    Migration(
+        identifier="2026_05_25_0017_user_notification_preferences",
+        description="Create per-user notification and communication preference table.",
+        run_always=True,
+        handler=_ensure_user_notification_preferences_migrations,
+    ),
+)
+
+
+def _configure_connection(connection: sqlite3.Connection) -> None:
+    connection.row_factory = sqlite3.Row
+    configure_sqlite_runtime(connection)
+
+
 def initialize_database(db_path: str) -> sqlite3.Connection:
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1684,25 +1833,11 @@ def initialize_database(db_path: str) -> sqlite3.Connection:
         str(path),
         check_same_thread=False,
     )
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON")
+    _configure_connection(connection)
 
     init_db_schema(connection)
-    _ensure_subscriber_auth_migrations(connection)
-    _ensure_profile_asset_migrations(connection)
-    _ensure_retrieval_migrations(connection)
-    _ensure_copilot_ai_migrations(connection)
-    _ensure_job_corpus_expansion_migrations(connection)
-    _ensure_matching_engine_migrations(connection)
-    _ensure_job_interaction_memory_migrations(connection)
-    _ensure_saved_jobs_api_reference_migration(connection)
-    _ensure_job_external_context_migrations(connection)
-    _ensure_google_oauth_migrations(connection)
-    _ensure_matching_engine_v2_migrations(connection)
-    _ensure_matching_engine_v3_migrations(connection)
-    _ensure_matching_engine_v4_migrations(connection)
-    _ensure_matching_engine_v5_migrations(connection)
-    _ensure_profile_certification_migrations(connection)
+    init_employer_schema(connection)
+    run_migrations(connection, SQLITE_MIGRATIONS)
 
     return connection
 

@@ -6,7 +6,20 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "check:duplicates": "node scripts/check-duplicate-sources.mjs",
+    "check:component-size": "node scripts/check-component-size.mjs src",
+    "check:performance": "node scripts/check-performance-budget.mjs .",
+    "ci:verify": "npm run check:duplicates && npm run check:component-size && npm run check:runtime-ux && npm run check:pagination-ux && npm run check:data-recovery && npm run check:auth-session-ux && npm run check:security-center-ux && npm run check:notification-center && npm run check:employer-communication-center && npm run check:employer-audit-evidence && npm run lint && npm run typecheck && npm run build && npm run check:performance",
+    "check:runtime-ux": "node scripts/check-runtime-ux.mjs .",
+    "check:pagination-ux": "node scripts/check-pagination-ux.mjs .",
+    "check:data-recovery": "node scripts/check-data-fetch-recovery.mjs .",
+    "check:auth-session-ux": "node scripts/check-auth-session-ux.mjs .",
+    "check:security-center-ux": "node scripts/check-security-center-ux.mjs .",
+    "check:notification-center": "node scripts/check-notification-center.mjs",
+    "check:employer-communication-center": "node scripts/check-employer-communication-center.mjs .",
+    "check:employer-audit-evidence": "node scripts/check-employer-audit-evidence.mjs ."
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

@@ -14,7 +14,11 @@ from hiring_radar.models import JobExternalContextSnapshot, JobRecord, JobSource
 from hiring_radar.services.ai.web_context import WebContextService
 from hiring_radar.services.jobs.canonicalization import refresh_canonical_jobs
 from hiring_radar.services.jobs.feature_engine import refresh_matching_readiness_features
-from hiring_radar.services.jobs.normalization import normalize_company_name, normalize_job_title, normalize_url_for_dedup
+from hiring_radar.services.jobs.normalization import (
+    normalize_company_name,
+    normalize_job_title,
+    normalize_url_for_dedup,
+)
 
 _LEVER_ID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE)
 _TRACKING_PARAMS_RE = re.compile(r"([?&](?:utm_[^=&]+|via|gh_jid|gh_src|lever-[^=&]+)=[^&]*)", re.IGNORECASE)
@@ -549,7 +553,6 @@ def refresh_external_context_for_jobs(
     )
     
     
-from typing import Any
 
 
 def refresh_external_context_for_job_urls(*args: Any, **kwargs: Any):

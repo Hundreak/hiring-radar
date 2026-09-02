@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from hiring_radar.api.schemas.profile_contract import CandidateProfileAggregate
-from hiring_radar.services.ai.contracts import AiChatMessage, AiStructuredGenerationRequest
 from hiring_radar.services.ai.config import LocalAiRuntimeConfig
+from hiring_radar.services.ai.contracts import AiChatMessage, AiStructuredGenerationRequest
 
 
 def _non_empty(value: str | None) -> str | None:

@@ -48,3 +48,8 @@ class SavedJobResponse(BaseModel):
 
 class SavedJobListResponse(BaseModel):
     items: list[SavedJobResponse]
+    page: int = 1
+    page_size: int = 100
+    total_items: int = 0
+    total_pages: int = 0
+    status: str | None = None

@@ -13,7 +13,6 @@ from hiring_radar.db.sqlite import close_connection, initialize_database
 from hiring_radar.services.cv_extraction import CV_PARSE_STATUS_PARSED, CvExtractionResult
 from hiring_radar.services.user_auth import UserSession
 
-
 SAFE_EXTRACTED_TEXT = """
 Alice Example
 Senior Backend Engineer

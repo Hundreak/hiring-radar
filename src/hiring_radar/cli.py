@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
 import asyncio
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import typer
@@ -17,8 +17,12 @@ from hiring_radar.filtering import (
     filter_jobs_by_keyword_settings,
 )
 from hiring_radar.models import CrawlSourceResult, NotificationRun, Subscriber
-from hiring_radar.services.crawl import run_multi_source_crawl
 from hiring_radar.services.ai.web_context import WebContextService
+from hiring_radar.services.crawl import run_multi_source_crawl
+from hiring_radar.services.cv_local_diagnostics import (
+    LocalCvInspectionResult,
+    inspect_local_cv_directory,
+)
 from hiring_radar.services.digest import (
     DigestFilterResult,
     DigestResult,
@@ -27,27 +31,23 @@ from hiring_radar.services.digest import (
     render_digest_subject,
     render_digest_text,
 )
-from hiring_radar.services.cv_local_diagnostics import (
-    LocalCvInspectionResult,
-    inspect_local_cv_directory,
-)
 from hiring_radar.services.email import (
     EmailDeliveryError,
     EmailMessagePayload,
     send_email_via_smtp,
 )
 from hiring_radar.services.export import ExportResult, export_jobs_to_csv
+from hiring_radar.services.jobs.feature_engine import refresh_matching_readiness_features
 from hiring_radar.services.retrieval.embedding_jobs import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_EMBEDDING_PROVIDER,
-    DeterministicEmbeddingProvider,
     PROCESS_ACTION_FAILED,
     PROCESS_ACTION_IDLE,
     PROCESS_ACTION_PROCESSED,
+    DeterministicEmbeddingProvider,
     run_embedding_job_batch,
 )
 from hiring_radar.services.summary import SummaryResult, build_summary
-from hiring_radar.services.jobs.feature_engine import refresh_matching_readiness_features
 from hiring_radar.settings import AppSettings, load_app_settings
 
 DEFAULT_COMPANIES_CONFIG_PATH = "config/companies.example.yml"

@@ -12,14 +12,10 @@ export function shouldShowRecommendationSummary(params: {
   if (!params.matched) return false;
   if (params.explanation?.key_evidence_points?.length) return true;
   if (params.explanation?.top_reasons?.length) return true;
-  const jobLike = {
+  return getPrimarySkillTerms({
     matched_keywords: params.matchedKeywords,
-    explanation: params.explanation ?? {
-      matched_skill_terms: [],
-      matching_score_breakdown: [],
-    },
-  } as const;
-  return getPrimarySkillTerms(jobLike).length > 0 || (params.matchScore ?? 0) >= 70;
+    explanation: params.explanation ?? null,
+  }).length > 0 || (params.matchScore ?? 0) >= 70;
 }
 
 export function buildRecommendationSummary(params: {
@@ -29,7 +25,7 @@ export function buildRecommendationSummary(params: {
   company: string;
   explanation?: JobMatchExplanation | null;
 }): string | null {
-  return buildLocalizedReasonSummary(params.locale, params.explanation ?? null, {title: params.title, company: params.company});
+  return buildLocalizedReasonSummary(params.locale, params.explanation ?? null);
 }
 
 export function buildJobAnalysisPrompt(params: {
@@ -41,14 +37,13 @@ export function buildJobAnalysisPrompt(params: {
   matchedKeywords: string[];
   href?: string;
   explanation?: JobMatchExplanation | null;
+  evidenceTerms?: string[];
+  gapTerms?: string[];
 }): string {
   const visibleSignals = getPrimarySkillTerms({
     matched_keywords: params.matchedKeywords,
-    explanation: params.explanation ?? {
-      matched_skill_terms: [],
-      matching_score_breakdown: [],
-    },
-  }).join(', ') || 'sınırlı';
+    explanation: params.explanation ?? null,
+  }).join(', ') || (params.locale === 'en' ? 'limited' : params.locale === 'de' ? 'begrenzt' : 'sınırlı');
 
   if (params.locale === 'tr') {
     return [
@@ -58,7 +53,7 @@ export function buildJobAnalysisPrompt(params: {
       `Konum: ${params.location}`,
       params.matchScore != null ? `Mevcut eşleşme skoru: ${params.matchScore}%` : null,
       `Şu an görünen güçlü sinyaller: ${visibleSignals}`,
-      params.explanation ? `Öne çıkan neden: ${buildLocalizedReasonSummary('tr', params.explanation, {title: params.title, company: params.company})}` : null,
+      params.explanation ? `Öne çıkan neden: ${buildLocalizedReasonSummary('tr', params.explanation)}` : null,
       params.href ? `İlan linki: ${params.href}` : null,
       `Lütfen kısa ve kullanıcı odaklı şekilde şunları açıkla:`,
       `1. Bu iş neden bana yakın veya neden sınırlı yakın görünüyor?`,
@@ -77,7 +72,7 @@ export function buildJobAnalysisPrompt(params: {
       `Standort: ${params.location}`,
       params.matchScore != null ? `Aktueller Match-Score: ${params.matchScore}%` : null,
       `Sichtbare starke Signale: ${visibleSignals}`,
-      params.explanation ? `Hauptgrund: ${buildLocalizedReasonSummary('de', params.explanation, {title: params.title, company: params.company})}` : null,
+      params.explanation ? `Hauptgrund: ${buildLocalizedReasonSummary('de', params.explanation)}` : null,
       params.href ? `Stellenlink: ${params.href}` : null,
       `Erkläre bitte kurz und nutzerorientiert:`,
       `1. Warum passt diese Stelle zu mir oder warum nur teilweise?`,
@@ -95,7 +90,7 @@ export function buildJobAnalysisPrompt(params: {
     `Location: ${params.location}`,
     params.matchScore != null ? `Current match score: ${params.matchScore}%` : null,
     `Visible strong signals: ${visibleSignals}`,
-    params.explanation ? `Primary reason: ${buildLocalizedReasonSummary('en', params.explanation, {title: params.title, company: params.company})}` : null,
+    params.explanation ? `Primary reason: ${buildLocalizedReasonSummary('en', params.explanation)}` : null,
     params.href ? `Job link: ${params.href}` : null,
     `Please explain briefly:`,
     `1. Why this role looks aligned or only partially aligned.`,

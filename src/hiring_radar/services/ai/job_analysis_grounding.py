@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from hiring_radar.api.job_identity import resolve_job_reference
 from hiring_radar.api.schemas.profile_contract import CandidateProfileAggregate

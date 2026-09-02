@@ -70,33 +70,6 @@ const content = {
     jobsTitle: 'Roles for you',
     jobsLive: 'Live',
     panelNote: 'As your profile improves, matches get sharper.'
-  },
-  de: {
-    badge: 'KI-gestützte Jobsuche',
-    titleLine1: 'Finde die',
-    titleAccent: 'besten',
-    titleLine2: 'passenden Stellen.',
-    description:
-      'NoyTera analysiert deinen Lebenslauf, matched Stellen aus 40+ Quellen und bietet KI-Beratung für deine Bewerbungsstrategie.',
-    primaryCta: 'Kostenlos starten',
-    secondaryCta: 'So funktioniert es',
-    trustCopy: '2.400+ Menschen haben diese Woche ihre Suche beschleunigt',
-    uploadTitle: 'Lebenslauf hochladen',
-    uploadDescription: 'PDF oder Word — das System liest automatisch',
-    uploadButton: 'Hochladen',
-    parsedTitle: 'Erkannte Signale',
-    parsedChips: ['React', 'TypeScript', '5 Jahre', 'Istanbul', 'Remote', 'Englisch'],
-    scoreTitle: 'Profil-Vollständigkeit',
-    scoreValue: '62%',
-    scoreRows: [
-      { label: 'Grunddaten', status: 'done' },
-      { label: 'Fähigkeiten', status: 'done' },
-      { label: 'Erfahrung', status: 'missing' },
-      { label: 'Präferenzen', status: 'missing' }
-    ],
-    jobsTitle: 'Stellen für dich',
-    jobsLive: 'Live',
-    panelNote: 'Je stärker dein Profil, desto präziser die Matches.'
   }
 };
 
@@ -115,54 +88,7 @@ const trustPeople = [
 
 function getCopy(locale: string) {
   if (locale.startsWith('tr')) return content.tr;
-  if (locale.startsWith('de')) return content.de;
   return content.en;
-}
-
-function AnimatedCounter({ value, suffix = '' }: { value: string; suffix?: string }) {
-  const [display, setDisplay] = useState('0');
-  const ref = useRef<HTMLSpanElement>(null);
-  const hasAnimated = useRef(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || hasAnimated.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !hasAnimated.current) {
-            hasAnimated.current = true;
-            const numeric = parseInt(value.replace(/\D/g, ''), 10);
-            if (isNaN(numeric)) {
-              setDisplay(value);
-              return;
-            }
-            const duration = 1500;
-            const start = performance.now();
-            const animate = (now: number) => {
-              const progress = Math.min((now - start) / duration, 1);
-              const eased = 1 - Math.pow(1 - progress, 3);
-              setDisplay(String(Math.floor(eased * numeric)));
-              if (progress < 1) requestAnimationFrame(animate);
-            };
-            requestAnimationFrame(animate);
-          }
-        });
-      },
-      { threshold: 0.5 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [value]);
-
-  return (
-    <span ref={ref}>
-      {display}
-      {suffix}
-    </span>
-  );
 }
 
 export function LandingHero({ locale }: { locale: string }) {

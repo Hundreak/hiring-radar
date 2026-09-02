@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import DefaultDict
 
 
 @dataclass(slots=True)
@@ -33,8 +32,8 @@ class InMemoryMetricsRegistry:
     """Minimal in-memory metrics registry for parser observability."""
 
     def __init__(self) -> None:
-        self._counters: DefaultDict[str, CounterMetric] = defaultdict(CounterMetric)
-        self._timings: DefaultDict[str, TimingMetric] = defaultdict(TimingMetric)
+        self._counters: defaultdict[str, CounterMetric] = defaultdict(CounterMetric)
+        self._timings: defaultdict[str, TimingMetric] = defaultdict(TimingMetric)
 
     def increment(self, name: str, value: int = 1) -> None:
         """Increase a counter metric by the given value."""

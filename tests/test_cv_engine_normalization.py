@@ -5,7 +5,6 @@ from hiring_radar.services.cv_engine.extraction.normalization import (
 )
 
 
-
 def test_normalize_extracted_text_removes_bullets_zero_width_and_noise() -> None:
     raw_text = (
         "\ufeffAlice Example\u200b\n"

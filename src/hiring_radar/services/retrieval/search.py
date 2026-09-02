@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.models import RetrievalSearchCandidate

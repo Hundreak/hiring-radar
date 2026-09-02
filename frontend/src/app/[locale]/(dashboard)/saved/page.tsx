@@ -4,68 +4,83 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTranslations} from 'next-intl';
 
 import {SavedJobCard} from '@/components/saved/saved-job-card';
+import {SavedPipelineSummary} from '@/components/saved/saved-pipeline-summary';
+import {SavedPipelineToolbar} from '@/components/saved/saved-pipeline-toolbar';
 import {SavedSidebar} from '@/components/saved/saved-sidebar';
-import {ApiError, api} from '@/lib/api';
-import {dispatchSavedJobsChanged} from '@/lib/saved-jobs-events';
+import {PaginationControls} from '@/components/ui/pagination-controls';
+import {
+  getQueryErrorMessage,
+  useAddSavedJobNoteMutation,
+  useSavedJobsQuery,
+  useUnsaveJobMutation,
+  useUpdateSavedJobNoteMutation,
+  useUpdateSavedJobStatusMutation,
+} from '@/hooks/use-api-queries';
+import {
+  countSavedJobsByStatus,
+  filterAndSortSavedJobs,
+  groupSavedJobsByStatus,
+  SAVED_PIPELINE_STATUSES,
+  type SavedJobSortKey,
+  type SavedJobTabKey,
+} from '@/lib/saved-pipeline';
+import {DEFAULT_SAVED_PAGE_SIZE, SAVED_PAGE_SIZE_OPTIONS, createPaginationMeta} from '@/lib/pagination';
 import type {SavedJob, SavedJobNote, SavedJobStatus} from '@/types/saved';
-
-type TabKey = 'all' | SavedJobStatus;
-
-const TABS: TabKey[] = ['all', 'reviewing', 'applied', 'interview', 'archived'];
 
 export default function SavedPage() {
   const t = useTranslations('saved');
-  const [jobs, setJobs] = useState<SavedJob[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabKey>('all');
+  const [tab, setTab] = useState<SavedJobTabKey>('all');
+  const [query, setQuery] = useState('');
+  const [sortKey, setSortKey] = useState<SavedJobSortKey>('activity');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_SAVED_PAGE_SIZE);
 
-  // Note modal state
+  const statusFilter: SavedJobStatus | null = tab === 'all' ? null : tab;
+  const savedJobsQuery = useSavedJobsQuery({page, pageSize, status: statusFilter});
+  const updateStatusMutation = useUpdateSavedJobStatusMutation();
+  const addNoteMutation = useAddSavedJobNoteMutation();
+  const updateNoteMutation = useUpdateSavedJobNoteMutation();
+  const unsaveJobMutation = useUnsaveJobMutation();
+
   const [noteModal, setNoteModal] = useState<SavedJob | null>(null);
   const [noteText, setNoteText] = useState('');
   const [editingNote, setEditingNote] = useState<SavedJobNote | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    api
-      .getSavedJobs()
-      .then((res) => {
-        if (active) setJobs(res.items);
-      })
-      .catch((reason: Error) => {
-        if (!active) return;
-        if (reason instanceof ApiError && reason.status === 401) return;
-        setError(reason.message);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => { active = false; };
-  }, []);
-
-  const filtered = useMemo(
-    () => (tab === 'all' ? jobs : jobs.filter((j) => j.status === tab)),
-    [jobs, tab]
+  const jobs = savedJobsQuery.data?.items ?? [];
+  const paginationMeta = useMemo(
+    () => createPaginationMeta({
+      page: savedJobsQuery.data?.page ?? page,
+      pageSize: savedJobsQuery.data?.page_size ?? pageSize,
+      totalItems: savedJobsQuery.data?.total_items ?? jobs.length,
+      totalPages: savedJobsQuery.data?.total_pages ?? null,
+    }),
+    [jobs.length, savedJobsQuery.data?.page, savedJobsQuery.data?.page_size, savedJobsQuery.data?.total_items, savedJobsQuery.data?.total_pages, page, pageSize]
+  );
+  const loading = savedJobsQuery.isLoading;
+  const error = getQueryErrorMessage(savedJobsQuery.error);
+  const activeNoteModal = useMemo(
+    () => (noteModal ? jobs.find((job) => job.id === noteModal.id) ?? noteModal : null),
+    [jobs, noteModal]
   );
 
-  const counts = useMemo(() => {
-    const c = {reviewing: 0, applied: 0, interview: 0, archived: 0};
-    for (const j of jobs) {
-      if (j.status in c) c[j.status as keyof typeof c]++;
-    }
-    return c;
-  }, [jobs]);
+  const counts = useMemo(() => countSavedJobsByStatus(jobs), [jobs]);
+  const visibleJobs = useMemo(
+    () => filterAndSortSavedJobs({jobs, tab, query, sortKey}),
+    [jobs, query, sortKey, tab]
+  );
+  const visibleGroups = useMemo(() => groupSavedJobsByStatus(visibleJobs), [visibleJobs]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, sortKey, tab, pageSize]);
 
   const handleStatusChange = useCallback(
     async (savedJobId: number, newStatus: SavedJobStatus) => {
       try {
-        const updated = await api.updateSavedJobStatus(savedJobId, newStatus);
-        setJobs((prev) =>
-          prev.map((j) => (j.id === savedJobId ? updated : j))
-        );
+        await updateStatusMutation.mutateAsync({savedJobId, status: newStatus});
       } catch { /* silent */ }
     },
-    []
+    [updateStatusMutation]
   );
 
   const handleOpenNotes = useCallback((savedJobId: number) => {
@@ -77,18 +92,15 @@ export default function SavedPage() {
   }, [jobs]);
 
   const handleAddNote = useCallback(async () => {
-    if (!noteModal || !noteText.trim()) return;
+    if (!activeNoteModal || !noteText.trim()) return;
     try {
-      const note = await api.addSavedJobNote(noteModal.id, noteText.trim());
-      setJobs((prev) =>
-        prev.map((j) =>
-          j.id === noteModal.id ? {...j, notes: [note, ...j.notes]} : j
-        )
-      );
-      setNoteModal((prev) => prev ? {...prev, notes: [note, ...prev.notes]} : null);
+      await addNoteMutation.mutateAsync({
+        savedJobId: activeNoteModal.id,
+        content: noteText.trim(),
+      });
       setNoteText('');
     } catch { /* silent */ }
-  }, [noteModal, noteText]);
+  }, [activeNoteModal, addNoteMutation, noteText]);
 
   const handleStartEditNote = useCallback((note: SavedJobNote) => {
     setEditingNote(note);
@@ -96,54 +108,29 @@ export default function SavedPage() {
   }, []);
 
   const handleSaveEditNote = useCallback(async () => {
-    if (!noteModal || !editingNote || !noteText.trim()) return;
+    if (!activeNoteModal || !editingNote || !noteText.trim()) return;
     try {
-      await api.updateSavedJobNote(noteModal.id, editingNote.id, noteText.trim());
-      const updatedNote = {...editingNote, content: noteText.trim()};
-      const updateNotes = (notes: SavedJobNote[]) =>
-        notes.map((n) => (n.id === editingNote.id ? updatedNote : n));
-      setJobs((prev) =>
-        prev.map((j) =>
-          j.id === noteModal.id ? {...j, notes: updateNotes(j.notes)} : j
-        )
-      );
-      setNoteModal((prev) => prev ? {...prev, notes: updateNotes(prev.notes)} : null);
+      await updateNoteMutation.mutateAsync({
+        savedJobId: activeNoteModal.id,
+        noteId: editingNote.id,
+        content: noteText.trim(),
+      });
       setEditingNote(null);
       setNoteText('');
     } catch { /* silent */ }
-  }, [noteModal, editingNote, noteText]);
+  }, [activeNoteModal, editingNote, noteText, updateNoteMutation]);
 
   const handleRemove = useCallback(async (jobId: number) => {
-    // Optimistic: remove from list immediately
-    setJobs((prev) => prev.filter((j) => j.job_id !== jobId));
-    // Close note modal if it was open for this job
     setNoteModal((prev) => (prev && prev.job_id === jobId ? null : prev));
     try {
-      await api.unsaveJob(jobId);
-      dispatchSavedJobsChanged({jobId, action: 'unsaved'});
-    } catch {
-      // Rollback on failure: re-fetch the list
-      api.getSavedJobs().then((res) => setJobs(res.items)).catch(() => {});
-    }
-  }, []);
+      await unsaveJobMutation.mutateAsync(jobId);
+    } catch { /* silent */ }
+  }, [unsaveJobMutation]);
 
-  const tabLabels: Record<TabKey, string> = {
-    all: t('tabAll'),
-    reviewing: t('tabReviewing'),
-    applied: t('tabApplied'),
-    interview: t('tabInterview'),
-    archived: t('tabArchive'),
-  };
-
-  const showKanban = tab === 'all';
-  const reviewing = useMemo(() => jobs.filter((j) => j.status === 'reviewing'), [jobs]);
-  const applied = useMemo(() => jobs.filter((j) => j.status === 'applied'), [jobs]);
-  const interview = useMemo(() => jobs.filter((j) => j.status === 'interview'), [jobs]);
-  const archived = useMemo(() => jobs.filter((j) => j.status === 'archived'), [jobs]);
+  const showPipeline = tab === 'all';
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight">{t('title')}</h1>
@@ -158,43 +145,47 @@ export default function SavedPage() {
         </div>
       </div>
 
-      {/* How it works */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/[0.06] px-4 py-3">
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/20">
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-            <path d="M7 2l1 3h3l-2.5 2 1 3L7 8.5 4.5 10l1-3L3 5h3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" className="text-secondary-foreground" />
-          </svg>
+      <div className="rounded-xl border border-primary/20 bg-primary/[0.06] px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/20">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2l1 3h3l-2.5 2 1 3L7 8.5 4.5 10l1-3L3 5h3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" className="text-secondary-foreground" />
+            </svg>
+          </div>
+          <p className="flex-1 text-xs text-muted-foreground">
+            <strong className="font-medium text-foreground/70">{t('howTitle')}</strong>{' '}
+            {t('howText')}
+          </p>
         </div>
-        <p className="flex-1 text-xs text-muted-foreground">
-          <strong className="font-medium text-foreground/70">{t('howTitle')}</strong>{' '}
-          {t('howText')}
-        </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2">
-        {TABS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`rounded-lg border px-3 py-1.5 text-xs transition ${
-              tab === key
-                ? 'border-primary/40 bg-primary/15 text-secondary-foreground'
-                : 'border-border bg-surface-muted text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tabLabels[key]}
-            {key !== 'all' && (
-              <span className="ml-1 text-[10px] text-muted-foreground">
-                {counts[key as keyof typeof counts]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <SavedPipelineSummary jobs={jobs} />
+      <SavedPipelineToolbar
+        tab={tab}
+        onTabChange={setTab}
+        counts={counts}
+        query={query}
+        onQueryChange={setQuery}
+        sortKey={sortKey}
+        onSortChange={setSortKey}
+      />
 
-      {/* Content */}
+      <PaginationControls
+        meta={paginationMeta}
+        labels={{
+          previous: t('paginationPrevious'),
+          next: t('paginationNext'),
+          pageSize: t('paginationPageSize'),
+          summary: ({start, end, total}) => t('paginationSummary', {start, end, total}),
+        }}
+        pageSizeOptions={SAVED_PAGE_SIZE_OPTIONS}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+      />
+
       {loading ? (
         <div className="rounded-xl border border-border bg-surface p-8 text-sm text-muted-foreground">
           {t('loading')}
@@ -203,56 +194,37 @@ export default function SavedPage() {
         <div className="rounded-xl border border-danger/30 bg-danger/5 p-8 text-sm text-danger">
           {error}
         </div>
-      ) : showKanban ? (
+      ) : showPipeline ? (
         <div className="grid saved-body gap-4">
           <div className="grid saved-cols gap-3">
-            <KanbanColumn title={t('colReviewing')} count={reviewing.length}>
-              {reviewing.length === 0 ? (
-                <EmptyColumn message={t('emptyColumn')} />
-              ) : (
-                reviewing.map((j) => (
-                  <SavedJobCard key={j.id} job={j} onStatusChange={handleStatusChange} onAddNote={handleOpenNotes} onRemove={handleRemove} />
-                ))
-              )}
-            </KanbanColumn>
-            <KanbanColumn title={t('colApplied')} count={applied.length}>
-              {applied.length === 0 ? (
-                <EmptyColumn message={t('emptyColumn')} />
-              ) : (
-                applied.map((j) => (
-                  <SavedJobCard key={j.id} job={j} onStatusChange={handleStatusChange} onAddNote={handleOpenNotes} onRemove={handleRemove} />
-                ))
-              )}
-            </KanbanColumn>
-            <KanbanColumn title={t('colInterview')} count={interview.length}>
-              {interview.length === 0 ? (
-                <EmptyColumn message={t('emptyColumn')} />
-              ) : (
-                interview.map((j) => (
-                  <SavedJobCard key={j.id} job={j} onStatusChange={handleStatusChange} onAddNote={handleOpenNotes} onRemove={handleRemove} />
-                ))
-              )}
-            </KanbanColumn>
-            {archived.length > 0 && (
-              <KanbanColumn title={t('tabArchive')} count={archived.length}>
-                {archived.map((j) => (
-                  <SavedJobCard key={j.id} job={j} onStatusChange={handleStatusChange} onAddNote={handleOpenNotes} onRemove={handleRemove} />
-                ))}
+            {SAVED_PIPELINE_STATUSES.map((status) => (
+              <KanbanColumn
+                key={status}
+                title={t(status === 'offer' ? 'colOffer' : status === 'rejected' ? 'colRejected' : status === 'interview' ? 'colInterview' : status === 'applied' ? 'colApplied' : 'colReviewing')}
+                count={visibleGroups[status].length}
+              >
+                {visibleGroups[status].length === 0 ? (
+                  <EmptyColumn message={t(status === 'rejected' ? 'emptyRejectedColumn' : status === 'offer' ? 'emptyOfferColumn' : 'emptyColumn')} />
+                ) : (
+                  visibleGroups[status].map((job) => (
+                    <SavedJobCard key={job.id} job={job} onStatusChange={handleStatusChange} onAddNote={handleOpenNotes} onRemove={handleRemove} />
+                  ))
+                )}
               </KanbanColumn>
-            )}
+            ))}
           </div>
           <SavedSidebar jobs={jobs} />
         </div>
       ) : (
         <div className="grid saved-body gap-4">
           <div className="grid match-cards-grid gap-2.5 self-start">
-            {filtered.length === 0 ? (
+            {visibleJobs.length === 0 ? (
               <div className="col-span-full rounded-xl border border-border bg-surface p-8 text-sm text-muted-foreground">
-                {t('emptyColumn')}
+                {t('emptySearch')}
               </div>
             ) : (
-              filtered.map((j) => (
-                <SavedJobCard key={j.id} job={j} onStatusChange={handleStatusChange} onAddNote={handleOpenNotes} onRemove={handleRemove} />
+              visibleJobs.map((job) => (
+                <SavedJobCard key={job.id} job={job} onStatusChange={handleStatusChange} onAddNote={handleOpenNotes} onRemove={handleRemove} />
               ))
             )}
           </div>
@@ -260,10 +232,22 @@ export default function SavedPage() {
         </div>
       )}
 
-      {/* ── Note Modal ── */}
-      {noteModal && (
+      {!loading && !error && paginationMeta.totalPages > 1 ? (
+        <PaginationControls
+          meta={paginationMeta}
+          labels={{
+            previous: t('paginationPrevious'),
+            next: t('paginationNext'),
+            pageSize: t('paginationPageSize'),
+            summary: ({start, end, total}) => t('paginationSummary', {start, end, total}),
+          }}
+          onPageChange={setPage}
+        />
+      ) : null}
+
+      {activeNoteModal && (
         <NoteModal
-          job={noteModal}
+          job={activeNoteModal}
           noteText={noteText}
           editingNote={editingNote}
           onNoteTextChange={setNoteText}

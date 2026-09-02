@@ -6,12 +6,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
+from hiring_radar.api.csrf import attach_csrf_cookie, clear_csrf_cookie
 from hiring_radar.api.dependencies import (
     get_current_user_session,
     get_env_path,
     get_repository,
     get_user_auth_settings,
 )
+from hiring_radar.api.rate_limit import enforce_rate_limit
 from hiring_radar.api.schemas.user_auth import (
     UserAuthMeResponse,
     UserConfirmPasswordResetRequest,
@@ -340,10 +342,21 @@ def _load_magic_link_subscriber(
 @router.post("/request-magic-link", response_model=UserRequestMagicLinkResponse)
 def request_magic_link(
     payload: UserRequestMagicLinkRequest,
+    request: Request,
     repository: RepositoryDep,
     auth_settings: UserAuthSettingsDep,
     env_path: Annotated[str, Depends(get_env_path)],
 ) -> UserRequestMagicLinkResponse:
+    enforce_rate_limit(
+        request,
+        action="user_magic_link_request",
+        identity=payload.email,
+        ip_limit=40,
+        ip_window_seconds=600,
+        identity_limit=6,
+        identity_window_seconds=900,
+    )
+
     subscriber = repository.get_subscriber_by_email(normalize_email(payload.email))
 
     if subscriber is not None and subscriber.is_active:
@@ -369,7 +382,7 @@ def request_magic_link(
             except (EmailConfigError, EmailDeliveryError) as exc:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Sign-in email could not be sent: {exc}",
+                    detail="Sign-in email could not be sent. Please try again later.",
                 ) from exc
 
     return UserRequestMagicLinkResponse(message=GENERIC_MAGIC_LINK_RESPONSE)
@@ -383,6 +396,16 @@ def consume_magic_link(
     repository: RepositoryDep,
     auth_settings: UserAuthSettingsDep,
 ) -> UserAuthMeResponse:
+    enforce_rate_limit(
+        request,
+        action="user_magic_link_consume",
+        identity=payload.token[:32],
+        ip_limit=80,
+        ip_window_seconds=600,
+        identity_limit=10,
+        identity_window_seconds=600,
+    )
+
     import hashlib as _hashlib
     subscriber = _load_magic_link_subscriber(
         repository=repository,
@@ -399,6 +422,7 @@ def consume_magic_link(
         value=session_token,
         **session_cookie_kwargs(settings=auth_settings),
     )
+    attach_csrf_cookie(response)
 
     now = utc_now_iso()
     ip = _client_ip(request)
@@ -436,6 +460,16 @@ def login_password(
     repository: RepositoryDep,
     auth_settings: UserAuthSettingsDep,
 ) -> UserPasswordLoginResponse:
+    enforce_rate_limit(
+        request,
+        action="user_password_login",
+        identity=payload.email,
+        ip_limit=80,
+        ip_window_seconds=900,
+        identity_limit=12,
+        identity_window_seconds=900,
+    )
+
     import hashlib as _hashlib
     subscriber = repository.get_subscriber_by_email(normalize_email(payload.email))
     ip = _client_ip(request)
@@ -479,6 +513,7 @@ def login_password(
         value=session_token,
         **session_cookie_kwargs(settings=auth_settings),
     )
+    attach_csrf_cookie(response)
 
     now = utc_now_iso()
     token_hash = _hashlib.sha256(session_token.encode("utf-8")).hexdigest()
@@ -510,10 +545,21 @@ def login_password(
 )
 def request_password_reset(
     payload: UserPasswordResetRequest,
+    request: Request,
     repository: RepositoryDep,
     env_path: Annotated[str, Depends(get_env_path)],
     auth_settings: UserAuthSettingsDep,
 ) -> UserPasswordResetRequestResponse:
+    enforce_rate_limit(
+        request,
+        action="user_password_reset_request",
+        identity=payload.email,
+        ip_limit=40,
+        ip_window_seconds=900,
+        identity_limit=5,
+        identity_window_seconds=1800,
+    )
+
     subscriber = repository.get_subscriber_by_email(normalize_email(payload.email))
 
     if subscriber is not None and subscriber.is_active and subscriber.id is not None:
@@ -548,7 +594,7 @@ def request_password_reset(
         except (EmailConfigError, EmailDeliveryError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Password reset email could not be sent: {exc}",
+                detail="Password reset email could not be sent. Please try again later.",
             ) from exc
 
     return UserPasswordResetRequestResponse(message=GENERIC_PASSWORD_RESET_RESPONSE)
@@ -560,9 +606,20 @@ def request_password_reset(
 )
 def confirm_password_reset(
     payload: UserConfirmPasswordResetRequest,
+    request: Request,
     repository: RepositoryDep,
     auth_settings: UserAuthSettingsDep,
 ) -> UserConfirmPasswordResetResponse:
+    enforce_rate_limit(
+        request,
+        action="user_password_reset_confirm",
+        identity=payload.token[:32],
+        ip_limit=60,
+        ip_window_seconds=900,
+        identity_limit=8,
+        identity_window_seconds=900,
+    )
+
     link = repository.get_subscriber_password_reset_token_by_hash(
         hash_password_reset_token(payload.token)
     )
@@ -615,6 +672,7 @@ def user_logout(
         samesite=session_cookie_kwargs(settings=auth_settings)["samesite"],
         secure=session_cookie_kwargs(settings=auth_settings)["secure"],
     )
+    clear_csrf_cookie(response)
     return {"ok": True}
 
 

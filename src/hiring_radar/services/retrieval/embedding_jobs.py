@@ -95,7 +95,7 @@ def _build_deterministic_vector(text: str, *, dimensions: int) -> tuple[float, .
     values: list[float] = []
     counter = 0
     while len(values) < dimensions:
-        payload = f"{counter}:{text}".encode("utf-8")
+        payload = f"{counter}:{text}".encode()
         digest = hashlib.sha256(payload).digest()
         for index in range(0, len(digest), 4):
             if len(values) >= dimensions:

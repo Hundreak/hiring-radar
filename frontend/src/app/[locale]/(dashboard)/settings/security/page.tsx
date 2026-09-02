@@ -1,41 +1,59 @@
-'use client';
+"use client";
 
-import {useTranslations} from 'next-intl';
-import {useCallback, useEffect, useState} from 'react';
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
 
-import {SettingsField} from '@/components/settings/field';
-import {SettingsSection} from '@/components/settings/settings-section';
-import {Button} from '@/components/ui/button';
-import {Input} from '@/components/ui/input';
-import {api, ApiError} from '@/lib/api';
-import type {LoginHistoryItem, SessionItem, TotpStatusResponse} from '@/lib/api';
+import { SettingsField } from "@/components/settings/field";
+import { SettingsSection } from "@/components/settings/settings-section";
+import {
+  SecurityActionCard,
+  SecurityActionRail,
+  SecurityCenterHero,
+  SecurityMetricCard,
+} from "@/components/settings/security-center-primitives";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { api, ApiError } from "@/lib/api";
+import type {
+  LoginHistoryItem,
+  SessionItem,
+  TotpStatusResponse,
+} from "@/lib/api";
 
 export default function SettingsSecurityPage() {
-  const t = useTranslations('settings.security');
+  const t = useTranslations("settings.security");
 
-  const [curPw, setCurPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [pwMsg, setPwMsg] = useState<{text: string; ok: boolean} | null>(null);
+  const [curPw, setCurPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwMsg, setPwMsg] = useState<{ text: string; ok: boolean } | null>(
+    null,
+  );
 
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [history, setHistory] = useState<LoginHistoryItem[]>([]);
-  const [totpStatus, setTotpStatus] = useState<TotpStatusResponse>({enabled: false, verified: false});
-  const [totpModal, setTotpModal] = useState<{secret: string; uri: string} | null>(null);
-  const [totpCode, setTotpCode] = useState('');
-  const [totpMsg, setTotpMsg] = useState('');
+  const [totpStatus, setTotpStatus] = useState<TotpStatusResponse>({
+    enabled: false,
+    verified: false,
+  });
+  const [totpModal, setTotpModal] = useState<{
+    secret: string;
+    uri: string;
+  } | null>(null);
+  const [totpCode, setTotpCode] = useState("");
+  const [totpMsg, setTotpMsg] = useState("");
 
   const [emailModal, setEmailModal] = useState(false);
-  const [emailNewAddr, setEmailNewAddr] = useState('');
-  const [emailPw, setEmailPw] = useState('');
+  const [emailNewAddr, setEmailNewAddr] = useState("");
+  const [emailPw, setEmailPw] = useState("");
   const [emailCodeSent, setEmailCodeSent] = useState(false);
-  const [emailCode, setEmailCode] = useState('');
-  const [emailMsg, setEmailMsg] = useState('');
+  const [emailCode, setEmailCode] = useState("");
+  const [emailMsg, setEmailMsg] = useState("");
 
   const [deleteModal, setDeleteModal] = useState(false);
-  const [deleteReason, setDeleteReason] = useState('');
-  const [deletePw, setDeletePw] = useState('');
-  const [deleteMsg, setDeleteMsg] = useState('');
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deletePw, setDeletePw] = useState("");
+  const [deleteMsg, setDeleteMsg] = useState("");
 
   const loadData = useCallback(async () => {
     try {
@@ -47,20 +65,30 @@ export default function SettingsSecurityPage() {
       setSessions(s);
       setHistory(h);
       setTotpStatus(ts);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
-  useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadData]);
 
   async function handleChangePassword() {
     setPwMsg(null);
     try {
       await api.changePassword(curPw, newPw, confirmPw);
-      setPwMsg({text: t('passwordUpdated'), ok: true});
-      setCurPw(''); setNewPw(''); setConfirmPw('');
+      setPwMsg({ text: t("passwordUpdated"), ok: true });
+      setCurPw("");
+      setNewPw("");
+      setConfirmPw("");
       void loadData();
     } catch (e) {
-      setPwMsg({text: e instanceof ApiError ? e.detail : 'Error', ok: false});
+      setPwMsg({ text: e instanceof ApiError ? e.detail : "Error", ok: false });
     }
   }
 
@@ -76,278 +104,533 @@ export default function SettingsSecurityPage() {
 
   async function handleSetupTotp() {
     const res = await api.setupTotp();
-    setTotpModal({secret: res.secret, uri: res.otpauth_uri});
-    setTotpCode('');
-    setTotpMsg('');
+    setTotpModal({ secret: res.secret, uri: res.otpauth_uri });
+    setTotpCode("");
+    setTotpMsg("");
   }
 
   async function handleVerifyTotp() {
-    setTotpMsg('');
+    setTotpMsg("");
     try {
       await api.verifyTotp(totpCode);
       setTotpModal(null);
-      setTotpStatus({enabled: true, verified: true});
+      setTotpStatus({ enabled: true, verified: true });
     } catch (e) {
-      setTotpMsg(e instanceof ApiError ? e.detail : 'Invalid code');
+      setTotpMsg(e instanceof ApiError ? e.detail : "Invalid code");
     }
   }
 
   async function handleDisableTotp() {
     await api.disableTotp();
-    setTotpStatus({enabled: false, verified: false});
+    setTotpStatus({ enabled: false, verified: false });
   }
 
   async function handleRequestEmailChange() {
-    setEmailMsg('');
+    setEmailMsg("");
     try {
       await api.requestEmailChange(emailNewAddr, emailPw);
       setEmailCodeSent(true);
     } catch (e) {
-      setEmailMsg(e instanceof ApiError ? e.detail : 'Error');
+      setEmailMsg(e instanceof ApiError ? e.detail : "Error");
     }
   }
 
   async function handleConfirmEmailChange() {
-    setEmailMsg('');
+    setEmailMsg("");
     try {
       await api.confirmEmailChange(emailCode);
       setEmailModal(false);
       setEmailCodeSent(false);
-      setEmailNewAddr(''); setEmailPw(''); setEmailCode('');
+      setEmailNewAddr("");
+      setEmailPw("");
+      setEmailCode("");
       void loadData();
     } catch (e) {
-      setEmailMsg(e instanceof ApiError ? e.detail : 'Error');
+      setEmailMsg(e instanceof ApiError ? e.detail : "Error");
     }
   }
 
   async function handleDeleteAccount() {
-    setDeleteMsg('');
+    setDeleteMsg("");
     try {
       await api.deleteAccount(deletePw, deleteReason);
-      window.location.href = '/';
+      window.location.href = "/";
     } catch (e) {
-      setDeleteMsg(e instanceof ApiError ? e.detail : 'Error');
+      setDeleteMsg(e instanceof ApiError ? e.detail : "Error");
     }
   }
 
   const eventLabel = (type: string) => {
     const map: Record<string, string> = {
-      login_success: t('successfulLogin'),
-      login_failed: t('failedLogin'),
-      password_changed: t('passwordChanged'),
-      login_magic_link: t('loginMagicLink'),
-      login_google_oauth: t('loginGoogleOauth'),
-      email_changed: t('emailChanged'),
+      login_success: t("successfulLogin"),
+      login_failed: t("failedLogin"),
+      password_changed: t("passwordChanged"),
+      login_magic_link: t("loginMagicLink"),
+      login_google_oauth: t("loginGoogleOauth"),
+      email_changed: t("emailChanged"),
     };
     return map[type] ?? type;
   };
 
-  const eventStatus = (type: string): 'success' | 'danger' | 'info' => {
-    if (type === 'login_failed') return 'danger';
-    if (type === 'login_success' || type === 'login_magic_link' || type === 'login_google_oauth') return 'success';
-    return 'info';
+  const eventStatus = (type: string): "success" | "danger" | "info" => {
+    if (type === "login_failed") return "danger";
+    if (
+      type === "login_success" ||
+      type === "login_magic_link" ||
+      type === "login_google_oauth"
+    )
+      return "success";
+    return "info";
   };
 
   function formatRelativeDate(iso: string | null) {
-    if (!iso) return '';
+    if (!iso) return "";
     const d = new Date(iso);
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return t('timeJustNow');
-    if (diffMins < 60) return t('timeMinutesAgo', {count: diffMins});
+    if (diffMins < 1) return t("timeJustNow");
+    if (diffMins < 60) return t("timeMinutesAgo", { count: diffMins });
     const diffHrs = Math.floor(diffMins / 60);
-    if (diffHrs < 24) return t('timeHoursAgo', {count: diffHrs});
+    if (diffHrs < 24) return t("timeHoursAgo", { count: diffHrs });
     const diffDays = Math.floor(diffHrs / 24);
-    if (diffDays < 7) return t('timeDaysAgo', {count: diffDays});
+    if (diffDays < 7) return t("timeDaysAgo", { count: diffDays });
     return d.toLocaleDateString();
   }
 
+  function scrollToSecuritySection(id: string) {
+    document
+      .getElementById(id)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const hasVerifiedTotp = totpStatus.enabled && totpStatus.verified;
+  const hasOtherSessions = sessions.some((session) => !session.is_current);
+  const failedLoginCount = history.filter(
+    (event) => event.event_type === "login_failed",
+  ).length;
+  const lastSuccessfulLogin = history.find(
+    (event) =>
+      event.event_type === "login_success" ||
+      event.event_type === "login_magic_link" ||
+      event.event_type === "login_google_oauth",
+  );
+  const securityScore = Math.max(
+    20,
+    Math.min(
+      100,
+      55 +
+        (hasVerifiedTotp ? 25 : 0) +
+        (hasOtherSessions ? 0 : 10) +
+        (failedLoginCount === 0 ? 10 : 0),
+    ),
+  );
+  const securityTone =
+    securityScore >= 85 ? "strong" : securityScore >= 70 ? "watch" : "risk";
+
   return (
     <div className="space-y-6">
+      <SecurityCenterHero
+        score={securityScore}
+        tone={securityTone}
+        title={t(`center.hero.${securityTone}.title`)}
+        description={t(`center.hero.${securityTone}.description`)}
+        scoreLabel={t("center.scoreLabel")}
+        checklistLabel={t("center.checklistLabel")}
+        items={[
+          { label: t("center.checklist.totp"), complete: hasVerifiedTotp },
+          {
+            label: t("center.checklist.sessions"),
+            complete: !hasOtherSessions,
+          },
+          {
+            label: t("center.checklist.history"),
+            complete: failedLoginCount === 0,
+          },
+        ]}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <SecurityMetricCard
+          label={t("center.metrics.twoFactor.label")}
+          value={hasVerifiedTotp ? t("active") : t("inactive")}
+          hint={
+            hasVerifiedTotp
+              ? t("center.metrics.twoFactor.strong")
+              : t("center.metrics.twoFactor.action")
+          }
+          tone={hasVerifiedTotp ? "strong" : "risk"}
+        />
+        <SecurityMetricCard
+          label={t("center.metrics.sessions.label")}
+          value={t("center.metrics.sessions.value", { count: sessions.length })}
+          hint={
+            hasOtherSessions
+              ? t("center.metrics.sessions.review")
+              : t("center.metrics.sessions.clean")
+          }
+          tone={hasOtherSessions ? "watch" : "strong"}
+        />
+        <SecurityMetricCard
+          label={t("center.metrics.activity.label")}
+          value={
+            lastSuccessfulLogin?.created_at
+              ? formatRelativeDate(lastSuccessfulLogin.created_at)
+              : t("center.metrics.activity.empty")
+          }
+          hint={
+            failedLoginCount > 0
+              ? t("center.metrics.activity.failed", { count: failedLoginCount })
+              : t("center.metrics.activity.clean")
+          }
+          tone={failedLoginCount > 0 ? "risk" : "strong"}
+        />
+      </div>
+
+      <SecurityActionRail>
+        <SecurityActionCard
+          title={t("center.actions.password.title")}
+          description={t("center.actions.password.description")}
+          buttonLabel={t("center.actions.password.button")}
+          onClick={() => scrollToSecuritySection("security-password")}
+          tone="watch"
+        />
+        <SecurityActionCard
+          title={t("center.actions.totp.title")}
+          description={t("center.actions.totp.description")}
+          buttonLabel={
+            hasVerifiedTotp
+              ? t("center.actions.totp.reviewButton")
+              : t("center.actions.totp.button")
+          }
+          onClick={
+            hasVerifiedTotp
+              ? () => scrollToSecuritySection("security-login-methods")
+              : handleSetupTotp
+          }
+          tone={hasVerifiedTotp ? "strong" : "risk"}
+        />
+        <SecurityActionCard
+          title={t("center.actions.sessions.title")}
+          description={t("center.actions.sessions.description")}
+          buttonLabel={t("center.actions.sessions.button")}
+          onClick={() => scrollToSecuritySection("security-sessions")}
+          tone={hasOtherSessions ? "watch" : "strong"}
+        />
+      </SecurityActionRail>
+
       {/* ── Password ── */}
-      <SettingsSection title={t('passwordSection')} description={t('passwordSectionDesc')}>
-        <SettingsField label={t('fields.currentPassword')}>
-          <Input type="password" value={curPw} onChange={(e) => setCurPw(e.target.value)} />
-        </SettingsField>
-        <SettingsField label={t('fields.newPassword')} hint={t('passwordHint')}>
-          <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
-        </SettingsField>
-        <SettingsField label={t('fields.confirmPassword')}>
-          <Input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
-        </SettingsField>
-        {pwMsg && (
-          <p className={`text-xs ${pwMsg.ok ? 'text-success' : 'text-danger'}`}>{pwMsg.text}</p>
-        )}
-        <div className="flex items-center gap-3">
-          <Button onClick={handleChangePassword}>{t('updatePassword')}</Button>
-          <Button variant="ghost" onClick={() => { setCurPw(''); setNewPw(''); setConfirmPw(''); setPwMsg(null); }}>
-            {t('cancel')}
-          </Button>
-        </div>
-      </SettingsSection>
-
-      {/* ── Login methods ── */}
-      <SettingsSection title={t('loginMethodsTitle')} description={t('loginMethodsDesc')}>
-        <ToggleRow
-          title={t('magicLinkTitle')}
-          description={t('magicLinkDescription')}
-          activeLabel={t('active')}
-          inactiveLabel={t('inactive')}
-          on
-        />
-        <div className="flex items-center justify-between rounded-xl border border-border bg-surface-muted px-4 py-3">
-          <div className="min-w-0">
-            <div className="text-sm font-medium text-foreground/80">{t('twoFactorTitle')}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">{t('twoFactorDescription')}</div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {totpStatus.enabled && totpStatus.verified ? (
-              <button
-                type="button"
-                onClick={handleDisableTotp}
-                className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-surface-strong"
-              >
-                {t('disable')}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSetupTotp}
-                className="rounded-md border border-primary/30 bg-primary/15 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground"
-              >
-                {t('new2fa')}
-              </button>
-            )}
-            <StatusDot on={totpStatus.enabled && totpStatus.verified} activeLabel={t('active')} inactiveLabel={t('inactive')} />
-          </div>
-        </div>
-        <ToggleRow
-          title={t('newDeviceTitle')}
-          description={t('newDeviceDescription')}
-          activeLabel={t('active')}
-          inactiveLabel={t('inactive')}
-          on
-        />
-      </SettingsSection>
-
-      {/* ── Active sessions ── */}
-      <SettingsSection title={t('sessionsTitle')} description={t('sessionsDesc')}>
-        {sessions.length === 0 ? (
-          <p className="text-xs text-muted-foreground">{t('noSessions')}</p>
-        ) : (
-          <div className="space-y-2">
-            {sessions.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-xl border border-border bg-surface-muted px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-primary">
-                      <rect x="2" y="3" width="12" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-                      <path d="M5 14h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                      <path d="M8 11v3" stroke="currentColor" strokeWidth="1.2" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground/80">{s.device_label || t('unknownDevice')}</span>
-                      {s.is_current && (
-                        <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-medium text-success">
-                          {t('thisDevice')}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <span>{s.ip_address}</span>
-                      <span className="text-border">·</span>
-                      <span>{t('sessionStarted')} {formatRelativeDate(s.created_at)}</span>
-                    </div>
-                  </div>
-                </div>
-                {!s.is_current && (
-                  <button
-                    type="button"
-                    onClick={() => handleEndSession(s.id)}
-                    className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:border-danger/30 hover:text-danger transition"
-                  >
-                    {t('endSession')}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {sessions.length > 1 && (
-          <div className="pt-2">
-            <Button variant="outline" size="sm" onClick={handleEndAllOthers}>
-              {t('endAllSessions')}
+      <section id="security-password" className="scroll-mt-24">
+        <SettingsSection
+          title={t("passwordSection")}
+          description={t("passwordSectionDesc")}
+        >
+          <SettingsField label={t("fields.currentPassword")}>
+            <Input
+              type="password"
+              value={curPw}
+              onChange={(e) => setCurPw(e.target.value)}
+            />
+          </SettingsField>
+          <SettingsField
+            label={t("fields.newPassword")}
+            hint={t("passwordHint")}
+          >
+            <Input
+              type="password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+            />
+          </SettingsField>
+          <SettingsField label={t("fields.confirmPassword")}>
+            <Input
+              type="password"
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+            />
+          </SettingsField>
+          {pwMsg && (
+            <p
+              className={`text-xs ${pwMsg.ok ? "text-success" : "text-danger"}`}
+            >
+              {pwMsg.text}
+            </p>
+          )}
+          <div className="flex items-center gap-3">
+            <Button onClick={handleChangePassword}>
+              {t("updatePassword")}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setCurPw("");
+                setNewPw("");
+                setConfirmPw("");
+                setPwMsg(null);
+              }}
+            >
+              {t("cancel")}
             </Button>
           </div>
-        )}
-      </SettingsSection>
+        </SettingsSection>
+      </section>
 
-      {/* ── Login history ── */}
-      <SettingsSection title={t('loginHistoryTitle')} description={t('loginHistoryDesc')}>
-        {history.length === 0 ? (
-          <p className="text-xs text-muted-foreground">{t('noHistory')}</p>
-        ) : (
-          <div className="space-y-1">
-            {history.slice(0, 5).map((e) => {
-              const st = eventStatus(e.event_type);
-              const dotColor = st === 'success' ? 'bg-success' : st === 'danger' ? 'bg-danger' : 'bg-primary';
-              return (
-                <div key={e.id} className="flex items-center justify-between rounded-lg border border-border/40 bg-surface-muted/40 px-3 py-2.5 transition hover:bg-surface-muted">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`size-2 shrink-0 rounded-full ${dotColor}`} />
+      {/* ── Login methods ── */}
+      <section id="security-login-methods" className="scroll-mt-24">
+        <SettingsSection
+          title={t("loginMethodsTitle")}
+          description={t("loginMethodsDesc")}
+        >
+          <ToggleRow
+            title={t("magicLinkTitle")}
+            description={t("magicLinkDescription")}
+            activeLabel={t("active")}
+            inactiveLabel={t("inactive")}
+            on
+          />
+          <div className="flex items-center justify-between rounded-xl border border-border bg-surface-muted px-4 py-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-foreground/80">
+                {t("twoFactorTitle")}
+              </div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {t("twoFactorDescription")}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {totpStatus.enabled && totpStatus.verified ? (
+                <button
+                  type="button"
+                  onClick={handleDisableTotp}
+                  className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-surface-strong"
+                >
+                  {t("disable")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSetupTotp}
+                  className="rounded-md border border-primary/30 bg-primary/15 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground"
+                >
+                  {t("new2fa")}
+                </button>
+              )}
+              <StatusDot
+                on={totpStatus.enabled && totpStatus.verified}
+                activeLabel={t("active")}
+                inactiveLabel={t("inactive")}
+              />
+            </div>
+          </div>
+          <ToggleRow
+            title={t("newDeviceTitle")}
+            description={t("newDeviceDescription")}
+            activeLabel={t("active")}
+            inactiveLabel={t("inactive")}
+            on
+          />
+        </SettingsSection>
+      </section>
+
+      {/* ── Active sessions ── */}
+      <section id="security-sessions" className="scroll-mt-24">
+        <SettingsSection
+          title={t("sessionsTitle")}
+          description={t("sessionsDesc")}
+        >
+          {sessions.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{t("noSessions")}</p>
+          ) : (
+            <div className="space-y-2">
+              {sessions.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-surface-muted px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        className="text-primary"
+                      >
+                        <rect
+                          x="2"
+                          y="3"
+                          width="12"
+                          height="8"
+                          rx="1.5"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                        />
+                        <path
+                          d="M5 14h6"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M8 11v3"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                        />
+                      </svg>
+                    </div>
                     <div>
-                      <span className="text-xs text-foreground/70">{eventLabel(e.event_type)}</span>
-                      {e.detail && <span className="ml-1.5 text-[10px] text-muted-foreground/60">— {e.detail}</span>}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground/80">
+                          {s.device_label || t("unknownDevice")}
+                        </span>
+                        {s.is_current && (
+                          <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-medium text-success">
+                            {t("thisDevice")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <span>{s.ip_address}</span>
+                        <span className="text-border">·</span>
+                        <span>
+                          {t("sessionStarted")}{" "}
+                          {formatRelativeDate(s.created_at)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground/60">
-                    <span>{e.ip_address}</span>
-                    <span>{formatRelativeDate(e.created_at)}</span>
-                  </div>
+                  {!s.is_current && (
+                    <button
+                      type="button"
+                      onClick={() => handleEndSession(s.id)}
+                      className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:border-danger/30 hover:text-danger transition"
+                    >
+                      {t("endSession")}
+                    </button>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </SettingsSection>
+              ))}
+            </div>
+          )}
+          {sessions.length > 1 && (
+            <div className="pt-2">
+              <Button variant="outline" size="sm" onClick={handleEndAllOthers}>
+                {t("endAllSessions")}
+              </Button>
+            </div>
+          )}
+        </SettingsSection>
+      </section>
+
+      {/* ── Login history ── */}
+      <section id="security-login-history" className="scroll-mt-24">
+        <SettingsSection
+          title={t("loginHistoryTitle")}
+          description={t("loginHistoryDesc")}
+        >
+          {history.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{t("noHistory")}</p>
+          ) : (
+            <div className="space-y-1">
+              {history.slice(0, 5).map((e) => {
+                const st = eventStatus(e.event_type);
+                const dotColor =
+                  st === "success"
+                    ? "bg-success"
+                    : st === "danger"
+                      ? "bg-danger"
+                      : "bg-primary";
+                return (
+                  <div
+                    key={e.id}
+                    className="flex items-center justify-between rounded-lg border border-border/40 bg-surface-muted/40 px-3 py-2.5 transition hover:bg-surface-muted"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`size-2 shrink-0 rounded-full ${dotColor}`}
+                      />
+                      <div>
+                        <span className="text-xs text-foreground/70">
+                          {eventLabel(e.event_type)}
+                        </span>
+                        {e.detail && (
+                          <span className="ml-1.5 text-[10px] text-muted-foreground/60">
+                            — {e.detail}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground/60">
+                      <span>{e.ip_address}</span>
+                      <span>{formatRelativeDate(e.created_at)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </SettingsSection>
+      </section>
 
       {/* ── Danger zone ── */}
-      <SettingsSection title={t('dangerZone')} description={t('dangerZoneDesc')}>
-        <DangerRow
-          title={t('changeEmail')}
-          description={t('changeEmailDesc')}
-          buttonLabel={t('changeEmailBtn')}
-          onClick={() => { setEmailModal(true); setEmailMsg(''); setEmailCodeSent(false); setEmailNewAddr(''); setEmailPw(''); setEmailCode(''); }}
-        />
-        <DangerRow
-          title={t('terminateAll')}
-          description={t('terminateAllDesc')}
-          buttonLabel={t('terminateAllBtn')}
-          onClick={handleEndAllOthers}
-        />
-        <DangerRow
-          title={t('deleteAccount')}
-          description={t('deleteAccountDesc')}
-          buttonLabel={t('deleteAccountBtn')}
-          destructive
-          onClick={() => { setDeleteModal(true); setDeleteMsg(''); setDeleteReason(''); setDeletePw(''); }}
-        />
-      </SettingsSection>
+      <section id="security-danger-zone" className="scroll-mt-24">
+        <SettingsSection
+          title={t("dangerZone")}
+          description={t("dangerZoneDesc")}
+        >
+          <DangerRow
+            title={t("changeEmail")}
+            description={t("changeEmailDesc")}
+            buttonLabel={t("changeEmailBtn")}
+            onClick={() => {
+              setEmailModal(true);
+              setEmailMsg("");
+              setEmailCodeSent(false);
+              setEmailNewAddr("");
+              setEmailPw("");
+              setEmailCode("");
+            }}
+          />
+          <DangerRow
+            title={t("terminateAll")}
+            description={t("terminateAllDesc")}
+            buttonLabel={t("terminateAllBtn")}
+            onClick={handleEndAllOthers}
+          />
+          <DangerRow
+            title={t("deleteAccount")}
+            description={t("deleteAccountDesc")}
+            buttonLabel={t("deleteAccountBtn")}
+            destructive
+            onClick={() => {
+              setDeleteModal(true);
+              setDeleteMsg("");
+              setDeleteReason("");
+              setDeletePw("");
+            }}
+          />
+        </SettingsSection>
+      </section>
 
       {/* ── TOTP Modal ── */}
       {totpModal && (
         <Modal onClose={() => setTotpModal(null)}>
-          <h3 className="text-sm font-semibold text-foreground">{t('totpSetupTitle')}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">{t('totpSetupDesc')}</p>
+          <h3 className="text-sm font-semibold text-foreground">
+            {t("totpSetupTitle")}
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("totpSetupDesc")}
+          </p>
           <div className="mt-4 rounded-xl bg-surface-muted p-5 text-center">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">{t('totpSecretLabel')}</div>
-            <code className="text-sm font-mono break-all text-foreground/90 tracking-wider">{totpModal.secret}</code>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+              {t("totpSecretLabel")}
+            </div>
+            <code className="text-sm font-mono break-all text-foreground/90 tracking-wider">
+              {totpModal.secret}
+            </code>
           </div>
           <div className="mt-4 space-y-3">
-            <SettingsField label={t('totpSetupCode')}>
+            <SettingsField label={t("totpSetupCode")}>
               <Input
                 value={totpCode}
                 onChange={(e) => setTotpCode(e.target.value)}
@@ -356,7 +639,9 @@ export default function SettingsSecurityPage() {
               />
             </SettingsField>
             {totpMsg && <p className="text-xs text-danger">{totpMsg}</p>}
-            <Button className="w-full" onClick={handleVerifyTotp}>{t('totpSetupConfirm')}</Button>
+            <Button className="w-full" onClick={handleVerifyTotp}>
+              {t("totpSetupConfirm")}
+            </Button>
           </div>
         </Modal>
       )}
@@ -364,12 +649,16 @@ export default function SettingsSecurityPage() {
       {/* ── Email Change Modal ── */}
       {emailModal && (
         <Modal onClose={() => setEmailModal(false)}>
-          <h3 className="text-sm font-semibold text-foreground">{t('emailModalTitle')}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">{t('emailModalDesc')}</p>
+          <h3 className="text-sm font-semibold text-foreground">
+            {t("emailModalTitle")}
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("emailModalDesc")}
+          </p>
 
           {!emailCodeSent ? (
             <div className="mt-4 space-y-3">
-              <SettingsField label={t('emailModalNewEmail')}>
+              <SettingsField label={t("emailModalNewEmail")}>
                 <Input
                   type="email"
                   value={emailNewAddr}
@@ -377,21 +666,36 @@ export default function SettingsSecurityPage() {
                   placeholder="new@example.com"
                 />
               </SettingsField>
-              <SettingsField label={t('emailModalPassword')} hint={t('emailModalPasswordHint')}>
-                <Input type="password" value={emailPw} onChange={(e) => setEmailPw(e.target.value)} />
+              <SettingsField
+                label={t("emailModalPassword")}
+                hint={t("emailModalPasswordHint")}
+              >
+                <Input
+                  type="password"
+                  value={emailPw}
+                  onChange={(e) => setEmailPw(e.target.value)}
+                />
               </SettingsField>
               {emailMsg && <p className="text-xs text-danger">{emailMsg}</p>}
-              <Button className="w-full" onClick={handleRequestEmailChange} disabled={!emailNewAddr.trim() || !emailPw}>
-                {t('emailModalSendCode')}
+              <Button
+                className="w-full"
+                onClick={handleRequestEmailChange}
+                disabled={!emailNewAddr.trim() || !emailPw}
+              >
+                {t("emailModalSendCode")}
               </Button>
             </div>
           ) : (
             <div className="mt-4 space-y-3">
               <div className="rounded-xl bg-success/10 border border-success/20 p-3">
-                <p className="text-xs text-success">{t('emailModalCodeSent')}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">{emailNewAddr}</p>
+                <p className="text-xs text-success">
+                  {t("emailModalCodeSent")}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {emailNewAddr}
+                </p>
               </div>
-              <SettingsField label={t('emailModalCode')}>
+              <SettingsField label={t("emailModalCode")}>
                 <Input
                   value={emailCode}
                   onChange={(e) => setEmailCode(e.target.value)}
@@ -401,8 +705,12 @@ export default function SettingsSecurityPage() {
                 />
               </SettingsField>
               {emailMsg && <p className="text-xs text-danger">{emailMsg}</p>}
-              <Button className="w-full" onClick={handleConfirmEmailChange} disabled={emailCode.length < 6}>
-                {t('emailModalConfirm')}
+              <Button
+                className="w-full"
+                onClick={handleConfirmEmailChange}
+                disabled={emailCode.length < 6}
+              >
+                {t("emailModalConfirm")}
               </Button>
             </div>
           )}
@@ -414,16 +722,37 @@ export default function SettingsSecurityPage() {
         <Modal onClose={() => setDeleteModal(false)}>
           <div className="flex items-center gap-2.5 mb-1">
             <div className="flex size-8 items-center justify-center rounded-lg bg-danger/15">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-danger">
-                <path d="M8 3v6M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                className="text-danger"
+              >
+                <path
+                  d="M8 3v6M8 11.5v.5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="6.5"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                />
               </svg>
             </div>
-            <h3 className="text-sm font-semibold text-danger">{t('deleteModalTitle')}</h3>
+            <h3 className="text-sm font-semibold text-danger">
+              {t("deleteModalTitle")}
+            </h3>
           </div>
-          <p className="text-xs text-muted-foreground">{t('deleteModalDesc')}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("deleteModalDesc")}
+          </p>
           <div className="mt-4 space-y-3">
-            <SettingsField label={t('deleteModalReason')}>
+            <SettingsField label={t("deleteModalReason")}>
               <textarea
                 className="w-full rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                 rows={3}
@@ -431,8 +760,12 @@ export default function SettingsSecurityPage() {
                 onChange={(e) => setDeleteReason(e.target.value)}
               />
             </SettingsField>
-            <SettingsField label={t('deleteModalPassword')}>
-              <Input type="password" value={deletePw} onChange={(e) => setDeletePw(e.target.value)} />
+            <SettingsField label={t("deleteModalPassword")}>
+              <Input
+                type="password"
+                value={deletePw}
+                onChange={(e) => setDeletePw(e.target.value)}
+              />
             </SettingsField>
             {deleteMsg && <p className="text-xs text-danger">{deleteMsg}</p>}
             <button
@@ -441,7 +774,7 @@ export default function SettingsSecurityPage() {
               disabled={!deletePw}
               className="w-full rounded-lg border border-danger/40 bg-danger/15 px-4 py-2.5 text-xs font-medium text-danger hover:bg-danger/25 disabled:opacity-40 transition"
             >
-              {t('deleteModalConfirm')}
+              {t("deleteModalConfirm")}
             </button>
           </div>
         </Modal>
@@ -452,9 +785,18 @@ export default function SettingsSecurityPage() {
 
 /* ── Shared components ── */
 
-function Modal({children, onClose}: {children: React.ReactNode; onClose: () => void}) {
+function Modal({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
         className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -465,7 +807,12 @@ function Modal({children, onClose}: {children: React.ReactNode; onClose: () => v
           className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path
+              d="M2 2l10 10M12 2L2 12"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
         </button>
         {children}
@@ -474,49 +821,91 @@ function Modal({children, onClose}: {children: React.ReactNode; onClose: () => v
   );
 }
 
-function ToggleRow({title, description, activeLabel, inactiveLabel, on}: {
-  title: string; description: string; activeLabel: string; inactiveLabel: string; on: boolean;
+function ToggleRow({
+  title,
+  description,
+  activeLabel,
+  inactiveLabel,
+  on,
+}: {
+  title: string;
+  description: string;
+  activeLabel: string;
+  inactiveLabel: string;
+  on: boolean;
 }) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-border bg-surface-muted px-4 py-3">
       <div className="min-w-0">
         <div className="text-sm font-medium text-foreground/80">{title}</div>
-        <div className="mt-0.5 text-xs text-muted-foreground">{description}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {description}
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <div className={`relative h-5 w-9 rounded-full ${on ? 'bg-primary' : 'bg-border'} opacity-60`}>
-          <span className={`absolute top-0.5 block size-4 rounded-full bg-white transition-transform ${on ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        <div
+          className={`relative h-5 w-9 rounded-full ${on ? "bg-primary" : "bg-border"} opacity-60`}
+        >
+          <span
+            className={`absolute top-0.5 block size-4 rounded-full bg-white transition-transform ${on ? "translate-x-4" : "translate-x-0.5"}`}
+          />
         </div>
-        <StatusDot on={on} activeLabel={activeLabel} inactiveLabel={inactiveLabel} />
+        <StatusDot
+          on={on}
+          activeLabel={activeLabel}
+          inactiveLabel={inactiveLabel}
+        />
       </div>
     </div>
   );
 }
 
-function StatusDot({on, activeLabel, inactiveLabel}: {on: boolean; activeLabel: string; inactiveLabel: string}) {
+function StatusDot({
+  on,
+  activeLabel,
+  inactiveLabel,
+}: {
+  on: boolean;
+  activeLabel: string;
+  inactiveLabel: string;
+}) {
   return (
-    <span className={`text-[10px] ${on ? 'text-success' : 'text-muted-foreground'}`}>
+    <span
+      className={`text-[10px] ${on ? "text-success" : "text-muted-foreground"}`}
+    >
       {on ? activeLabel : inactiveLabel}
     </span>
   );
 }
 
-function DangerRow({title, description, buttonLabel, destructive = false, onClick}: {
-  title: string; description: string; buttonLabel: string; destructive?: boolean; onClick: () => void;
+function DangerRow({
+  title,
+  description,
+  buttonLabel,
+  destructive = false,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  buttonLabel: string;
+  destructive?: boolean;
+  onClick: () => void;
 }) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-danger/20 bg-danger/[0.04] px-4 py-3">
       <div className="min-w-0">
         <div className="text-sm font-medium text-foreground/80">{title}</div>
-        <div className="mt-0.5 text-xs text-muted-foreground">{description}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {description}
+        </div>
       </div>
       <button
         type="button"
         onClick={onClick}
         className={`shrink-0 rounded-md border px-3 py-1.5 text-[11px] font-medium transition ${
           destructive
-            ? 'border-danger/40 bg-danger/15 text-danger hover:bg-danger/25'
-            : 'border-border bg-surface-muted text-muted-foreground hover:bg-surface-strong'
+            ? "border-danger/40 bg-danger/15 text-danger hover:bg-danger/25"
+            : "border-border bg-surface-muted text-muted-foreground hover:bg-surface-strong"
         }`}
       >
         {buttonLabel}

@@ -8,8 +8,8 @@ from hiring_radar.services.cv_engine.models import (
     ExtractionArtifact,
     LayoutAnalysisArtifact,
     NormalizedTextArtifact,
-    ParsedCvData,
     ParseContext,
+    ParsedCvData,
     QualityScoreResult,
     SectionDetectionArtifact,
 )

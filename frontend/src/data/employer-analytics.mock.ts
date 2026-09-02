@@ -1,0 +1,66 @@
+import type {EmployerAnalyticsSnapshot} from '../types/employer';
+
+export const employerAnalyticsMock: EmployerAnalyticsSnapshot = {
+  period: '30d',
+  metrics: [
+    {
+      id: 'total-applicants',
+      label: 'Toplam Başvuru',
+      value: 248,
+      change: '+18%',
+      positive: true,
+      icon: 'users',
+      description: 'Son 30 günde gelen toplam başvuru',
+    },
+    {
+      id: 'avg-match-score',
+      label: 'Ort. Eşleşme Skoru',
+      value: 84,
+      change: '+2.4%',
+      positive: true,
+      icon: 'trendingUp',
+      description: 'Nitelikli aday segmenti ortalaması',
+    },
+    {
+      id: 'time-to-hire',
+      label: 'Ort. İşe Alım Süresi',
+      value: 18,
+      change: '-3 gün',
+      positive: true,
+      icon: 'clock',
+      description: 'İlk başvurudan kabul edilen teklife kadar',
+    },
+    {
+      id: 'conversion-rate',
+      label: 'Dönüşüm Oranı',
+      value: 12.5,
+      change: '+1.2%',
+      positive: true,
+      icon: 'barChart',
+      description: 'Görüntülemeden nitelikli başvuruya dönüşüm',
+    },
+  ],
+  positionPerformance: [
+    {jobId: 1, position: 'Senior Frontend Developer', applicants: 64, qualifiedApplicants: 18, views: 342, matchAvg: 88, conversion: 15.6, trend: 'up', riskLevel: 'watch'},
+    {jobId: 2, position: 'Backend Engineer (Go)', applicants: 42, qualifiedApplicants: 14, views: 218, matchAvg: 82, conversion: 11.9, trend: 'up', riskLevel: 'healthy'},
+    {jobId: 3, position: 'Product Designer', applicants: 31, qualifiedApplicants: 7, views: 156, matchAvg: 76, conversion: 9.7, trend: 'down', riskLevel: 'risk'},
+    {jobId: 4, position: 'DevOps Engineer', applicants: 19, qualifiedApplicants: 9, views: 98, matchAvg: 91, conversion: 21.1, trend: 'up', riskLevel: 'watch'},
+    {jobId: 7, position: 'QA Automation Engineer', applicants: 15, qualifiedApplicants: 6, views: 76, matchAvg: 85, conversion: 13.3, trend: 'up', riskLevel: 'healthy'},
+  ],
+  sourceBreakdown: [
+    {source: 'Doğrudan Başvuru', key: 'direct', count: 98, percentage: 39.5, qualityScore: 78},
+    {source: 'LinkedIn', key: 'linkedin', count: 62, percentage: 25.0, qualityScore: 82},
+    {source: 'Referans', key: 'referral', count: 38, percentage: 15.3, qualityScore: 91},
+    {source: 'İş İlanı Platformu', key: 'job_board', count: 32, percentage: 12.9, qualityScore: 72},
+    {source: 'Talent Radar', key: 'talent_radar', count: 18, percentage: 7.3, qualityScore: 88},
+  ],
+  weeklyApplications: [
+    {day: 'Pzt', count: 32, qualified: 8},
+    {day: 'Sal', count: 45, qualified: 11},
+    {day: 'Çar', count: 38, qualified: 10},
+    {day: 'Per', count: 52, qualified: 14},
+    {day: 'Cum', count: 41, qualified: 9},
+    {day: 'Cmt', count: 28, qualified: 5},
+    {day: 'Paz', count: 12, qualified: 2},
+  ],
+};

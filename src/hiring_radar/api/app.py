@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from hiring_radar.api.csrf import CsrfProtectionMiddleware
+from hiring_radar.api.observability import (
+    RequestObservabilityMiddleware,
+    configure_api_observability_logging,
+)
 from hiring_radar.api.routers import (
     admin_auth_router,
     admin_cv_engine_router,
@@ -12,20 +17,24 @@ from hiring_radar.api.routers import (
     admin_shell_router,
     admin_subscribers_router,
     employer_auth_router,
+    employer_compliance_router,
     employer_dashboard_router,
+    employer_outreach_router,
+    employer_settings_router,
+    employer_team_router,
+    google_oauth_router,
     health_router,
     public_auth_router,
+    user_ai_router,
     user_auth_router,
     user_jobs_router,
+    user_match_insights_router,
     user_me_router,
     user_profile_router,
     user_retrieval_router,
-    user_ai_router,
-    user_match_insights_router,
     user_saved_jobs_router,
     user_security_router,
     user_shell_router,
-    google_oauth_router,
 )
 
 
@@ -36,6 +45,11 @@ def create_app() -> FastAPI:
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
     )
+
+    configure_api_observability_logging()
+
+    app.add_middleware(CsrfProtectionMiddleware)
+    app.add_middleware(RequestObservabilityMiddleware)
 
     app.include_router(health_router)
     app.include_router(admin_auth_router)
@@ -59,7 +73,11 @@ def create_app() -> FastAPI:
     app.include_router(public_auth_router)
     app.include_router(google_oauth_router)
     app.include_router(employer_auth_router)
+    app.include_router(employer_compliance_router)
     app.include_router(employer_dashboard_router)
+    app.include_router(employer_team_router)
+    app.include_router(employer_outreach_router)
+    app.include_router(employer_settings_router)
 
     return app
 

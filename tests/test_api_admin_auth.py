@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from hiring_radar.api.app import create_app
+from hiring_radar.api.csrf import CSRF_COOKIE_NAME, CSRF_HEADER_NAME
 from hiring_radar.api.dependencies import get_admin_auth_settings
 from hiring_radar.api.security import AdminAuthSettings
 
@@ -14,6 +15,12 @@ def _make_auth_settings() -> AdminAuthSettings:
         session_secret="test-session-secret",
         session_ttl_seconds=3600,
     )
+
+
+def _csrf_headers(client: TestClient) -> dict[str, str]:
+    token = client.cookies.get(CSRF_COOKIE_NAME)
+    assert token
+    return {CSRF_HEADER_NAME: token}
 
 
 def test_admin_login_sets_session_cookie_and_me_returns_identity() -> None:
@@ -64,7 +71,7 @@ def test_admin_logout_invalidates_session() -> None:
         "/api/admin/auth/login",
         json={"email": "admin@example.com", "password": "super-secret"},
     )
-    logout_response = client.post("/api/admin/auth/logout")
+    logout_response = client.post("/api/admin/auth/logout", headers=_csrf_headers(client))
 
     assert logout_response.status_code == 200
     assert logout_response.json() == {"ok": True}

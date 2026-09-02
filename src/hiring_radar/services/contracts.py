@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 AiRuntimeStatus = Literal["disabled", "ready", "unreachable", "misconfigured", "error"]

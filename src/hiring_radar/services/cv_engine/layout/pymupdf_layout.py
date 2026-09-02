@@ -7,7 +7,11 @@ from hiring_radar.services.cv_engine.config import LayoutAnalysisConfig
 from hiring_radar.services.cv_engine.exceptions import RecoverableStageError
 from hiring_radar.services.cv_engine.layout.column_detection import detect_columns_for_page
 from hiring_radar.services.cv_engine.layout.reading_order import reconstruct_reading_order
-from hiring_radar.services.cv_engine.models import LayoutAnalysisArtifact, LayoutTextBlock, ParserStageName
+from hiring_radar.services.cv_engine.models import (
+    LayoutAnalysisArtifact,
+    LayoutTextBlock,
+    ParserStageName,
+)
 
 
 class PyMuPdfLayoutAnalyzer:

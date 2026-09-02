@@ -6,7 +6,11 @@ from typing import Any
 from hiring_radar.scrapers.base import ScraperSourceConfig
 from hiring_radar.scrapers.lever import LeverScraper
 from hiring_radar.services.jobs.adapters.base import JobSourceAdapter
-from hiring_radar.services.jobs.contracts import JobSourceDefinition, JobSourcePayload, ParsedSourceJob
+from hiring_radar.services.jobs.contracts import (
+    JobSourceDefinition,
+    JobSourcePayload,
+    ParsedSourceJob,
+)
 from hiring_radar.services.jobs.normalization import normalize_location_text, normalize_text
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.models import CanonicalJob, JobRecord, SubscriberProfileFeature
@@ -22,7 +22,7 @@ from hiring_radar.services.matching.scoring import build_match_result
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _parse_iso_datetime(value: str | None) -> datetime | None:
@@ -34,13 +34,16 @@ def _parse_iso_datetime(value: str | None) -> datetime | None:
     if candidate.endswith("Z"):
         candidate = candidate[:-1] + "+00:00"
     try:
-        return datetime.fromisoformat(candidate)
+        parsed = datetime.fromisoformat(candidate)
     except ValueError:
         return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
 
 
 def _compute_freshness_score(legacy_job: JobRecord, *, refreshed_at: str) -> float:
-    now_dt = _parse_iso_datetime(refreshed_at) or datetime.now(timezone.utc)
+    now_dt = _parse_iso_datetime(refreshed_at) or datetime.now(UTC)
     reference_dt = (
         _parse_iso_datetime(legacy_job.posted_at)
         or _parse_iso_datetime(legacy_job.last_seen_at)

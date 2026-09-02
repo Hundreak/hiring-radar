@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from hiring_radar.services.cv_engine.compliance.policies import DataRetentionPolicy
 
 
-class RetentionDisposition(str, Enum):
+class RetentionDisposition(StrEnum):
     """Retention outcome for one artifact class."""
 
     KEEP = "keep"

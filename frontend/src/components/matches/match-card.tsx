@@ -3,6 +3,7 @@
 import {Bookmark, Sparkles} from 'lucide-react';
 import {useLocale, useTranslations} from 'next-intl';
 
+import {MatchExplainabilityPanel} from '@/components/matches/match-explainability-panel';
 import {Badge} from '@/components/ui/badge';
 import {dispatchCopilotPrompt} from '@/lib/copilot-ui';
 import {
@@ -70,15 +71,6 @@ export function MatchCard({match}: {match: MatchCardModel}) {
   const deterministicReason = buildLocalizedDeterministicReason(locale, match.explanation);
   const skillSnapshot = getSkillAlignmentSnapshot(match.explanation);
   const gapTerms = getPrimaryGapTerms(match.explanation);
-  const analysisCoverage = match.explanation?.analysis_coverage ?? null;
-  const analysisCoverageLabel = analysisCoverage
-    ? analysisCoverage.level === 'strong'
-      ? t('analysisStrong')
-      : analysisCoverage.level === 'moderate'
-        ? t('analysisModerate')
-        : t('analysisLimited')
-    : null;
-
   const reasonDetail = deterministicReason?.detail ?? (
     fallbackReason?.kind === 'keyword'
       ? t('whyKeyword', {keyword: fallbackReason.keyword})
@@ -153,55 +145,15 @@ export function MatchCard({match}: {match: MatchCardModel}) {
           </div>
         ) : null}
 
-        {analysisCoverage && analysisCoverageLabel ? (
-          <div className="rounded-lg border border-border/70 bg-surface-muted/70 px-3 py-2">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('analysisCoverage')}
-            </div>
-            <p className="text-[11px] leading-relaxed text-foreground/80">{analysisCoverageLabel}</p>
-          </div>
-        ) : null}
-
-        {(skillSnapshot.score != null || skillSnapshot.evidenceTerms.length > 0) ? (
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-              <span>{t('skillMatch')}</span>
-              {skillSnapshot.score != null ? (
-                <span className="font-medium text-foreground/70">{skillSnapshot.score}%</span>
-              ) : null}
-            </div>
-            {skillSnapshot.score != null ? (
-              <div className="mb-2 h-[4px] rounded-full bg-border">
-                <div
-                  className={`h-[4px] rounded-full ${colors.fill}`}
-                  style={{width: `${skillSnapshot.score}%`}}
-                />
-              </div>
-            ) : null}
-            {skillSnapshot.evidenceTerms.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {skillSnapshot.evidenceTerms.map((term) => (
-                  <Badge key={term} tone="matched" className="rounded px-1.5 py-0.5 text-[10px]">
-                    {term}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {gapTerms.length > 0 ? (
-          <div>
-            <div className="mb-1 text-[10px] text-muted-foreground">{t('missingSkills')}</div>
-            <div className="flex flex-wrap gap-1">
-              {gapTerms.map((term) => (
-                <Badge key={term} tone="warning" className="rounded px-1.5 py-0.5 text-[10px]">
-                  {term}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <MatchExplainabilityPanel
+          title={match.title}
+          company={match.company}
+          location={match.location}
+          matchScore={match.matchScore}
+          isScorePreview={match.isScorePreview}
+          explanation={match.explanation}
+          fallbackTerms={reasonTerms.length ? reasonTerms : meaningfulKeywords}
+        />
 
         <div className="flex items-center justify-between border-t border-border/50 pt-2">
           <button

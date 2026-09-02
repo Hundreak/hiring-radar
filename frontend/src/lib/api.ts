@@ -1,5 +1,10 @@
+import {emitSessionExpiredFromApiError} from '@/lib/auth-session-events';
+import {buildPaginationQuery, type PaginationParams} from '@/lib/pagination';
 import type {JobListResponse} from '@/types/job';
 import type {SavedJob, SavedJobListResponse, SavedJobNote, SavedJobStatus} from '@/types/saved';
+
+type JobsQueryParams = PaginationParams & {query?: string};
+type SavedJobsQueryParams = PaginationParams & {status?: SavedJobStatus | null};
 
 export interface SessionItem {
   id: number;
@@ -82,13 +87,22 @@ import type {
   UserKeywordPreference,
   UserLanguageCertificate,
   UserSkillDetail,
+  UpdateUserNotificationPreferenceRequest,
+  UserNotificationPreference,
   UserPasswordLoginRequest,
   UserPasswordLoginResponse,
   UserProfile,
+  EmployerAuthSession,
   EmployerLoginRequest,
   EmployerLoginResponse,
   EmployerRegisterRequest,
   EmployerRegisterResponse,
+  EmployerRuntimeStatus,
+  EmployerCommunicationPreferencesResponse,
+  UpdateEmployerCommunicationPreferencesRequest,
+  EmployerAuditEventListResponse,
+  EmployerAuditExportResponse,
+  EmployerAuditQueryParams,
 } from '@/types/user';
 
 export interface SignupVerificationStartRequest {
@@ -129,18 +143,71 @@ export interface ConfirmPasswordResetResponse extends UserAuthMe {
   message: string;
 }
 
+
+const CSRF_COOKIE_NAME = process.env.NEXT_PUBLIC_CSRF_COOKIE_NAME ?? 'hiring_radar_csrf';
+const CSRF_HEADER_NAME = process.env.NEXT_PUBLIC_CSRF_HEADER_NAME ?? 'X-CSRF-Token';
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+function readBrowserCookie(name: string): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const cookie = document.cookie
+    .split('; ')
+    .find((item) => item.startsWith(`${name}=`));
+
+  if (!cookie) {
+    return null;
+  }
+
+  return decodeURIComponent(cookie.slice(name.length + 1));
+}
+
+function shouldAttachCsrfToken(init?: RequestInit): boolean {
+  const method = (init?.method ?? 'GET').toUpperCase();
+  return UNSAFE_METHODS.has(method);
+}
+
 export class ApiError extends Error {
   status: number;
   statusCode: number;
   detail: string;
+  requestId: string | null;
+  retryAfterSeconds: number | null;
 
-  constructor(status: number, detail: string) {
+  constructor(
+    status: number,
+    detail: string,
+    options: {requestId?: string | null; retryAfterSeconds?: number | null} = {}
+  ) {
     super(detail);
     this.name = 'ApiError';
     this.status = status;
     this.statusCode = status;
     this.detail = detail;
+    this.requestId = options.requestId ?? null;
+    this.retryAfterSeconds = options.retryAfterSeconds ?? null;
   }
+}
+
+function parseRetryAfterHeader(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.ceil(seconds);
+  }
+
+  const dateMs = Date.parse(value);
+  if (Number.isFinite(dateMs)) {
+    const deltaSeconds = Math.ceil((dateMs - Date.now()) / 1000);
+    return deltaSeconds > 0 ? deltaSeconds : null;
+  }
+
+  return null;
 }
 
 async function readErrorDetail(response: Response): Promise<string> {
@@ -154,7 +221,18 @@ async function readErrorDetail(response: Response): Promise<string> {
     return maybeJson.message;
   }
 
+  if (typeof maybeJson?.error?.message === 'string') {
+    return maybeJson.error.message;
+  }
+
   return 'Request failed.';
+}
+
+async function createApiError(response: Response): Promise<ApiError> {
+  return new ApiError(response.status, await readErrorDetail(response), {
+    requestId: response.headers.get('X-Request-ID'),
+    retryAfterSeconds: parseRetryAfterHeader(response.headers.get('Retry-After')),
+  });
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -168,6 +246,13 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   headers.set('Cache-Control', 'no-store');
 
+  if (shouldAttachCsrfToken(init) && !headers.has(CSRF_HEADER_NAME)) {
+    const csrfToken = readBrowserCookie(CSRF_COOKIE_NAME);
+    if (csrfToken) {
+      headers.set(CSRF_HEADER_NAME, csrfToken);
+    }
+  }
+
   const response = await fetch(`/api${path}`, {
     credentials: 'include',
     cache: 'no-store',
@@ -176,7 +261,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorDetail(response));
+    const error = await createApiError(response);
+    emitSessionExpiredFromApiError(path, error);
+    throw error;
   }
 
   if (response.status === 204) {
@@ -184,6 +271,46 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+function toQueryString(params: URLSearchParams): string {
+  const value = params.toString();
+  return value ? `?${value}` : '';
+}
+
+function buildJobsQuery(params: string | JobsQueryParams = ''): string {
+  if (typeof params === 'string') {
+    return params;
+  }
+
+  const searchParams = buildPaginationQuery(params);
+  const query = params.query?.trim();
+  if (query) {
+    searchParams.set('q', query);
+  }
+  return toQueryString(searchParams);
+}
+
+function buildSavedJobsQuery(params: SavedJobsQueryParams = {}): string {
+  const searchParams = buildPaginationQuery(params);
+  if (params.status) {
+    searchParams.set('status', params.status);
+  }
+  return toQueryString(searchParams);
+}
+
+
+function buildEmployerAuditQuery(params: EmployerAuditQueryParams = {}): string {
+  const searchParams = new URLSearchParams();
+  if (params.page) searchParams.set('page', String(params.page));
+  if (params.pageSize) searchParams.set('page_size', String(params.pageSize));
+  if (params.eventType?.trim()) searchParams.set('event_type', params.eventType.trim());
+  if (params.resourceType?.trim()) searchParams.set('resource_type', params.resourceType.trim());
+  if (params.resourceId?.trim()) searchParams.set('resource_id', params.resourceId.trim());
+  if (params.actorUserId) searchParams.set('actor_user_id', String(params.actorUserId));
+  if (params.createdFrom?.trim()) searchParams.set('created_from', params.createdFrom.trim());
+  if (params.createdTo?.trim()) searchParams.set('created_to', params.createdTo.trim());
+  return toQueryString(searchParams);
 }
 
 function normalizeKeywordPreference(
@@ -290,8 +417,58 @@ export const api = {
   registerEmployer(payload: EmployerRegisterRequest) {
     return apiFetch<EmployerRegisterResponse>('/employer/auth/register', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        company_name: payload.company_name,
+        company_email: payload.company_email,
+        full_name: payload.contact_name,
+        password: payload.password,
+        password_confirmation: payload.password_confirmation,
+      }),
     });
+  },
+
+  getEmployerSession() {
+    return apiFetch<EmployerAuthSession>('/employer/auth/me');
+  },
+
+  getEmployerRuntime() {
+    return apiFetch<EmployerRuntimeStatus>('/employer/runtime');
+  },
+
+  getEmployerCommunicationPreferences() {
+    return apiFetch<EmployerCommunicationPreferencesResponse>(
+      '/employer/settings/communication-preferences'
+    );
+  },
+
+  updateEmployerCommunicationPreferences(payload: UpdateEmployerCommunicationPreferencesRequest) {
+    return apiFetch<EmployerCommunicationPreferencesResponse>(
+      '/employer/settings/communication-preferences',
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+
+  getEmployerAuditEvents(params: EmployerAuditQueryParams = {}) {
+    return apiFetch<EmployerAuditEventListResponse>(
+      `/employer/compliance/audit-events${buildEmployerAuditQuery(params)}`
+    );
+  },
+
+  exportEmployerAuditEvents(params: EmployerAuditQueryParams & {format?: 'json' | 'csv'} = {}) {
+    const query = buildEmployerAuditQuery(params);
+    const separator = query ? `${query}&` : '?';
+    const format = params.format ?? 'json';
+    return apiFetch<EmployerAuditExportResponse>(
+      `/employer/compliance/audit-events/export${separator}format=${format}`
+    );
+  },
+
+  logoutEmployer() {
+    return apiFetch<{ok: boolean}>('/employer/auth/logout', {method: 'POST'});
   },
 
   getSession() {
@@ -312,6 +489,17 @@ export const api = {
     digest_enabled?: boolean;
   }) {
     return apiFetch<UserProfile>('/user/me/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getUserNotificationPreferences() {
+    return apiFetch<UserNotificationPreference>('/user/me/notification-preferences');
+  },
+
+  updateUserNotificationPreferences(payload: UpdateUserNotificationPreferenceRequest) {
+    return apiFetch<UserNotificationPreference>('/user/me/notification-preferences', {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
@@ -476,7 +664,9 @@ export const api = {
     });
 
     if (!response.ok) {
-      throw new ApiError(response.status, await readErrorDetail(response));
+      const error = await createApiError(response);
+      emitSessionExpiredFromApiError('/user/profile/ai-audit/export', error);
+      throw error;
     }
 
     return response.text();
@@ -703,11 +893,12 @@ export const api = {
     } satisfies KeywordPreferencePreviewResponse;
   },
 
-  getJobs(query = '') {
-    return apiFetch<JobListResponse>(`/user/jobs${query}`);
+  getJobs(params: string | JobsQueryParams = '') {
+    return apiFetch<JobListResponse>(`/user/jobs${buildJobsQuery(params)}`);
   },
 
-  getMatches(query = '') {
+  getMatches(params: string | PaginationParams = '') {
+    const query = typeof params === 'string' ? params : toQueryString(buildPaginationQuery(params));
     return apiFetch<JobListResponse>(`/user/matches${query}`);
   },
 
@@ -722,8 +913,8 @@ export const api = {
     });
   },
 
-  getSavedJobs() {
-    return apiFetch<SavedJobListResponse>('/user/saved-jobs');
+  getSavedJobs(params: SavedJobsQueryParams = {}) {
+    return apiFetch<SavedJobListResponse>(`/user/saved-jobs${buildSavedJobsQuery(params)}`);
   },
 
   saveJob(jobId: number, matchScore?: number | null) {

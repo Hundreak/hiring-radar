@@ -1,164 +1,81 @@
 'use client';
 
-import {useState} from 'react';
-import {Moon, Sun, Flame, Crown, ChevronDown} from 'lucide-react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { Crown, Eye, Flame, Moon, Sun } from 'lucide-react';
+import { useTheme, type Theme } from './theme-provider';
 
-import {useTheme, type Theme} from '@/components/theme/theme-provider';
-import {cn} from '@/lib/utils';
+function subscribe() { return () => {}; }
+function useIsHydrated() { return useSyncExternalStore(subscribe, () => true, () => false); }
 
-/* ── Theme definitions ── */
-interface ThemeOption {
-  id: Theme;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  colorClass: string; /* dot color indicator */
-}
-
-const THEME_OPTIONS: ThemeOption[] = [
-  {
-    id: 'obsidian',
-    label: 'Obsidian',
-    description: 'Ultra-premium dark',
-    icon: <Moon className="size-4" />,
-    colorClass: 'bg-[#6366F1]'
-  },
-  {
-    id: 'platinum',
-    label: 'Platinum',
-    description: 'Clean investor-grade',
-    icon: <Sun className="size-4" />,
-    colorClass: 'bg-[#64748b]'
-  },
-  {
-    id: 'crimson',
-    label: 'Crimson',
-    description: 'Bold & energetic',
-    icon: <Flame className="size-4" />,
-    colorClass: 'bg-[#DC2626]'
-  },
-  {
-    id: 'aurum',
-    label: 'Aurum',
-    description: 'Gold luxury',
-    icon: <Crown className="size-4" />,
-    colorClass: 'bg-[#D4AF37]'
-  }
+const themeOptions: Array<{ id: Theme; label: string; description: string; icon: React.ElementType; dot: string }> = [
+  { id: 'clarity', label: 'Clarity', description: 'En rahat okunabilir tema', icon: Eye, dot: 'bg-[#37d6c3]' },
+  { id: 'obsidian', label: 'Obsidian', description: 'Premium koyu tema', icon: Moon, dot: 'bg-[#6366F1]' },
+  { id: 'platinum', label: 'Platinum', description: 'Temiz açık tema', icon: Sun, dot: 'bg-[#64748b]' },
+  { id: 'crimson', label: 'Crimson', description: 'Enerjik koyu tema', icon: Flame, dot: 'bg-[#DC2626]' },
+  { id: 'aurum', label: 'Aurum', description: 'Altın flagship tema', icon: Crown, dot: 'bg-[#D4AF37]' },
 ];
 
 export function ThemeToggle() {
-  const {resolvedTheme, setTheme} = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const isHydrated = useIsHydrated();
+  const [showMenu, setShowMenu] = useState(false);
 
-  const activeOption = THEME_OPTIONS.find((t) => t.id === resolvedTheme) ?? THEME_OPTIONS[0];
+  useEffect(() => {
+    if (!showMenu) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowMenu(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [showMenu]);
+
+  if (!isHydrated) {
+    return <div className="h-9 w-9 rounded-xl border border-border bg-surface-muted" />;
+  }
+
+  const currentOption = themeOptions.find(t => t.id === resolvedTheme) || themeOptions[0];
+  const Icon = currentOption.icon;
 
   return (
     <div className="relative">
-      {/* ── Trigger Button ── */}
       <button
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-label="Select theme"
-        className={cn(
-          'inline-flex items-center gap-2 rounded-2xl border border-border bg-surface',
-          'px-3 py-2.5 text-muted-foreground transition-all duration-200',
-          'hover:border-primary/40 hover:text-foreground',
-          'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
-          isOpen && 'border-primary/40 text-foreground'
-        )}
-        onClick={() => setIsOpen((prev) => !prev)}
+        aria-label="Tema seç"
+        aria-haspopup="menu"
+        aria-expanded={showMenu}
+        onClick={() => setShowMenu(!showMenu)}
+        className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface-muted text-foreground shadow-sm transition hover:border-primary/40 hover:bg-surface-strong focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)]"
         type="button"
       >
-        <span className="flex items-center justify-center text-foreground">
-          {activeOption.icon}
-        </span>
-        <span className="hidden text-sm font-medium text-foreground sm:inline">
-          {activeOption.label}
-        </span>
-        <ChevronDown
-          className={cn(
-            'size-3.5 text-muted-foreground transition-transform duration-200',
-            isOpen && 'rotate-180'
-          )}
-        />
+        <Icon className="size-4" />
       </button>
-
-      {/* ── Dropdown Menu ── */}
-      {isOpen && (
+      {showMenu && (
         <>
-          {/* Backdrop to close on outside click */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-
-          <div
-            className={cn(
-              'absolute right-0 top-full z-50 mt-2 w-56',
-              'rounded-2xl border border-border bg-surface-elevated',
-              'p-1.5 shadow-lg animate-scale-in'
-            )}
-            role="listbox"
-          >
-            <div className="px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Theme
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-0.5">
-              {THEME_OPTIONS.map((option) => {
-                const isActive = option.id === resolvedTheme;
-                return (
-                  <button
-                    key={option.id}
-                    className={cn(
-                      'flex items-center gap-3 rounded-xl px-3 py-2.5 text-left',
-                      'transition-all duration-150',
-                      isActive
-                        ? 'bg-primary/10 text-foreground'
-                        : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground'
-                    )}
-                    onClick={() => {
-                      setTheme(option.id);
-                      setIsOpen(false);
-                    }}
-                    role="option"
-                    aria-selected={isActive}
-                    type="button"
-                  >
-                    {/* Icon */}
-                    <span
-                      className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-lg',
-                        isActive ? 'bg-primary/15 text-primary' : 'bg-surface-muted text-muted-foreground'
-                      )}
-                    >
-                      {option.icon}
-                    </span>
-
-                    {/* Label + description */}
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-sm font-medium">
-                        {option.label}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {option.description}
-                      </span>
-                    </div>
-
-                    {/* Active indicator dot */}
-                    <span
-                      className={cn(
-                        'size-2 rounded-full transition-transform',
-                        option.colorClass,
-                        isActive ? 'scale-100' : 'scale-0'
-                      )}
-                    />
-                  </button>
-                );
-              })}
-            </div>
+          <button className="fixed inset-0 z-40 cursor-default" aria-label="Tema menüsünü kapat" onClick={() => setShowMenu(false)} type="button" />
+          <div className="absolute right-0 top-10 z-50 w-60 rounded-2xl border border-border bg-surface-elevated p-2 shadow-lg">
+            <div className="px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">Tema</div>
+            {themeOptions.map(opt => {
+              const OptIcon = opt.icon;
+              const active = resolvedTheme === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => { setTheme(opt.id); setShowMenu(false); }}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${active ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground'}`}
+                  role="menuitemradio"
+                  aria-checked={active}
+                  type="button"
+                >
+                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${active ? 'bg-primary/15 text-primary' : 'bg-surface-muted text-muted-foreground'}`}>
+                    <OptIcon className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">{opt.label}</span>
+                    <span className="block truncate text-xs opacity-75">{opt.description}</span>
+                  </span>
+                  <span className={`size-2 rounded-full ${opt.dot} ${active ? 'opacity-100' : 'opacity-30'}`} />
+                </button>
+              );
+            })}
           </div>
         </>
       )}

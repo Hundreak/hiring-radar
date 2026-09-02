@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from hiring_radar.services.cv_engine.config import LayoutAnalysisConfig
-from hiring_radar.services.cv_engine.models import LayoutAnalysisArtifact, LayoutPage, LayoutTextBlock
+from hiring_radar.services.cv_engine.models import (
+    LayoutAnalysisArtifact,
+    LayoutPage,
+    LayoutTextBlock,
+)
 
 
 def reconstruct_reading_order(

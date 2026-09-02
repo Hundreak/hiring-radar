@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import replace
-from typing import Iterable
 
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.models import CanonicalJob, CanonicalJobFeature
@@ -19,9 +19,6 @@ from hiring_radar.services.jobs.normalization import (
     infer_responsibility_scope,
     infer_role_category,
     infer_years_experience_min,
-    normalize_company_name,
-    normalize_job_title,
-    normalize_location_text,
     normalize_url_for_dedup,
     tokenize_keywords,
 )

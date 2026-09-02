@@ -1,69 +1,71 @@
-# Python
+# Python bytecode / caches
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
-# Virtual environments
+# Python environments / packaging
 .venv/
 venv/
-
-# Packaging artifacts
+env/
 *.egg-info/
 dist/
 build/
 
-# Tool caches
-.pytest_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Local env files
+# Local environment files
 .env
+.env.*
+!.env.example
 
-# Editor / OS
+# Local tooling / editor state
 .DS_Store
 .vscode/
 .idea/
+.claude/
 
-# Keep folders, ignore generated contents
+# Logs and runtime outputs
+logs/
+*.log
+
+# Application runtime data
+# Keep the folder skeleton in Git, but never commit local databases, uploads,
+# OCR/CV diagnostics, AI audit logs, generated exports, or repair backups.
 data/*
 !data/.gitkeep
 !data/exports/
-
 data/exports/*
 !data/exports/.gitkeep
 
-logs/*
-!logs/.gitkeep
-
-# Generated artifacts
 *.db
 *.sqlite
 *.sqlite3
+*.db.bak*
+*.sqlite.bak*
+*.sqlite3.bak*
 *.csv
-*.log
 
+# Local config overrides
+config/*.local.yml
 
-config/companies.local.yml
-# Python local env/cache
-.venv/
-venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
+# Frontend dependencies / build caches
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/tsconfig.tsbuildinfo
 
-# Runtime/local outputs
-logs/
-data/cv_inspect/
-
-# Local generated artifacts
+# Generated archives / handoff packages
 *.zip
+*.tar
+*.tar.gz
 *.tar.xz
 
-# Frontend build/cache
-frontend/.next/
-frontend/tsconfig.tsbuildinfo
-frontend/node_modules/
+# Temporary backup snapshots
+.backup_*/
+*_backup/
+*.bak

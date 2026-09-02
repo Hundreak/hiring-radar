@@ -17,7 +17,6 @@ from hiring_radar.services.cv_engine.segmentation.section_detection import (
 )
 
 
-
 def _build_context(*, lines: list[str], language: str) -> ParseContext:
     return ParseContext(
         ingestion=DocumentIngestionArtifact(

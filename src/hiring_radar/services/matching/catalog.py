@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from hiring_radar.db.repository import HiringRadarRepository
-from hiring_radar.models import CanonicalJob, CanonicalJobFeature, SubscriberProfileFeature
+from hiring_radar.models import SubscriberProfileFeature
 from hiring_radar.services.jobs.feature_engine import refresh_matching_readiness_features
 from hiring_radar.services.matching.contracts import RankedJobMatch
-from hiring_radar.services.matching.engine import rank_canonical_jobs_for_subscriber, score_canonical_job_for_subscriber
+from hiring_radar.services.matching.engine import (
+    rank_canonical_jobs_for_subscriber,
+    score_canonical_job_for_subscriber,
+)
 from hiring_radar.services.matching.profile_features import refresh_subscriber_profile_features
 
 

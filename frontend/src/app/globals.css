@@ -2,7 +2,8 @@
 
 /* ═══════════════════════════════════════════════════════════════
    NoyTera — Premium Theme System v3.0
-   Four meticulously crafted themes:
+   Five meticulously crafted themes:
+   • CLARITY  — Comfort-first flagship for daily hiring work
    • OBSIDIAN — Ultra-premium dark (Linear.app inspired)
    • PLATINUM — Clean investor-grade light
    • CRIMSON  — Bold, energetic dark
@@ -10,11 +11,77 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ================================================================
+   0. CLARITY — Comfort-first flagship theme
+      High contrast dark-blue base, calm cyan/indigo actions,
+      readable surfaces and enterprise SaaS ergonomics.
+   ================================================================ */
+:root, .clarity {
+  /* ── Background & Surfaces ── */
+  --background:        #08111f;
+  --surface:           rgba(255,255,255,0.055);
+  --surface-elevated:  #101c2e;
+  --surface-muted:     rgba(255,255,255,0.075);
+  --surface-strong:    rgba(255,255,255,0.115);
+
+  /* ── Foreground ── */
+  --foreground:        #f7fbff;
+  --muted-foreground:  rgba(226,235,246,0.68);
+
+  /* ── Borders ── */
+  --border:            rgba(199,216,238,0.145);
+  --border-strong:     rgba(210,228,250,0.245);
+
+  /* ── Primary: Calm action blue ── */
+  --primary:           #58a6ff;
+  --primary-foreground:#06101d;
+  --secondary:         rgba(88,166,255,0.155);
+  --secondary-foreground:#c7e2ff;
+
+  /* ── Accent: Hiring cyan ── */
+  --accent:            #37d6c3;
+  --accent-soft:       rgba(55,214,195,0.13);
+
+  /* ── Semantic ── */
+  --success:           #58d68d;
+  --warning:           #f7c948;
+  --danger:            #ff6b6b;
+  --ring:              rgba(88,166,255,0.32);
+
+  /* ── Shadows ── */
+  --shadow-card:       0 1px 1px rgba(0,0,0,0.26), 0 18px 60px rgba(0,0,0,0.28);
+  --shadow-elevated:   0 26px 90px rgba(0,0,0,0.42);
+
+  /* ── Hero Gradient ── */
+  --hero-gradient-start: #08111f;
+  --hero-gradient-end:   #0e2440;
+
+  /* ── Glassmorphism ── */
+  --glass-bg:          rgba(16,28,46,0.78);
+  --glass-border:      rgba(210,228,250,0.16);
+
+  /* ── Chip ── */
+  --chip-bg:           rgba(88,166,255,0.16);
+  --chip-text:         #c7e2ff;
+
+  /* ── Radar ── */
+  --radar-pulse:       rgba(55,214,195,0.35);
+
+  /* ── Match Scores ── */
+  --match-high:        #37d6c3;
+  --match-mid:         #58a6ff;
+  --match-low:         #f7c948;
+  --match-miss:        #ff6b6b;
+
+  /* ── Typography ── */
+  --font-sans:         Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+/* ================================================================
    1. OBSIDIAN — Ultra-Premium Dark
       Deep warm charcoal. Electric indigo + soft violet.
       Inspired by Linear.app, Vercel dark mode.
    ================================================================ */
-:root, .obsidian {
+.obsidian {
   /* ── Background & Surfaces ── */
   --background:        #0a0a0f;
   --surface:           rgba(255,255,255,0.025);
@@ -24,11 +91,11 @@
 
   /* ── Foreground ── */
   --foreground:        #f0f0f5;
-  --muted-foreground:  rgba(240,240,245,0.42);
+  --muted-foreground:  rgba(240,240,245,0.58);
 
   /* ── Borders ── */
-  --border:            rgba(255,255,255,0.065);
-  --border-strong:     rgba(255,255,255,0.11);
+  --border:            rgba(255,255,255,0.095);
+  --border-strong:     rgba(255,255,255,0.17);
 
   /* ── Primary: Electric Indigo ── */
   --primary:           #6366F1;
@@ -396,25 +463,31 @@ input, textarea, select, button { font: inherit; }
               border-color 240ms ease;
 }
 
-.surface-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-elevated);
-  border-color: var(--border-strong);
-}
+@media (hover: hover) {
+  .surface-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-elevated);
+    border-color: var(--border-strong);
+  }
 
-/* Theme-specific hover enhancements */
-.obsidian .surface-card:hover {
-  box-shadow: 0 12px 48px rgba(99,102,241,0.08), var(--shadow-elevated);
-}
-.platinum .surface-card:hover {
-  box-shadow: 0 12px 48px rgba(15,23,42,0.06), var(--shadow-elevated);
-}
-.crimson .surface-card:hover {
-  box-shadow: 0 12px 48px rgba(220,38,38,0.07), var(--shadow-elevated);
-}
-.aurum .surface-card:hover {
-  box-shadow: 0 12px 48px rgba(212,175,55,0.06), var(--shadow-elevated);
-  border-color: rgba(212,175,55,0.20);
+  /* Theme-specific hover enhancements */
+  .clarity .surface-card:hover {
+    box-shadow: 0 18px 70px rgba(88,166,255,0.10), var(--shadow-elevated);
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--border-strong));
+  }
+  .obsidian .surface-card:hover {
+    box-shadow: 0 12px 48px rgba(99,102,241,0.08), var(--shadow-elevated);
+  }
+  .platinum .surface-card:hover {
+    box-shadow: 0 12px 48px rgba(15,23,42,0.06), var(--shadow-elevated);
+  }
+  .crimson .surface-card:hover {
+    box-shadow: 0 12px 48px rgba(220,38,38,0.07), var(--shadow-elevated);
+  }
+  .aurum .surface-card:hover {
+    box-shadow: 0 12px 48px rgba(212,175,55,0.06), var(--shadow-elevated);
+    border-color: rgba(212,175,55,0.20);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -443,6 +516,14 @@ input, textarea, select, button { font: inherit; }
    ═══════════════════════════════════════════════════════════════ */
 .gradient-text {
   background: linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Clarity: cyan → blue gradient */
+.clarity .gradient-text {
+  background: linear-gradient(135deg, #37d6c3, #58a6ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -654,6 +735,9 @@ input, textarea, select, button { font: inherit; }
 }
 
 /* Theme-specific copilot surfaces */
+.clarity .copilot-elevated-surface {
+  background: linear-gradient(180deg, rgba(16,28,46,0.98), rgba(8,17,31,0.99));
+}
 .obsidian .copilot-elevated-surface {
   background: linear-gradient(180deg, rgba(17,17,24,0.96), rgba(10,10,15,0.98));
 }
@@ -685,6 +769,73 @@ input, textarea, select, button { font: inherit; }
   background: color-mix(in srgb, var(--border-strong) 80%, var(--muted-foreground));
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   COMFORT THEME UTILITIES — readable SaaS ergonomics
+   ═══════════════════════════════════════════════════════════════ */
+.theme-comfort-bg {
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 28rem),
+    radial-gradient(circle at 90% 8%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 30rem),
+    linear-gradient(180deg, var(--hero-gradient-start), var(--background) 42%, var(--background));
+}
+
+.comfort-panel {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(20px) saturate(1.25);
+}
+
+.comfort-input {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-elevated) 82%, transparent);
+  color: var(--foreground);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.comfort-input::placeholder { color: var(--muted-foreground); }
+.comfort-input:hover { border-color: var(--border-strong); }
+.comfort-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--primary) 62%, var(--border));
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.comfort-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.comfort-table th {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.comfort-table td, .comfort-table th {
+  padding: 14px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+}
+
+.comfort-table tr:last-child td { border-bottom: 0; }
+.comfort-table tbody tr { transition: background 160ms ease; }
+.comfort-table tbody tr:hover { background: color-mix(in srgb, var(--surface-strong) 65%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════════════ */
@@ -696,4 +847,236 @@ input, textarea, select, button { font: inherit; }
 
 @media (max-width: 640px) {
   .container-shell { padding-inline: 16px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPLOYER QA POLISH — Patch 6
+   Accessible, responsive and legacy-page compatible employer UI.
+   ═══════════════════════════════════════════════════════════════ */
+.skip-link {
+  position: fixed;
+  left: 16px;
+  top: 12px;
+  z-index: 1000;
+  transform: translateY(-140%);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: var(--shadow-elevated);
+  transition: transform 160ms ease;
+}
+.skip-link:focus { transform: translateY(0); }
+
+.employer-main-shell {
+  min-height: 100dvh;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+
+.employer-content-frame {
+  width: 100%;
+  max-width: 1480px;
+  margin-inline: auto;
+}
+
+.employer-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.interactive-surface {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 180ms ease,
+              background-color 180ms ease,
+              box-shadow 180ms ease;
+}
+@media (hover: hover) {
+  .interactive-surface:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--border-strong));
+    background: color-mix(in srgb, var(--surface-strong) 74%, transparent);
+  }
+}
+
+.touch-target { min-height: 44px; min-width: 44px; }
+
+.employer-page-title {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+  color: var(--foreground);
+}
+
+.employer-page-desc {
+  margin-top: 8px;
+  max-width: 720px;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.employer-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.employer-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+.stat-label {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.stat-value {
+  margin-top: 10px;
+  color: var(--foreground);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.candidate-card {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, background 180ms ease;
+}
+@media (hover: hover) {
+  .candidate-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border-strong));
+    background: color-mix(in srgb, var(--surface-elevated) 96%, var(--primary) 4%);
+  }
+}
+.candidate-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--primary-foreground);
+  font-weight: 950;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.match-bar-bg {
+  height: 8px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-strong) 74%, transparent);
+}
+.match-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.match-bar-fill.high { background: var(--match-high); }
+.match-bar-fill.mid { background: var(--match-mid); }
+.match-bar-fill.low { background: var(--match-low); }
+.match-bar-fill.miss { background: var(--match-miss); }
+
+.skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-muted) 82%, transparent);
+  color: var(--muted-foreground);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.skill-chip.match {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+  background: color-mix(in srgb, var(--secondary) 80%, transparent);
+  color: var(--secondary-foreground);
+}
+
+.filter-section-title {
+  margin-bottom: 8px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.filter-option {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 10px;
+  border-radius: 14px;
+  padding: 7px 9px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 650;
+  transition: background 160ms ease, color 160ms ease;
+}
+.filter-option:hover { background: color-mix(in srgb, var(--surface-strong) 70%, transparent); }
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 720px;
+}
+.data-table th {
+  padding: 12px 14px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+}
+.data-table tbody tr { transition: background 160ms ease; }
+.data-table tbody tr:hover { background: color-mix(in srgb, var(--surface-strong) 62%, transparent); }
+.data-table tbody tr:last-child td { border-bottom: 0; }
+
+@media (max-width: 1280px) {
+  .employer-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1024px) {
+  .employer-grid-2 { grid-template-columns: 1fr !important; }
+  .employer-content-frame { max-width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .employer-grid-4 { grid-template-columns: 1fr; }
+  .employer-page-title { letter-spacing: -0.04em; }
+  .surface-card, .candidate-card, .stat-card { border-radius: 20px; }
+  .data-table { min-width: 620px; }
 }

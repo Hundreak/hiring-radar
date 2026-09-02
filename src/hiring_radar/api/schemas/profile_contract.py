@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,19 +14,19 @@ class StrictSchema(BaseModel):
 class AiAuditFinalizeContext(StrictSchema):
     audit_event_ids: list[str] = Field(default_factory=list)
 
-class ProfileValueSource(str, Enum):
+class ProfileValueSource(StrEnum):
     EXTRACTED = "extracted"
     USER = "user"
     MERGED = "merged"
 
 
-class CompletionSectionStatus(str, Enum):
+class CompletionSectionStatus(StrEnum):
     DONE = "done"
     PARTIAL = "partial"
     MISSING = "missing"
 
 
-class EmploymentType(str, Enum):
+class EmploymentType(StrEnum):
     FULL_TIME = "full_time"
     PART_TIME = "part_time"
     CONTRACT = "contract"
@@ -36,13 +36,13 @@ class EmploymentType(str, Enum):
     OTHER = "other"
 
 
-class WorkMode(str, Enum):
+class WorkMode(StrEnum):
     ONSITE = "onsite"
     HYBRID = "hybrid"
     REMOTE = "remote"
 
 
-class LanguageProficiency(str, Enum):
+class LanguageProficiency(StrEnum):
     BEGINNER = "beginner"
     ELEMENTARY = "elementary"
     INTERMEDIATE = "intermediate"
@@ -53,7 +53,7 @@ class LanguageProficiency(str, Enum):
     NATIVE_OR_BILINGUAL = "native_or_bilingual"
 
 
-class SuggestionImpactLevel(str, Enum):
+class SuggestionImpactLevel(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"

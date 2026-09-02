@@ -1791,12 +1791,12 @@ def test_upload_user_cv_preserves_existing_profile_when_draft_has_no_signal(
     preserve the user's existing structured sections rather than
     replacing them with empty lists.
     """
-    from hiring_radar.services.cv_extraction import CV_PARSE_STATUS_EMPTY
     from hiring_radar.models import (
         SubscriberEducationEntry,
         SubscriberExperienceEntry,
         SubscriberLanguageEntry,
     )
+    from hiring_radar.services.cv_extraction import CV_PARSE_STATUS_EMPTY
 
     upload_root = tmp_path / "uploads"
     monkeypatch.setenv("HIRING_RADAR_UPLOAD_DIR", str(upload_root))

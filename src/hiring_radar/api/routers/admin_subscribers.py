@@ -3,9 +3,15 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from hiring_radar.api.dependencies import get_current_admin_session, get_repository
+from hiring_radar.api.pagination import (
+    ADMIN_LIST_BOUNDS,
+    normalize_page_contract,
+    set_pagination_headers,
+    total_pages,
+)
 from hiring_radar.api.schemas.keyword_preferences import (
     SubscriberKeywordPreferenceResponse,
 )
@@ -25,12 +31,6 @@ RepositoryDep = Annotated[HiringRadarRepository, Depends(get_repository)]
 
 def _utc_now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _total_pages(*, total_items: int, page_size: int) -> int:
-    if total_items == 0:
-        return 0
-    return (total_items + page_size - 1) // page_size
 
 
 def _map_subscriber(subscriber) -> AdminSubscriberListItemResponse:
@@ -63,7 +63,8 @@ def _map_keyword_preference(preference) -> SubscriberKeywordPreferenceResponse:
 def admin_list_subscribers(
     admin_session: AdminSessionDep,
     repository: RepositoryDep,
-    email_query: str | None = None,
+    response: Response,
+    email_query: Annotated[str | None, Query(max_length=160)] = None,
     is_active: bool | None = None,
     digest_enabled: bool | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
@@ -79,12 +80,15 @@ def admin_list_subscribers(
         page_size=page_size,
     )
 
+    meta = normalize_page_contract(page=page, page_size=page_size, total_items=total_items, bounds=ADMIN_LIST_BOUNDS)
+    set_pagination_headers(response, meta=meta)
+
     return AdminSubscriberListResponse(
         items=[_map_subscriber(subscriber) for subscriber in subscribers],
         page=page,
         page_size=page_size,
         total_items=total_items,
-        total_pages=_total_pages(total_items=total_items, page_size=page_size),
+        total_pages=total_pages(total_items=total_items, page_size=page_size),
     )
 
 

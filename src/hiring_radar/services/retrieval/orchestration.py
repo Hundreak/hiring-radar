@@ -4,7 +4,6 @@ import logging
 from dataclasses import dataclass
 
 from hiring_radar.db.repository import HiringRadarRepository
-from hiring_radar.models import RetrievalDocument, RetrievalSource
 from hiring_radar.services.retrieval.ingestion import (
     INGESTION_ACTION_SKIPPED,
     PreparedRetrievalDocument,
@@ -34,7 +33,7 @@ class RetrievalRefreshResult:
         *,
         prepared: PreparedRetrievalDocument,
         result: RetrievalIngestionResult,
-    ) -> "RetrievalRefreshResult":
+    ) -> RetrievalRefreshResult:
         return cls(
             source_type=prepared.source_type,
             source_ref=prepared.source_ref,

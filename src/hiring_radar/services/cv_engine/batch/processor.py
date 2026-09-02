@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import inspect
 import time
-from collections.abc import AsyncIterator, Iterable
-from typing import Any, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
+from typing import Any
 
 from hiring_radar.services.cv_engine.batch.models import (
     BatchParseRequest,

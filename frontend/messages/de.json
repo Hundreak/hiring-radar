@@ -6,6 +6,26 @@
       "jobs": "Jobs",
       "matches": "Matches",
       "saved": "Gespeichert"
+    },
+    "dataError": {
+      "retry": "Erneut versuchen",
+      "requestId": "Anfrage-ID: {requestId}",
+      "statusCode": "HTTP {status}",
+      "retryAfter": "Du kannst es in etwa {time} erneut versuchen.",
+      "genericTitle": "Daten konnten nicht geladen werden",
+      "genericDescription": "Dieser Bereich konnte gerade nicht aktualisiert werden. Verbindung oder Server sind möglicherweise kurzzeitig nicht verfügbar.",
+      "networkTitle": "Verbindung fehlgeschlagen",
+      "networkDescription": "Prüfe deine Verbindung oder den API-Zugriff und versuche es erneut.",
+      "serverTitle": "Vorübergehendes Serverproblem",
+      "serverDescription": "Die Anfrage hat den Server erreicht, konnte aber nicht abgeschlossen werden. Ein erneuter Versuch hilft oft.",
+      "rateLimitedTitle": "Zu viele Anfragen",
+      "rateLimitedDescription": "Warte kurz, bevor du es erneut versuchst, damit der Schutzmechanismus zurückgesetzt wird.",
+      "unauthorizedTitle": "Sitzung erforderlich",
+      "unauthorizedDescription": "Du musst dich möglicherweise erneut anmelden, bevor diese Daten angezeigt werden können.",
+      "forbiddenTitle": "Zugriff verweigert",
+      "forbiddenDescription": "Diese Sitzung hat offenbar keine Berechtigung für diese Aktion.",
+      "notFoundTitle": "Daten nicht gefunden",
+      "notFoundDescription": "Der angefragte Datensatz wurde möglicherweise verschoben, gelöscht oder ist nicht mehr verfügbar."
     }
   },
   "landing": {
@@ -196,7 +216,11 @@
     "analysisCoverage": "Stellenanalyse",
     "analysisStrong": "Stark — der Stelleninhalt wurde klar erfasst und deterministisch analysiert.",
     "analysisModerate": "Mittel — der Stelleninhalt wurde analysiert, aber einige Abschnitte sind noch dünn.",
-    "analysisLimited": "Begrenzt — diese Stelle wird derzeit aus teilweisem Inhalt analysiert; der Score sollte vorsichtiger gelesen werden."
+    "analysisLimited": "Begrenzt — diese Stelle wird derzeit aus teilweisem Inhalt analysiert; der Score sollte vorsichtiger gelesen werden.",
+    "paginationPrevious": "Zurück",
+    "paginationNext": "Weiter",
+    "paginationPageSize": "Pro Seite",
+    "paginationSummary": "{start}-{end} von {total} Einträgen"
   },
   "matches": {
     "title": "Für dich passende Jobs",
@@ -243,13 +267,38 @@
     "analysisCoverage": "Stellenanalyse",
     "analysisStrong": "Stark — der Stelleninhalt wurde klar erfasst und deterministisch analysiert.",
     "analysisModerate": "Mittel — der Stelleninhalt wurde analysiert, aber einige Abschnitte sind noch dünn.",
-    "analysisLimited": "Begrenzt — diese Stelle wird derzeit aus teilweisem Inhalt analysiert; der Score sollte vorsichtiger gelesen werden."
+    "analysisLimited": "Begrenzt — diese Stelle wird derzeit aus teilweisem Inhalt analysiert; der Score sollte vorsichtiger gelesen werden.",
+    "explainabilityTitle": "Match-Klarheit",
+    "explainabilityReadiness": "Reife",
+    "explainabilityConfidence": "Sicherheit",
+    "explainabilityReady": "Bewerbungsnah",
+    "explainabilityReview": "Prüfen und schärfen",
+    "explainabilityStretch": "Stretch-Rolle",
+    "explainabilityReadySummary": "Diese Stelle wirkt bewerbungsnah; mache die stärksten Signale mit konkreten Nachweisen sichtbar.",
+    "explainabilityReviewSummary": "Diese Stelle ist vielversprechend, aber einige Signale sollten vor der Bewerbung geschärft werden.",
+    "explainabilityStretchSummary": "Diese Rolle wirkt aktuell ambitioniert; schließe sichtbare Lücken, bevor du sie priorisierst.",
+    "analysisStrongShort": "Stark",
+    "analysisModerateShort": "Mittel",
+    "analysisLimitedShort": "Begrenzt",
+    "explainabilityDrivers": "Wichtigste Score-Treiber",
+    "explainabilityStrongSignals": "Starke Signale",
+    "explainabilityRiskSignals": "Risiken / fehlende Signale",
+    "explainabilityActionPlan": "Empfohlener nächster Schritt",
+    "explainabilityActionApply": "Bewerbung vorbereiten: Hebe die stärksten Signale mit kurzen, messbaren Beispielen hervor.",
+    "explainabilityActionStory": "Bereite eine Mini-Story vor, die diese Signale im CV oder Anschreiben belegt: {terms}.",
+    "explainabilityActionGap": "Stärke vor der Bewerbung möglichst diese fehlenden Signale: {terms}.",
+    "explainabilityActionVerify": "Der Kontext der Stelle ist begrenzt; prüfe Originalanzeige und Unternehmenskontext vor der Bewerbung.",
+    "explainabilityAiPlan": "Bewerbungsplan erstellen",
+    "paginationPrevious": "Zurück",
+    "paginationNext": "Weiter",
+    "paginationPageSize": "Pro Seite",
+    "paginationSummary": "{start}-{end} von {total} Einträgen"
   },
   "saved": {
     "title": "Gespeicherte Jobs",
-    "description": "Jobs speichern, Bewerbungsstatus selbst aktualisieren. CoreSift hilft bei der Vorbereitung.",
+    "description": "Speichere Jobs, verfolge jede Bewerbungsphase und verwalte Follow-up-Notizen in einer Pipeline. CoreSift hilft bei der Vorbereitung.",
     "howTitle": "Wie funktioniert es?",
-    "howText": "CoreSift ist nicht direkt mit Unternehmen verbunden — du verfolgst Bewerbungsergebnisse selbst. Wenn du eine Einladung zum Vorstellungsgespräch erhältst, markiere es selbst.",
+    "howText": "CoreSift ist nicht direkt mit Unternehmen verbunden — du verwaltest die Bewerbungspipeline selbst. Verschiebe jeden Job, wenn du dich bewirbst, Rückmeldung erhältst, ein Gespräch führst, abgelehnt wirst oder ein Angebot bekommst.",
     "tabAll": "Alle",
     "tabReviewing": "Prüfung",
     "tabApplied": "Beworben",
@@ -300,7 +349,37 @@
     "interviewPrepPrompt": "Hilf mir, mich auf ein Vorstellungsgespräch bei {company} für die Position {title} vorzubereiten. Was sollte ich erwarten? Welche Fragen könnten gestellt werden? Wie sollte ich mich vorbereiten?",
     "reviewingProgressLabel": "Profil-Fit-Ansicht",
     "reviewingProgressActive": "Wird verarbeitet",
-    "reviewingProgressReady": "Bereit"
+    "reviewingProgressReady": "Bereit",
+    "tabOffer": "Angebot",
+    "tabRejected": "Abgelehnt",
+    "colOffer": "Angebot",
+    "colRejected": "Abgelehnt",
+    "statusArchive": "Archivieren",
+    "restoreInterview": "Zum Gespräch verschieben",
+    "pipelineActive": "Aktive Pipeline",
+    "pipelineActiveHint": "Prüfung, Bewerbung und Gesprächsphasen.",
+    "pipelineInterviews": "Gespräche",
+    "pipelineInterviewsHint": "Chancen, die aktuell im Gespräch sind.",
+    "pipelineOffers": "Angebote",
+    "pipelineOffersHint": "Positive Ergebnisse werden hier verfolgt.",
+    "pipelineOfferRate": "Angebotsrate",
+    "pipelineOfferRateHint": "Angebote über Bewerbungs-, Gesprächs- und Ergebnisphasen.",
+    "pipelineToolbarTitle": "Pipeline-Steuerung",
+    "pipelineToolbarSubtitle": "Nach Phase filtern, Notizen oder Unternehmen suchen und die Liste sortieren, ohne Kontext zu verlieren.",
+    "searchPlaceholder": "Job, Unternehmen, Stichwort, Notiz suchen…",
+    "sortActivity": "Letzte Aktivität",
+    "sortDeadline": "Nächste Frist",
+    "sortScore": "Beste Übereinstimmung",
+    "emptySearch": "Keine gespeicherten Jobs passen zu diesem Filter.",
+    "emptyOfferColumn": "Angebote erscheinen hier, wenn ein Gespräch positiv endet.",
+    "emptyRejectedColumn": "Abgelehnte oder geschlossene Bewerbungen können hier vor der Archivierung verfolgt werden.",
+    "removeSaved": "Aus gespeicherten Jobs entfernen",
+    "createdAt": "Gespeichert",
+    "lastActivity": "Aktivität",
+    "paginationPrevious": "Zurück",
+    "paginationNext": "Weiter",
+    "paginationPageSize": "Pro Seite",
+    "paginationSummary": "{start}-{end} von {total} Einträgen"
   },
   "profile": {
     "completion": {
@@ -427,7 +506,67 @@
       "timeMinutesAgo": "vor {count} Min.",
       "timeHoursAgo": "vor {count} Std.",
       "timeDaysAgo": "vor {count} T.",
-      "close": "Schließen"
+      "close": "Schließen",
+      "center": {
+        "scoreLabel": "Sicherheitswert",
+        "checklistLabel": "Security Center",
+        "hero": {
+          "strong": {
+            "title": "Dein Konto hat ein starkes Sicherheitsniveau.",
+            "description": "Zwei-Faktor-Authentifizierung, aktive Sitzungen und letzte Login-Signale sehen gesund aus. Prüfe dieses Center regelmäßig, um das Konto produktionsreif abzusichern."
+          },
+          "watch": {
+            "title": "Dein Konto sieht gut aus, einige Kontrollen lohnen sich.",
+            "description": "Verwalte Sitzungen, Zwei-Faktor-Authentifizierung und Login-Aktivität an einem Ort. Kleine Prüfungen machen das Konto widerstandsfähiger gegen Missbrauch."
+          },
+          "risk": {
+            "title": "Bei deinem Konto sollten Sicherheitsmaßnahmen verstärkt werden.",
+            "description": "Aktiviere Zwei-Faktor-Authentifizierung, prüfe aktive Sitzungen und kontrolliere verdächtige Login-Signale."
+          }
+        },
+        "checklist": {
+          "totp": "2FA bestätigt",
+          "sessions": "Sitzungen sauber",
+          "history": "Login-Historie ruhig"
+        },
+        "metrics": {
+          "twoFactor": {
+            "label": "2FA",
+            "strong": "Zusätzliche Verifizierung ist aktiv und senkt das Übernahmerisiko.",
+            "action": "Aktiviere 2FA, damit das Konto auch bei Passwortverlust geschützt bleibt."
+          },
+          "sessions": {
+            "label": "Aktive Sitzungen",
+            "value": "{count} Sitzungen",
+            "clean": "Es sind nur erwartete Sitzungen sichtbar.",
+            "review": "Beende Geräte, die du nicht mehr nutzt."
+          },
+          "activity": {
+            "label": "Letzter sicherer Login",
+            "empty": "Kein Eintrag",
+            "clean": "In der letzten Aktivität sind keine fehlgeschlagenen Logins sichtbar.",
+            "failed": "Die aktuelle Liste enthält {count} fehlgeschlagene Login-Versuche."
+          }
+        },
+        "actions": {
+          "password": {
+            "title": "Passwort aktuell halten",
+            "description": "Ein starkes, einzigartiges Passwort ist die erste Schutzschicht.",
+            "button": "Zum Passwort"
+          },
+          "totp": {
+            "title": "Zugriff mit 2FA stärken",
+            "description": "Authenticator-Codes reduzieren Login-Risiken und schützen kritische Einstellungen.",
+            "button": "2FA einrichten",
+            "reviewButton": "2FA prüfen"
+          },
+          "sessions": {
+            "title": "Geräte prüfen",
+            "description": "Beende unbekannte Sitzungen und lasse nur genutzte Geräte aktiv.",
+            "button": "Sitzungen prüfen"
+          }
+        }
+      }
     },
     "preferences": {
       "title": "Matching-Präferenzen",

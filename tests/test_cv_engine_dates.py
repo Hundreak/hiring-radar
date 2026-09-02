@@ -3,7 +3,6 @@ from __future__ import annotations
 from hiring_radar.services.cv_engine.parsing.dates import parse_date_range
 
 
-
 def test_parse_date_range_supports_english_month_names() -> None:
     parsed = parse_date_range("Jan 2020 - Present", "en")
 

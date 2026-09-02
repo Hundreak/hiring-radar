@@ -42,7 +42,7 @@ class UserConfirmPasswordResetRequest(BaseModel):
     password_confirmation: str = Field(min_length=1, max_length=4096)
 
     @model_validator(mode="after")
-    def validate_password_confirmation(self) -> "UserConfirmPasswordResetRequest":
+    def validate_password_confirmation(self) -> UserConfirmPasswordResetRequest:
         if self.password != self.password_confirmation:
             raise ValueError("Password confirmation does not match.")
         return self

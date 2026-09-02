@@ -44,7 +44,7 @@ export function PublicHeader({locale}: PublicHeaderProps) {
           aria-label="NoyTera home"
           className="inline-flex min-w-0 items-center gap-3"
         >
-          <BrandLogo size="lg" priority className="shrink-0" />
+          <BrandLogo size="lg" showSubtitle={false} asLink={false} className="shrink-0" />
 
           <div className="min-w-0">
             <div className="truncate text-[1.85rem] font-semibold leading-none tracking-tight text-foreground sm:text-[2rem]">

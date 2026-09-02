@@ -5,8 +5,6 @@ and the generic JSON job source adapter.
 """
 from __future__ import annotations
 
-import pytest
-
 from hiring_radar.services.jobs.adapters.generic_json import GenericJsonJobSourceAdapter
 from hiring_radar.services.jobs.contracts import JobSourceDefinition, JobSourcePayload
 from hiring_radar.services.matching.employer_scoring import (

@@ -6,6 +6,26 @@
       "jobs": "Jobs",
       "matches": "Matches",
       "saved": "Saved"
+    },
+    "dataError": {
+      "retry": "Try again",
+      "requestId": "Request ID: {requestId}",
+      "statusCode": "HTTP {status}",
+      "retryAfter": "You can try again in about {time}.",
+      "genericTitle": "Could not load data",
+      "genericDescription": "This section could not refresh right now. The connection or server may be temporarily unavailable.",
+      "networkTitle": "Connection failed",
+      "networkDescription": "Check your connection or API access, then try again.",
+      "serverTitle": "Temporary server issue",
+      "serverDescription": "The request reached the server, but it could not be completed. Retrying usually fixes this.",
+      "rateLimitedTitle": "Too many requests",
+      "rateLimitedDescription": "Wait briefly before trying again so the protection layer can reset.",
+      "unauthorizedTitle": "Session required",
+      "unauthorizedDescription": "You may need to sign in again before this data can be shown.",
+      "forbiddenTitle": "Access denied",
+      "forbiddenDescription": "This session does not appear to have permission for this action.",
+      "notFoundTitle": "Data not found",
+      "notFoundDescription": "The requested record may have moved, been deleted, or become unavailable."
     }
   },
   "landing": {
@@ -196,7 +216,11 @@
     "analysisCoverage": "Job analysis",
     "analysisStrong": "Strong — the job content was captured clearly and analyzed deterministically.",
     "analysisModerate": "Moderate — the job content was analyzed, but some sections are thinner than ideal.",
-    "analysisLimited": "Limited — this listing is being analyzed from partial content, so the score should be read more cautiously."
+    "analysisLimited": "Limited — this listing is being analyzed from partial content, so the score should be read more cautiously.",
+    "paginationPrevious": "Previous",
+    "paginationNext": "Next",
+    "paginationPageSize": "Per page",
+    "paginationSummary": "{start}-{end} of {total} records"
   },
   "matches": {
     "title": "Matches",
@@ -248,13 +272,38 @@
     "analysisCoverage": "Job analysis",
     "analysisStrong": "Strong — the job content was captured clearly and analyzed deterministically.",
     "analysisModerate": "Moderate — the job content was analyzed, but some sections are thinner than ideal.",
-    "analysisLimited": "Limited — this listing is being analyzed from partial content, so the score should be read more cautiously."
+    "analysisLimited": "Limited — this listing is being analyzed from partial content, so the score should be read more cautiously.",
+    "explainabilityTitle": "Match clarity",
+    "explainabilityReadiness": "Readiness",
+    "explainabilityConfidence": "Confidence",
+    "explainabilityReady": "Apply-ready",
+    "explainabilityReview": "Review and sharpen",
+    "explainabilityStretch": "Stretch role",
+    "explainabilityReadySummary": "This role looks close to apply-ready; make the strongest signals visible with evidence.",
+    "explainabilityReviewSummary": "This role is promising, but a few signals should be clarified before applying.",
+    "explainabilityStretchSummary": "This role currently looks ambitious; close the visible gaps before treating it as a priority.",
+    "analysisStrongShort": "Strong",
+    "analysisModerateShort": "Moderate",
+    "analysisLimitedShort": "Limited",
+    "explainabilityDrivers": "Main score drivers",
+    "explainabilityStrongSignals": "Strong signals",
+    "explainabilityRiskSignals": "Risk / missing signals",
+    "explainabilityActionPlan": "Suggested next step",
+    "explainabilityActionApply": "Prepare to apply: highlight your strongest signals with short, measurable examples.",
+    "explainabilityActionStory": "Prepare a mini story that proves these signals in your CV or note: {terms}.",
+    "explainabilityActionGap": "Before applying, try to strengthen these missing signals: {terms}.",
+    "explainabilityActionVerify": "The listing context is limited; verify the original posting and company context before applying.",
+    "explainabilityAiPlan": "Build application plan",
+    "paginationPrevious": "Previous",
+    "paginationNext": "Next",
+    "paginationPageSize": "Per page",
+    "paginationSummary": "{start}-{end} of {total} records"
   },
   "saved": {
     "title": "Saved jobs",
-    "description": "Save jobs, track your application status. CoreSift helps you prepare.",
+    "description": "Save jobs, track every application stage, and keep your follow-up notes in one pipeline. CoreSift helps you prepare.",
     "howTitle": "How does it work?",
-    "howText": "CoreSift is not directly connected to companies — you track application results yourself. When you get an interview invite, mark it yourself.",
+    "howText": "CoreSift is not directly connected to companies — you own the application pipeline. Move each job as you apply, hear back, interview, get rejected, or receive an offer.",
     "tabAll": "All",
     "tabReviewing": "Reviewing",
     "tabApplied": "Applied",
@@ -276,7 +325,7 @@
     "statusInterview": "Got interview",
     "statusRejected": "Rejected",
     "statusNoResponse": "No response",
-    "statusOffer": "Got offer ✓",
+    "statusOffer": "Offer received ✓",
     "statusSecondInterview": "2nd interview",
     "addNote": "Add note",
     "editNote": "Edit note",
@@ -305,7 +354,37 @@
     "interviewPrepPrompt": "Help me prepare for an interview at {company} for the {title} position. What should I expect? What questions might they ask? How should I prepare?",
     "reviewingProgressLabel": "Profile fit view",
     "reviewingProgressActive": "Processing",
-    "reviewingProgressReady": "Ready"
+    "reviewingProgressReady": "Ready",
+    "tabOffer": "Offer",
+    "tabRejected": "Rejected",
+    "colOffer": "Offer",
+    "colRejected": "Rejected",
+    "statusArchive": "Archive",
+    "restoreInterview": "Move to interview",
+    "pipelineActive": "Active pipeline",
+    "pipelineActiveHint": "Reviewing, applied, and interview stages.",
+    "pipelineInterviews": "Interviews",
+    "pipelineInterviewsHint": "Opportunities currently in conversation.",
+    "pipelineOffers": "Offers",
+    "pipelineOffersHint": "Positive outcomes tracked here.",
+    "pipelineOfferRate": "Offer rate",
+    "pipelineOfferRateHint": "Offers across applied/interview/outcome stages.",
+    "pipelineToolbarTitle": "Pipeline controls",
+    "pipelineToolbarSubtitle": "Filter by stage, search notes or companies, and sort the list without losing context.",
+    "searchPlaceholder": "Search job, company, keyword, note…",
+    "sortActivity": "Latest activity",
+    "sortDeadline": "Closest deadline",
+    "sortScore": "Best match score",
+    "emptySearch": "No saved jobs match this filter.",
+    "emptyOfferColumn": "Offers will appear here when an interview turns into a positive outcome.",
+    "emptyRejectedColumn": "Rejected or closed applications can be tracked here before archiving.",
+    "removeSaved": "Remove from saved jobs",
+    "createdAt": "Saved",
+    "lastActivity": "Activity",
+    "paginationPrevious": "Previous",
+    "paginationNext": "Next",
+    "paginationPageSize": "Per page",
+    "paginationSummary": "{start}-{end} of {total} records"
   },
   "profile": {
     "completion": {
@@ -432,7 +511,67 @@
       "timeJustNow": "just now",
       "timeMinutesAgo": "{count}m ago",
       "timeHoursAgo": "{count}h ago",
-      "timeDaysAgo": "{count}d ago"
+      "timeDaysAgo": "{count}d ago",
+      "center": {
+        "scoreLabel": "Security score",
+        "checklistLabel": "Security center",
+        "hero": {
+          "strong": {
+            "title": "Your account is in a strong security posture.",
+            "description": "Two-factor authentication, active-session hygiene, and recent login signals look healthy. Review this center regularly to keep the account production-grade secure."
+          },
+          "watch": {
+            "title": "Your account looks healthy, with a few checks worth reviewing.",
+            "description": "Track sessions, two-factor authentication, and recent login activity from one place. Small checks make the account more resilient against abuse attempts."
+          },
+          "risk": {
+            "title": "Your account has security steps that should be strengthened.",
+            "description": "Enable two-factor authentication, review active sessions, and check recent login activity for suspicious signals."
+          }
+        },
+        "checklist": {
+          "totp": "2FA verified",
+          "sessions": "Sessions clean",
+          "history": "Login history calm"
+        },
+        "metrics": {
+          "twoFactor": {
+            "label": "2FA",
+            "strong": "Extra verification is active and reduces account takeover risk.",
+            "action": "Enable 2FA to protect the account even if a password leaks."
+          },
+          "sessions": {
+            "label": "Active sessions",
+            "value": "{count} sessions",
+            "clean": "Only expected sessions are visible.",
+            "review": "We recommend ending devices you no longer use."
+          },
+          "activity": {
+            "label": "Last safe login",
+            "empty": "No record",
+            "clean": "No failed-login signal is visible in the recent activity list.",
+            "failed": "The recent list includes {count} failed login attempts."
+          }
+        },
+        "actions": {
+          "password": {
+            "title": "Keep the password fresh",
+            "description": "A strong, unique password is the first layer of account protection.",
+            "button": "Go to password"
+          },
+          "totp": {
+            "title": "Strengthen access with 2FA",
+            "description": "Authenticator codes reduce sign-in risk and make critical settings safer.",
+            "button": "Set up 2FA",
+            "reviewButton": "Review 2FA"
+          },
+          "sessions": {
+            "title": "Audit your devices",
+            "description": "End unfamiliar sessions and keep only the devices you actually use active.",
+            "button": "Review sessions"
+          }
+        }
+      }
     },
     "preferences": {
       "title": "Matching preferences",

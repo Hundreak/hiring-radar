@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class AtsIssueSeverity(str, Enum):
+class AtsIssueSeverity(StrEnum):
     """Severity level for ATS compatibility findings."""
 
     INFO = "info"
@@ -13,7 +13,7 @@ class AtsIssueSeverity(str, Enum):
     ERROR = "error"
 
 
-class AtsLevel(str, Enum):
+class AtsLevel(StrEnum):
     """Coarse ATS compatibility band."""
 
     HIGH = "high"

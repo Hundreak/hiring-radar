@@ -1,4 +1,4 @@
-export type SavedJobStatus = 'reviewing' | 'applied' | 'interview' | 'archived';
+export type SavedJobStatus = 'reviewing' | 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
 
 export interface SavedJobNote {
   id: number;
@@ -28,4 +28,9 @@ export interface SavedJob {
 
 export interface SavedJobListResponse {
   items: SavedJob[];
+  page?: number;
+  page_size?: number;
+  total_items?: number;
+  total_pages?: number;
+  status?: SavedJobStatus | null;
 }

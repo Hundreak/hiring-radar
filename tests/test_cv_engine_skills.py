@@ -7,7 +7,6 @@ from hiring_radar.services.cv_engine.parsing.skills import (
 )
 
 
-
 def test_extract_skills_from_text_uses_word_boundaries() -> None:
     skills = extract_skills_from_text(
         "Strong experience with FastAPI, Python and PostgreSQL.",

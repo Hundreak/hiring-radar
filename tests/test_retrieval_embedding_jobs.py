@@ -8,11 +8,11 @@ from hiring_radar.models import RetrievalChunk
 from hiring_radar.services.retrieval.embedding_jobs import (
     CHUNK_EMBEDDING_STATUS_FAILED,
     CHUNK_EMBEDDING_STATUS_READY,
-    DeterministicEmbeddingProvider,
-    EmbeddingVectorResult,
     PROCESS_ACTION_FAILED,
     PROCESS_ACTION_IDLE,
     PROCESS_ACTION_PROCESSED,
+    DeterministicEmbeddingProvider,
+    EmbeddingVectorResult,
     enqueue_chunk_embedding_jobs,
     process_next_embedding_job,
     run_embedding_job_batch,

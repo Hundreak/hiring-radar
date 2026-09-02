@@ -6,7 +6,11 @@ from hiring_radar.api.app import create_app
 from hiring_radar.api.dependencies import get_current_user_session, get_repository
 from hiring_radar.api.routers import user_ai as user_ai_module
 from hiring_radar.models import Subscriber, SubscriberProfile
-from hiring_radar.services.ai.contracts import HeadlineSuggestion, HeadlineSummarySuggestionResponse, SummarySuggestion
+from hiring_radar.services.ai.contracts import (
+    HeadlineSuggestion,
+    HeadlineSummarySuggestionResponse,
+    SummarySuggestion,
+)
 from hiring_radar.services.user_auth import UserSession
 
 

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from hiring_radar.services.cv_profile_parser import is_valid_spoken_language
 from hiring_radar.api.schemas.profile_contract import (
     CandidateProfileAggregate,
     CompletionSectionStatus,
@@ -24,10 +23,11 @@ from hiring_radar.api.schemas.profile_contract import (
     UserProfileAggregateResponse,
     WorkMode,
 )
+from hiring_radar.services.cv_profile_parser import is_valid_spoken_language
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _read(source: Any, key: str, default: Any = None) -> Any:

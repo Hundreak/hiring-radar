@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from hiring_radar.services.cv_engine.batch.models import ProgressEvent
 

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class BatchParseStatus(str, Enum):
+class BatchParseStatus(StrEnum):
     """Execution outcome for one batch parse request."""
 
     SUCCEEDED = "succeeded"
@@ -15,7 +15,7 @@ class BatchParseStatus(str, Enum):
     PARTIAL = "partial"
 
 
-class ProgressEventType(str, Enum):
+class ProgressEventType(StrEnum):
     """Supported progress event types for streaming batch execution."""
 
     STARTED = "started"

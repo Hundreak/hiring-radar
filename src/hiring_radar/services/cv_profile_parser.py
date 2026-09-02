@@ -5,24 +5,10 @@ import unicodedata
 from collections.abc import Iterable
 
 from hiring_radar.services.cv_engine.config import ParserRuntimeConfig
-from hiring_radar.services.cv_engine.extraction.normalization import (
-    normalize_extracted_text as normalize_engine_text,
-)
 from hiring_radar.services.cv_engine.language.detection import detect_supported_language
-from hiring_radar.services.cv_engine.models import SectionBlock, SectionName
 from hiring_radar.services.cv_engine.parsing.dates import parse_date_range
 from hiring_radar.services.cv_engine.parsing.experience_lines import (
     parse_experience_block as parse_engine_experience_block,
-)
-from hiring_radar.services.cv_engine.parsing.skills import (
-    extract_skills_from_sections,
-    extract_skills_from_text,
-)
-from hiring_radar.services.cv_engine.semantic.location_resolution import (
-    resolve_location_candidate,
-)
-from hiring_radar.services.cv_engine.semantic.role_resolution import (
-    resolve_role_candidate,
 )
 from hiring_radar.services.cv_engine.segmentation.section_detection import (
     HybridSectionDetectionStrategy,
@@ -53,7 +39,7 @@ ROLE_QUALIFIER_WORDS = frozenset(
         "site", "platform", "software", "hardware", "mobile", "web",
         "devops", "ml", "ai", "embedded", "network", "security",
         "kıdemli", "uzman", "baş",  # Turkish
-        "leitender", "senior", "junior",  # German
+        "leitender",  # German
     }
 )
 
@@ -192,7 +178,6 @@ KNOWN_LANGUAGE_NAMES = frozenset(
         "japanese",
         "korean",
         "azerbaijani",
-        "azerbaijani",
         "uzbek",
         "kazakh",
         "ukrainian",
@@ -316,7 +301,6 @@ _TECH_NAMES_NOT_LANGUAGES: frozenset[str] = frozenset(
         "rest",
         "grpc",
         "figma",
-        "figma",
         "jira",
         "confluence",
         "trello",
@@ -340,7 +324,6 @@ _TECH_NAMES_NOT_LANGUAGES: frozenset[str] = frozenset(
         "libraries",
         "tools",
         "digitalocean",
-        "heroku",
         "vercel",
         "netlify",
     }
@@ -1631,8 +1614,7 @@ def _iter_skill_tokens_from_line(line: str):
             payload = payload_candidate
 
     if category is not None:
-        for token in _iter_skill_tokens_from_category_payload(category, payload):
-            yield token
+        yield from _iter_skill_tokens_from_category_payload(category, payload)
         return
 
     for item in _split_top_level_skill_items(payload):
@@ -2394,7 +2376,7 @@ def _split_education_blocks(lines: list[str]) -> list[list[str]]:
             current_block.clear()
 
     for raw_line in lines:
-        raw_stripped = (raw_line or "").strip()
+        (raw_line or "").strip()
         line = _clean_token(raw_line)
         if line is None:
             flush()

@@ -13,7 +13,6 @@ from hiring_radar.services.cv_engine.enterprise.fingerprints import (
     build_document_fingerprints,
 )
 
-
 PARSER_VERSION = "cv-engine-v2"
 
 

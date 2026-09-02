@@ -1,3 +1,4 @@
+from hiring_radar.services.retrieval.chunking import ChunkDraft, chunk_text, estimate_token_count
 from hiring_radar.services.retrieval.context import (
     RetrievalContextBundle,
     RetrievalContextItem,
@@ -13,10 +14,6 @@ from hiring_radar.services.retrieval.embedding_jobs import (
     CHUNK_EMBEDDING_STATUS_READY,
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_EMBEDDING_PROVIDER,
-    DeterministicEmbeddingProvider,
-    EmbeddingJobProcessResult,
-    EmbeddingProvider,
-    EmbeddingVectorResult,
     EMBEDDING_JOB_STATUS_COMPLETED,
     EMBEDDING_JOB_STATUS_FAILED,
     EMBEDDING_JOB_STATUS_PROCESSING,
@@ -24,13 +21,16 @@ from hiring_radar.services.retrieval.embedding_jobs import (
     PROCESS_ACTION_FAILED,
     PROCESS_ACTION_IDLE,
     PROCESS_ACTION_PROCESSED,
+    DeterministicEmbeddingProvider,
+    EmbeddingJobProcessResult,
+    EmbeddingProvider,
+    EmbeddingVectorResult,
     enqueue_chunk_embedding_jobs,
     enqueue_document_embedding_jobs,
     process_next_embedding_job,
     process_next_embedding_job_safe,
     run_embedding_job_batch,
 )
-from hiring_radar.services.retrieval.chunking import ChunkDraft, chunk_text, estimate_token_count
 from hiring_radar.services.retrieval.ingestion import (
     DOCUMENT_KIND_AI_AUDIT,
     DOCUMENT_KIND_CV_TEXT,

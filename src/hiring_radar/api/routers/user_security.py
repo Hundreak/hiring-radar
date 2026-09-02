@@ -11,12 +11,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr, Field
 
+from hiring_radar.api.csrf import attach_csrf_cookie, clear_csrf_cookie
 from hiring_radar.api.dependencies import (
     get_current_user_session,
     get_env_path,
     get_repository,
     get_user_auth_settings,
 )
+from hiring_radar.api.rate_limit import enforce_rate_limit
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.email_config import EmailConfigError, load_smtp_settings
 from hiring_radar.services.email import EmailDeliveryError, EmailMessagePayload, send_email_via_smtp
@@ -205,6 +207,16 @@ def change_password(
     repository: RepositoryDep,
     auth_settings: UserAuthSettingsDep,
 ) -> dict:
+    enforce_rate_limit(
+        request,
+        action="user_change_password",
+        identity=user_session.subscriber_id,
+        ip_limit=40,
+        ip_window_seconds=900,
+        identity_limit=8,
+        identity_window_seconds=900,
+    )
+
     if body.new_password != body.new_password_confirmation:
         raise HTTPException(400, "Password confirmation does not match.")
 
@@ -314,6 +326,16 @@ def request_email_change(
     repository: RepositoryDep,
     env_path: Annotated[str, Depends(get_env_path)],
 ) -> dict:
+    enforce_rate_limit(
+        request,
+        action="user_email_change_request",
+        identity=f"{user_session.subscriber_id}:{body.new_email}",
+        ip_limit=40,
+        ip_window_seconds=900,
+        identity_limit=5,
+        identity_window_seconds=1800,
+    )
+
     subscriber = repository.get_subscriber_by_id(user_session.subscriber_id)
     if subscriber is None:
         raise HTTPException(404, "Account not found.")
@@ -353,7 +375,10 @@ def request_email_change(
             ),
         )
     except (EmailConfigError, EmailDeliveryError) as exc:
-        raise HTTPException(500, f"Verification email could not be sent: {exc}") from exc
+        raise HTTPException(
+            500,
+            "Verification email could not be sent. Please try again later.",
+        ) from exc
 
     return {"ok": True, "message": "Verification code sent to new email."}
 
@@ -367,6 +392,16 @@ def confirm_email_change(
     response: Response,
     auth_settings: UserAuthSettingsDep,
 ) -> dict:
+    enforce_rate_limit(
+        request,
+        action="user_email_change_confirm",
+        identity=user_session.subscriber_id,
+        ip_limit=60,
+        ip_window_seconds=900,
+        identity_limit=10,
+        identity_window_seconds=1800,
+    )
+
     req = repository.get_latest_email_change_request(user_session.subscriber_id)
     if req is None or req.id is None:
         raise HTTPException(404, "No pending email change request.")
@@ -405,15 +440,27 @@ def confirm_email_change(
         value=new_token,
         **session_cookie_kwargs(settings=auth_settings),
     )
+    attach_csrf_cookie(response)
 
     return {"ok": True, "new_email": req.new_email}
 
 
 @router.post("/totp/setup", response_model=SetupTotpResponse)
 def setup_totp(
+    request: Request,
     user_session: UserSessionDep,
     repository: RepositoryDep,
 ) -> SetupTotpResponse:
+    enforce_rate_limit(
+        request,
+        action="user_totp_setup",
+        identity=user_session.subscriber_id,
+        ip_limit=30,
+        ip_window_seconds=900,
+        identity_limit=5,
+        identity_window_seconds=1800,
+    )
+
     secret = base64.b32encode(secrets.token_bytes(20)).decode("ascii").rstrip("=")
     subscriber = repository.get_subscriber_by_id(user_session.subscriber_id)
     email = subscriber.email if subscriber else user_session.email
@@ -431,9 +478,20 @@ def setup_totp(
 @router.post("/totp/verify")
 def verify_totp(
     body: VerifyTotpRequest,
+    request: Request,
     user_session: UserSessionDep,
     repository: RepositoryDep,
 ) -> dict:
+    enforce_rate_limit(
+        request,
+        action="user_totp_verify",
+        identity=user_session.subscriber_id,
+        ip_limit=60,
+        ip_window_seconds=900,
+        identity_limit=8,
+        identity_window_seconds=900,
+    )
+
     totp = repository.get_totp_secret(user_session.subscriber_id)
     if totp is None:
         raise HTTPException(404, "TOTP not set up.")
@@ -474,6 +532,16 @@ def delete_account(
     repository: RepositoryDep,
     auth_settings: UserAuthSettingsDep,
 ) -> dict:
+    enforce_rate_limit(
+        request,
+        action="user_delete_account",
+        identity=user_session.subscriber_id,
+        ip_limit=30,
+        ip_window_seconds=900,
+        identity_limit=6,
+        identity_window_seconds=1800,
+    )
+
     subscriber = repository.get_subscriber_by_id(user_session.subscriber_id)
     if subscriber is None:
         raise HTTPException(404, "Account not found.")
@@ -497,14 +565,15 @@ def delete_account(
         samesite=session_cookie_kwargs(settings=auth_settings)["samesite"],
         secure=session_cookie_kwargs(settings=auth_settings)["secure"],
     )
+    clear_csrf_cookie(response)
 
     return {"ok": True, "message": "Account permanently deleted."}
 
 
 # ── TOTP verification helper ───────────────────────────────────
 
-import time as _time
 import struct as _struct
+import time as _time
 
 
 def _verify_totp_code(secret_b32: str, code: str, *, window: int = 1) -> bool:

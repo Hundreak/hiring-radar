@@ -12,11 +12,31 @@ import {AiSkillEvidencePanel} from '@/components/profile/ai-skill-evidence-panel
 import {AvatarCropDialog} from '@/components/profile/avatar-crop-dialog';
 import {CvUploadModule} from '@/components/profile/cv-upload-module';
 import {ProfileHealthDrawer} from '@/components/profile/profile-health-drawer';
+import {profileWorkspaceCopy as copy} from '@/components/profile/profile-workspace-copy';
+import type {ProfileWorkspaceCopy as Copy} from '@/components/profile/profile-workspace-copy';
+import {
+  Chip,
+  EditorActions,
+  EditorCard,
+  EmptyState,
+  EntityCard,
+  Field,
+  InputField,
+  LoadingView,
+  OverviewCard,
+  OverviewListCard,
+  PrimaryButton,
+  SecondaryButton,
+  SectionHeader,
+  SelectField,
+  Surface,
+  TextAreaField,
+} from '@/components/profile/profile-workspace-primitives';
 import {ComboboxField, type ComboboxOption} from '@/components/ui/combobox-field';
 import {FileSelectButton} from '@/components/ui/file-select-button';
 import {FeedbackBanner} from '@/components/ui/feedback-banner';
 import {ApiError, api, suggestProfileSkillEvidence} from '@/lib/api';
-import type {AiAuditLog, AiHeadlineSummaryResponse, AiRoleFocusResponse, AiSkillEvidenceResponse} from '@/types/ai';
+import type {AiHeadlineSummaryResponse, AiRoleFocusResponse, AiSkillEvidenceResponse} from '@/types/ai';
 import type {
   CreateEducationRequest,
   CreateExperienceRequest,
@@ -42,475 +62,6 @@ import type {
   UserSkillDetail,
 } from '@/types/user';
 import {DEFAULT_SKILL_CATEGORIES, findUniversityByName, OFFICIAL_TURKISH_UNIVERSITY_NAMES, TURKISH_UNIVERSITY_OPTIONS} from '@/data/turkish-universities';
-
-type Copy = {
-  eyebrow: string;
-  title: string;
-  subtitle: string;
-  loadingTitle: string;
-  loadingBody: string;
-  genericError: string;
-  profileCompletion: string;
-  profilePhotoTitle: string;
-  profilePhotoBody: string;
-  uploadProfilePhoto: string;
-  uploadingProfilePhoto: string;
-  profilePhotoSaved: string;
-  profileOverviewTitle: string;
-  basicsTitle: string;
-  basicsBody: string;
-  preferencesTitle: string;
-  preferencesBody: string;
-  experiencesTitle: string;
-  educationTitle: string;
-  languagesTitle: string;
-  skillsTitle: string;
-  healthTitle: string;
-  healthBody: string;
-  saveBasics: string;
-  savePreferences: string;
-  saving: string;
-  savedBasics: string;
-  savedPreferences: string;
-  savedExperience: string;
-  deletedExperience: string;
-  savedEducation: string;
-  deletedEducation: string;
-  savedLanguage: string;
-  savedLanguageWithDocument: string;
-  savedLanguageWithoutDocument: string;
-  deletedLanguage: string;
-  savedSkill: string;
-  savedSkillWithEvidence: string;
-  savedSkillWithoutEvidence: string;
-  deletedSkill: string;
-  addExperience: string;
-  addEducation: string;
-  addLanguage: string;
-  addSkill: string;
-  edit: string;
-  update: string;
-  save: string;
-  cancel: string;
-  delete: string;
-  deleting: string;
-  noExperiences: string;
-  noEducation: string;
-  noLanguages: string;
-  noSkills: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  headline: string;
-  summary: string;
-  targetRoles: string;
-  preferredLocations: string;
-  workModes: string;
-  salaryExpectation: string;
-  relocation: string;
-  relocationUnset: string;
-  relocationYes: string;
-  relocationNo: string;
-  experienceRole: string;
-  experienceCompany: string;
-  experienceStart: string;
-  experienceEnd: string;
-  experienceCurrent: string;
-  experienceDescription: string;
-  educationInstitution: string;
-  educationInstitutionHint: string;
-  educationInstitutionFallback: string;
-  educationDegree: string;
-  educationField: string;
-  educationFieldHint: string;
-  educationFieldFallback: string;
-  educationStart: string;
-  educationEnd: string;
-  languageName: string;
-  languageLevel: string;
-  languageCertificate: string;
-  languageDocument: string;
-  languageIssuer: string;
-  languageDocumentSaved: string;
-  skillName: string;
-  skillCategory: string;
-  skillProficiency: string;
-  skillYears: string;
-  skillEvidenceNote: string;
-  skillEvidenceFile: string;
-  skillEvidenceSaved: string;
-  skillCategoriesTitle: string;
-  noProfilePhoto: string;
-  currentBadge: string;
-  previewEmpty: string;
-  remote: string;
-  hybrid: string;
-  onsite: string;
-  sectionDone: string;
-  sectionPartial: string;
-  sectionMissing: string;
-  manualEntryNote: string;
-  healthDrawerButton: string;
-  healthDrawerTitle: string;
-  healthDrawerSubtitle: string;
-  healthDrawerCompletionLabel: string;
-  healthDrawerStrongAreas: string;
-  healthDrawerFocusAreas: string;
-  healthDrawerSuggestions: string;
-  healthDrawerEmpty: string;
-};
-
-const copy: Record<SupportedLocale, Copy> = {
-  tr: {
-    eyebrow: 'Profil alanı',
-    title: 'Profilini düzenle ve güçlendir',
-    subtitle:
-      'Temel bilgilerini, deneyimlerini, eğitimini ve becerilerini sade bir akışla yönet. Yaptığın her değişiklik aynı profil kaynağına güvenli şekilde yazılır.',
-    loadingTitle: 'Profil hazırlanıyor',
-    loadingBody: 'Son bilgiler ve CV alanı yükleniyor.',
-    genericError: 'İşlem tamamlanamadı. Lütfen tekrar dene.',
-    profileCompletion: 'Profil doluluğu',
-    profilePhotoTitle: 'Profil fotoğrafı',
-    profilePhotoBody: 'Kullanıcı menüsünde ve profil alanında görünen fotoğrafını güncelle.',
-    uploadProfilePhoto: 'Profil Fotoğrafı Yükle',
-    uploadingProfilePhoto: 'Profil fotoğrafı yükleniyor...',
-    profilePhotoSaved: 'Profil fotoğrafın güncellendi.',
-    profileOverviewTitle: 'Öne çıkan profil bilgileri',
-    basicsTitle: 'Temel bilgiler',
-    basicsBody: 'Adını, iletişim bilgilerini ve kısa profil anlatımını güncelle.',
-    preferencesTitle: 'Hedefler ve tercihler',
-    preferencesBody: 'Aradığın rolü, lokasyonları ve çalışma düzenini belirle.',
-    experiencesTitle: 'Deneyimler',
-    educationTitle: 'Eğitim',
-    languagesTitle: 'Diller',
-    skillsTitle: 'Beceriler',
-    healthTitle: 'Profil sağlığı',
-    healthBody: 'Hangi alanların tamamlandığını ve nerede güçlendirme gerektiğini takip et.',
-    saveBasics: 'Temel bilgileri kaydet',
-    savePreferences: 'Tercihleri kaydet',
-    saving: 'Kaydediliyor...',
-    savedBasics: 'Temel bilgiler güncellendi.',
-    savedPreferences: 'Tercihler güncellendi.',
-    savedExperience: 'Deneyim kaydedildi.',
-    deletedExperience: 'Deneyim kaldırıldı.',
-    savedEducation: 'Eğitim bilgisi kaydedildi.',
-    deletedEducation: 'Eğitim kaldırıldı.',
-    savedLanguage: 'Dil bilgisi kaydedildi.',
-    savedLanguageWithDocument: 'Dil bilgisi ve belgesi kaydedildi.',
-    savedLanguageWithoutDocument: 'Dil bilgisi kaydedildi. Belge yüklemesi tamamlanmadı; yeniden deneyebilirsin.',
-    deletedLanguage: 'Dil kaldırıldı.',
-    savedSkill: 'Beceri kaydedildi.',
-    savedSkillWithEvidence: 'Beceri ve kanıt dosyası kaydedildi.',
-    savedSkillWithoutEvidence: 'Beceri kaydedildi. Kanıt dosyası yüklenemedi; yeniden deneyebilirsin.',
-    deletedSkill: 'Beceri kaldırıldı.',
-    addExperience: 'Deneyim ekle',
-    addEducation: 'Eğitim ekle',
-    addLanguage: 'Dil ekle',
-    addSkill: 'Beceri ekle',
-    edit: 'Düzenle',
-    update: 'Güncelle',
-    save: 'Kaydet',
-    cancel: 'İptal',
-    delete: 'Sil',
-    deleting: 'Siliniyor...',
-    noExperiences: 'Henüz deneyim eklemedin.',
-    noEducation: 'Henüz eğitim eklemedin.',
-    noLanguages: 'Henüz dil eklemedin.',
-    noSkills: 'Henüz beceri eklemedin.',
-    fullName: 'Ad Soyad',
-    email: 'E-posta',
-    phone: 'Telefon',
-    headline: 'Profil başlığı',
-    summary: 'Kısa özet',
-    targetRoles: 'Hedef roller',
-    preferredLocations: 'Tercih edilen lokasyonlar',
-    workModes: 'Çalışma şekli',
-    salaryExpectation: 'Ücret beklentisi',
-    relocation: 'Taşınma durumu',
-    relocationUnset: 'Şimdilik belirtmek istemiyorum',
-    relocationYes: 'Gerekirse taşınabilirim',
-    relocationNo: 'Taşınmayı düşünmüyorum',
-    experienceRole: 'Rol / Pozisyon',
-    experienceCompany: 'Şirket',
-    experienceStart: 'Başlangıç yılı',
-    experienceEnd: 'Bitiş yılı',
-    experienceCurrent: 'Bu rolde hâlâ çalışıyorum',
-    experienceDescription: 'Kısa açıklama',
-    educationInstitution: 'Üniversite / Kurum',
-    educationInstitutionHint: 'Listeden seçebilir veya doğrudan yazabilirsin.',
-    educationInstitutionFallback: 'Üniversite adı yaz',
-    educationDegree: 'Derece / Program',
-    educationField: 'Bölüm',
-    educationFieldHint: 'Seçili üniversite için bölüm listesi varsa aşağıda görünür.',
-    educationFieldFallback: 'Bölüm adı yaz',
-    educationStart: 'Başlangıç yılı',
-    educationEnd: 'Bitiş yılı',
-    languageName: 'Dil',
-    languageLevel: 'Seviye',
-    languageCertificate: 'Belge adı',
-    languageDocument: 'Sertifika / Belge Yükle',
-    languageIssuer: 'Belgeyi veren kurum',
-    languageDocumentSaved: 'Dil belgesi yüklendi.',
-    skillName: 'Beceri adı',
-    skillCategory: 'Kategori',
-    skillProficiency: 'Seviye / Yetkinlik notu',
-    skillYears: 'Deneyim yılı',
-    skillEvidenceNote: 'Açıklama / kanıt notu',
-    skillEvidenceFile: 'Belge / Kanıt Yükle',
-    skillEvidenceSaved: 'Beceri kanıtı güncellendi.',
-    skillCategoriesTitle: 'Kategori seç',
-    noProfilePhoto: 'Henüz profil fotoğrafı eklenmedi.',
-    currentBadge: 'Güncel',
-    previewEmpty: 'Henüz içerik görünmüyor.',
-    remote: 'Uzaktan',
-    hybrid: 'Hibrit',
-    onsite: 'Ofiste',
-    sectionDone: 'Tamam',
-    sectionPartial: 'Kısmi',
-    sectionMissing: 'Eksik',
-    manualEntryNote: 'Resmî veri kaynağına tam bağlanamadığı alanlarda serbest girişe de izin verilir.',
-    healthDrawerButton: 'Profil sağlığını gör',
-    healthDrawerTitle: 'Profil sağlığı',
-    healthDrawerSubtitle: 'Profilinin güçlü taraflarını ve hızlıca güçlendirebileceğin alanları tek panelden takip et.',
-    healthDrawerCompletionLabel: 'Genel görünüm',
-    healthDrawerStrongAreas: 'Güçlü görünen alanlar',
-    healthDrawerFocusAreas: 'Bir dokunuşla güçlenecek alanlar',
-    healthDrawerSuggestions: 'Kısa iyileştirme önerileri',
-    healthDrawerEmpty: 'Şimdilik ek öneri görünmüyor.',
-  },
-  en: {
-    eyebrow: 'Profile workspace',
-    title: 'Edit and strengthen your profile',
-    subtitle: 'Manage your core details, experience, education, and skills in one calm workspace.',
-    loadingTitle: 'Preparing your profile',
-    loadingBody: 'Latest profile and CV data are loading.',
-    genericError: 'The request could not be completed. Please try again.',
-    profileCompletion: 'Profile completion',
-    profilePhotoTitle: 'Profile photo',
-    profilePhotoBody: 'Update the image shown in your user menu and profile workspace.',
-    uploadProfilePhoto: 'Upload Profile Photo',
-    uploadingProfilePhoto: 'Uploading profile photo...',
-    profilePhotoSaved: 'Your profile photo has been updated.',
-    profileOverviewTitle: 'Profile highlights',
-    basicsTitle: 'Core details',
-    basicsBody: 'Update your name, contact details, and short summary.',
-    preferencesTitle: 'Goals and preferences',
-    preferencesBody: 'Set your target roles, locations, and work preferences.',
-    experiencesTitle: 'Experience',
-    educationTitle: 'Education',
-    languagesTitle: 'Languages',
-    skillsTitle: 'Skills',
-    healthTitle: 'Profile health',
-    healthBody: 'Track what is complete and where you can improve next.',
-    saveBasics: 'Save core details',
-    savePreferences: 'Save preferences',
-    saving: 'Saving...',
-    savedBasics: 'Core details updated.',
-    savedPreferences: 'Preferences updated.',
-    savedExperience: 'Experience saved.',
-    deletedExperience: 'Experience removed.',
-    savedEducation: 'Education saved.',
-    deletedEducation: 'Education removed.',
-    savedLanguage: 'Language saved.',
-    savedLanguageWithDocument: 'Language and document saved.',
-    savedLanguageWithoutDocument: 'Language saved. The document could not be uploaded; you can try again.',
-    deletedLanguage: 'Language removed.',
-    savedSkill: 'Skill saved.',
-    savedSkillWithEvidence: 'Skill and proof file saved.',
-    savedSkillWithoutEvidence: 'Skill saved. The proof file could not be uploaded; you can try again.',
-    deletedSkill: 'Skill removed.',
-    addExperience: 'Add experience',
-    addEducation: 'Add education',
-    addLanguage: 'Add language',
-    addSkill: 'Add skill',
-    edit: 'Edit',
-    update: 'Update',
-    save: 'Save',
-    cancel: 'Cancel',
-    delete: 'Delete',
-    deleting: 'Deleting...',
-    noExperiences: 'No experience entries yet.',
-    noEducation: 'No education entries yet.',
-    noLanguages: 'No language entries yet.',
-    noSkills: 'No skill entries yet.',
-    fullName: 'Full name',
-    email: 'Email',
-    phone: 'Phone',
-    headline: 'Profile headline',
-    summary: 'Short summary',
-    targetRoles: 'Target roles',
-    preferredLocations: 'Preferred locations',
-    workModes: 'Work style',
-    salaryExpectation: 'Salary expectation',
-    relocation: 'Relocation',
-    relocationUnset: 'Prefer not to say yet',
-    relocationYes: 'Open to relocation',
-    relocationNo: 'Not considering relocation',
-    experienceRole: 'Role / Title',
-    experienceCompany: 'Company',
-    experienceStart: 'Start year',
-    experienceEnd: 'End year',
-    experienceCurrent: 'I still work here',
-    experienceDescription: 'Short description',
-    educationInstitution: 'University / School',
-    educationInstitutionHint: 'Choose from the list or type your own entry.',
-    educationInstitutionFallback: 'Type university name',
-    educationDegree: 'Degree / Program',
-    educationField: 'Department',
-    educationFieldHint: 'Department suggestions appear when available.',
-    educationFieldFallback: 'Type department name',
-    educationStart: 'Start year',
-    educationEnd: 'End year',
-    languageName: 'Language',
-    languageLevel: 'Level',
-    languageCertificate: 'Document name',
-    languageDocument: 'Upload Certificate / Document',
-    languageIssuer: 'Issuer',
-    languageDocumentSaved: 'Language document uploaded.',
-    skillName: 'Skill name',
-    skillCategory: 'Category',
-    skillProficiency: 'Level / proficiency note',
-    skillYears: 'Years of experience',
-    skillEvidenceNote: 'Description / proof note',
-    skillEvidenceFile: 'Upload Proof / Document',
-    skillEvidenceSaved: 'Skill proof updated.',
-    skillCategoriesTitle: 'Choose a category',
-    noProfilePhoto: 'No profile photo yet.',
-    currentBadge: 'Current',
-    previewEmpty: 'Nothing visible yet.',
-    remote: 'Remote',
-    hybrid: 'Hybrid',
-    onsite: 'On-site',
-    sectionDone: 'Done',
-    sectionPartial: 'Partial',
-    sectionMissing: 'Missing',
-    manualEntryNote: 'Where official catalog data is incomplete, manual entry remains available.',
-    healthDrawerButton: 'View profile health',
-    healthDrawerTitle: 'Profile health',
-    healthDrawerSubtitle: 'Track the areas that already look strong and the ones that would benefit from a quick touch.',
-    healthDrawerCompletionLabel: 'Overall picture',
-    healthDrawerStrongAreas: 'Strong areas',
-    healthDrawerFocusAreas: 'Areas to strengthen',
-    healthDrawerSuggestions: 'Quick improvement ideas',
-    healthDrawerEmpty: 'No additional suggestion is visible right now.',
-  },
-  de: {
-    eyebrow: 'Profilbereich',
-    title: 'Profil bearbeiten und stärken',
-    subtitle: 'Verwalte deine Kerninformationen, Erfahrungen, Ausbildung und Skills in einem ruhigen Arbeitsbereich.',
-    loadingTitle: 'Profil wird vorbereitet',
-    loadingBody: 'Die neuesten Profil- und CV-Daten werden geladen.',
-    genericError: 'Die Aktion konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
-    profileCompletion: 'Profilfortschritt',
-    profilePhotoTitle: 'Profilfoto',
-    profilePhotoBody: 'Aktualisiere das Bild, das im Nutzermenü und im Profilbereich angezeigt wird.',
-    uploadProfilePhoto: 'Profilfoto hochladen',
-    uploadingProfilePhoto: 'Profilfoto wird hochgeladen...',
-    profilePhotoSaved: 'Dein Profilfoto wurde aktualisiert.',
-    profileOverviewTitle: 'Profil auf einen Blick',
-    basicsTitle: 'Grunddaten',
-    basicsBody: 'Aktualisiere Name, Kontakt und Kurzprofil.',
-    preferencesTitle: 'Ziele und Präferenzen',
-    preferencesBody: 'Lege Zielrollen, Orte und Arbeitsweise fest.',
-    experiencesTitle: 'Erfahrungen',
-    educationTitle: 'Ausbildung',
-    languagesTitle: 'Sprachen',
-    skillsTitle: 'Skills',
-    healthTitle: 'Profilstatus',
-    healthBody: 'Verfolge, was vollständig ist und wo du noch stärken kannst.',
-    saveBasics: 'Grunddaten speichern',
-    savePreferences: 'Präferenzen speichern',
-    saving: 'Speichern...',
-    savedBasics: 'Grunddaten aktualisiert.',
-    savedPreferences: 'Präferenzen aktualisiert.',
-    savedExperience: 'Erfahrung gespeichert.',
-    deletedExperience: 'Erfahrung entfernt.',
-    savedEducation: 'Ausbildung gespeichert.',
-    deletedEducation: 'Ausbildung entfernt.',
-    savedLanguage: 'Sprache gespeichert.',
-    savedLanguageWithDocument: 'Sprache und Dokument gespeichert.',
-    savedLanguageWithoutDocument: 'Sprache gespeichert. Das Dokument konnte nicht hochgeladen werden; du kannst es erneut versuchen.',
-    deletedLanguage: 'Sprache entfernt.',
-    savedSkill: 'Skill gespeichert.',
-    savedSkillWithEvidence: 'Skill und Nachweisdatei gespeichert.',
-    savedSkillWithoutEvidence: 'Skill gespeichert. Die Nachweisdatei konnte nicht hochgeladen werden; du kannst es erneut versuchen.',
-    deletedSkill: 'Skill entfernt.',
-    addExperience: 'Erfahrung hinzufügen',
-    addEducation: 'Ausbildung hinzufügen',
-    addLanguage: 'Sprache hinzufügen',
-    addSkill: 'Skill hinzufügen',
-    edit: 'Bearbeiten',
-    update: 'Aktualisieren',
-    save: 'Speichern',
-    cancel: 'Abbrechen',
-    delete: 'Löschen',
-    deleting: 'Wird gelöscht...',
-    noExperiences: 'Noch keine Erfahrungseinträge.',
-    noEducation: 'Noch keine Ausbildungseinträge.',
-    noLanguages: 'Noch keine Spracheinträge.',
-    noSkills: 'Noch keine Skills eingetragen.',
-    fullName: 'Vollständiger Name',
-    email: 'E-Mail',
-    phone: 'Telefon',
-    headline: 'Profilüberschrift',
-    summary: 'Kurzprofil',
-    targetRoles: 'Zielrollen',
-    preferredLocations: 'Bevorzugte Standorte',
-    workModes: 'Arbeitsweise',
-    salaryExpectation: 'Gehaltswunsch',
-    relocation: 'Umzug',
-    relocationUnset: 'Noch offen',
-    relocationYes: 'Umzugsbereit',
-    relocationNo: 'Kein Umzug geplant',
-    experienceRole: 'Rolle / Position',
-    experienceCompany: 'Unternehmen',
-    experienceStart: 'Startjahr',
-    experienceEnd: 'Endjahr',
-    experienceCurrent: 'Ich arbeite noch dort',
-    experienceDescription: 'Kurze Beschreibung',
-    educationInstitution: 'Universität / Einrichtung',
-    educationInstitutionHint: 'Aus der Liste wählen oder frei eingeben.',
-    educationInstitutionFallback: 'Universität eingeben',
-    educationDegree: 'Abschluss / Programm',
-    educationField: 'Studienfach',
-    educationFieldHint: 'Fachvorschläge erscheinen, wenn verfügbar.',
-    educationFieldFallback: 'Studienfach eingeben',
-    educationStart: 'Startjahr',
-    educationEnd: 'Endjahr',
-    languageName: 'Sprache',
-    languageLevel: 'Niveau',
-    languageCertificate: 'Dokumentname',
-    languageDocument: 'Zertifikat / Dokument hochladen',
-    languageIssuer: 'Aussteller',
-    languageDocumentSaved: 'Sprachdokument hochgeladen.',
-    skillName: 'Skill-Name',
-    skillCategory: 'Kategorie',
-    skillProficiency: 'Niveau / Hinweis',
-    skillYears: 'Jahre Erfahrung',
-    skillEvidenceNote: 'Beschreibung / Nachweisnotiz',
-    skillEvidenceFile: 'Nachweis / Dokument hochladen',
-    skillEvidenceSaved: 'Skill-Nachweis aktualisiert.',
-    skillCategoriesTitle: 'Kategorie wählen',
-    noProfilePhoto: 'Noch kein Profilfoto.',
-    currentBadge: 'Aktuell',
-    previewEmpty: 'Noch nichts sichtbar.',
-    remote: 'Remote',
-    hybrid: 'Hybrid',
-    onsite: 'Vor Ort',
-    sectionDone: 'Fertig',
-    sectionPartial: 'Teilweise',
-    sectionMissing: 'Fehlt',
-    manualEntryNote: 'Wenn offizielle Katalogdaten fehlen, bleibt freie Eingabe möglich.',
-    healthDrawerButton: 'Profilstatus ansehen',
-    healthDrawerTitle: 'Profilstatus',
-    healthDrawerSubtitle: 'Behalte im Blick, was bereits stark wirkt und wo ein kurzer Feinschliff hilft.',
-    healthDrawerCompletionLabel: 'Gesamtbild',
-    healthDrawerStrongAreas: 'Starke Bereiche',
-    healthDrawerFocusAreas: 'Bereiche mit Potenzial',
-    healthDrawerSuggestions: 'Schnelle Verbesserungen',
-    healthDrawerEmpty: 'Aktuell ist keine weitere Empfehlung sichtbar.',
-  },
-};
 
 type BasicDraft = {full_name: string; phone: string; headline: string; summary: string};
 type PreferencesDraft = {
@@ -782,66 +333,6 @@ function buildCvWorkspaceProfile(
   };
 }
 
-function Surface({children}: {children: ReactNode}) {
-  return <section className="rounded-[28px] border border-border bg-background p-6 shadow-[0_14px_45px_-28px_rgba(15,23,42,0.24)] sm:p-7">{children}</section>;
-}
-
-function SectionHeader({title, body, action}: {title: string; body?: string; action?: ReactNode}) {
-  return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">{title}</h2>
-        {body ? <p className="mt-1 text-sm leading-6 text-muted-foreground">{body}</p> : null}
-      </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
-    </div>
-  );
-}
-
-function InputField(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm text-foreground outline-none transition focus:border-foreground/25 focus:ring-4 focus:ring-primary/10 ${props.className ?? ''}`} />;
-}
-
-function TextAreaField(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={`min-h-[120px] w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-foreground/25 focus:ring-4 focus:ring-primary/10 ${props.className ?? ''}`} />;
-}
-
-function SelectField(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={`h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm text-foreground outline-none transition focus:border-foreground/25 focus:ring-4 focus:ring-primary/10 ${props.className ?? ''}`} />;
-}
-
-function PrimaryButton({children, type = 'button', ...props}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button type={type} {...props} className={`inline-flex h-11 items-center justify-center rounded-2xl bg-foreground px-5 text-sm font-medium text-background transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 ${props.className ?? ''}`}>{children}</button>;
-}
-
-function SecondaryButton({children, danger = false, type = 'button', ...props}: React.ButtonHTMLAttributes<HTMLButtonElement> & {danger?: boolean}) {
-  return (
-    <button
-      type={type}
-      {...props}
-      className={`inline-flex h-11 items-center justify-center rounded-2xl border px-5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${danger ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-border bg-background text-foreground hover:bg-muted/50'} ${props.className ?? ''}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Chip({children}: {children: ReactNode}) {
-  return <span className="inline-flex items-center rounded-full border border-border bg-muted/20 px-3 py-1 text-xs font-medium text-foreground">{children}</span>;
-}
-
-
-function LoadingView({copy}: {copy: Copy}) {
-  return (
-    <div className="rounded-[28px] border border-border bg-background p-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-foreground">{copy.loadingTitle}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{copy.loadingBody}</p>
-    </div>
-  );
-}
-
-
-
 function emitProfileSurfaceUpdate(payload: {fullName?: string | null; avatarUrl?: string | null}) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(
@@ -960,8 +451,10 @@ export default function ProfileAggregateWorkspace() {
     void refreshWorkspace('initial');
   }, [refreshWorkspace]);
 
+  const hasSkillEditor = Boolean(skillEditor);
+
   useEffect(() => {
-    if (!skillEditor) {
+    if (!hasSkillEditor) {
       setSkillEvidenceOpen(false);
       setSkillEvidenceLoading(false);
       setSkillEvidenceError(null);
@@ -971,7 +464,7 @@ export default function ProfileAggregateWorkspace() {
 
     setSkillEvidenceError(null);
     setSkillEvidenceResult(null);
-  }, [skillEditor?.mode, skillEditor?.targetId]);
+  }, [hasSkillEditor, skillEditor?.mode, skillEditor?.targetId]);
 
   useEffect(() => {
     if (loading || sessionRestoredRef.current || typeof window === 'undefined') {
@@ -2339,80 +1832,6 @@ export default function ProfileAggregateWorkspace() {
         saving={busyKey === 'avatar'}
       />
     </div>
-  );
-}
-
-function Field({label, hint, marker, children}: {label: string; hint?: string; marker?: ReactNode; children: ReactNode}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm font-medium text-foreground">{label}</div>
-        {marker}
-      </div>
-      {children}
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
-    </div>
-  );
-}
-
-function EmptyState({children}: {children: ReactNode}) {
-  return <div className="rounded-2xl border border-dashed border-border px-4 py-5 text-sm text-muted-foreground">{children}</div>;
-}
-
-function OverviewCard({title, children, className = ''}: {title: string; children: ReactNode; className?: string}) {
-  return (
-    <div className={`rounded-2xl border border-border bg-muted/20 p-4 ${className}`}>
-      <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{title}</div>
-      <div className="mt-2 text-sm leading-7 text-foreground">{children}</div>
-    </div>
-  );
-}
-
-function OverviewListCard({title, items, emptyLabel}: {title: string; items: string[]; emptyLabel: string}) {
-  return (
-    <div className="rounded-2xl border border-border bg-muted/20 p-4">
-      <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{title}</div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {items.length > 0 ? items.map((item) => <Chip key={item}>{item}</Chip>) : <span className="text-sm text-muted-foreground">{emptyLabel}</span>}
-      </div>
-    </div>
-  );
-}
-
-function EditorCard({children}: {children: ReactNode}) {
-  return <div className="rounded-[22px] border border-dashed border-border bg-muted/10 p-5">{children}</div>;
-}
-
-function EditorActions({onSave, onCancel, busy, saveLabel, t}: {onSave: () => void; onCancel: () => void; busy: boolean; saveLabel: string; t: Copy}) {
-  return (
-    <div className="mt-5 flex flex-wrap gap-3">
-      <PrimaryButton onClick={onSave} disabled={busy}>{busy ? t.saving : saveLabel}</PrimaryButton>
-      <SecondaryButton onClick={onCancel} disabled={busy}>{t.cancel}</SecondaryButton>
-    </div>
-  );
-}
-
-function EntityCard({icon, title, subtitle, description, chips = [], onEdit, onDelete, deleting, t}: {icon: ReactNode; title: string; subtitle: string; description?: string; chips?: string[]; onEdit: () => void; onDelete?: () => void; deleting: boolean; t: Copy}) {
-  return (
-    <article className="rounded-[22px] border border-border bg-muted/15 p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-foreground">
-            <span className="inline-flex size-10 items-center justify-center rounded-2xl border border-border bg-background">{icon}</span>
-            <div>
-              <div className="text-base font-semibold text-foreground">{title}</div>
-              <div className="text-sm text-muted-foreground">{subtitle}</div>
-            </div>
-          </div>
-          {description ? <p className="text-sm leading-7 text-muted-foreground">{description}</p> : null}
-          {chips.length > 0 ? <div className="flex flex-wrap gap-2">{chips.map((item) => <Chip key={item}>{item}</Chip>)}</div> : null}
-        </div>
-        <div className="flex gap-3">
-          <SecondaryButton onClick={onEdit}>{t.edit}</SecondaryButton>
-          {onDelete ? <SecondaryButton onClick={onDelete} danger disabled={deleting}>{deleting ? t.deleting : t.delete}</SecondaryButton> : null}
-        </div>
-      </div>
-    </article>
   );
 }
 

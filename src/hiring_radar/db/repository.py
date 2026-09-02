@@ -6,54 +6,56 @@ import sqlite3
 from collections.abc import Iterable
 from typing import Any
 
+from hiring_radar.db.repositories import AuthRepository, JobsRepository, ProfileRepository
 from hiring_radar.models import (
     CanonicalJob,
     CanonicalJobFeature,
     CanonicalJobLink,
+    CareerKnowledgeDocument,
     CrawlRun,
+    JobExternalContextSnapshot,
     JobRecord,
     JobSource,
     JobSourceRecord,
-    JobExternalContextSnapshot,
     NotificationCheckpoint,
     NotificationRun,
-    Subscriber,
-    SubscriberAiAuditLog,
-    SubscriberAiCopilotConversation,
-    SubscriberAiCopilotMessage,
-    SubscriberAiLearnedMemory,
-    SubscriberCvApplyAudit,
-    SubscriberCvParseRun,
-    SubscriberCvUpload,
-    SubscriberCertificationEntry,
-    SubscriberEducationEntry,
-    SubscriberExperienceEntry,
-    SubscriberKeywordPreference,
-    SubscriberLanguageCertificate,
-    SubscriberLanguageEntry,
-    SubscriberMagicLinkToken,
-    SubscriberPasswordResetToken,
-    SubscriberSavedJob,
-    SubscriberSavedJobNote,
-    SubscriberSession,
-    SubscriberLoginHistoryEntry,
-    SubscriberEmailChangeRequest,
-    SubscriberTotpSecret,
-    SubscriberSignupVerification,
-    SubscriberOAuthProvider,
-    SubscriberOAuthState,
-    SubscriberProfile,
-    SubscriberProfileFeature,
-    SubscriberJobInteraction,
-    SubscriberJobInteractionEvent,
-    SubscriberSkillDetail,
-    CareerKnowledgeDocument,
     RetrievalChunk,
     RetrievalDocument,
     RetrievalEmbedding,
     RetrievalEmbeddingJob,
     RetrievalSearchCandidate,
     RetrievalSource,
+    Subscriber,
+    SubscriberAiAuditLog,
+    SubscriberAiCopilotConversation,
+    SubscriberAiCopilotMessage,
+    SubscriberAiLearnedMemory,
+    SubscriberCertificationEntry,
+    SubscriberCvApplyAudit,
+    SubscriberCvParseRun,
+    SubscriberCvUpload,
+    SubscriberEducationEntry,
+    SubscriberEmailChangeRequest,
+    SubscriberExperienceEntry,
+    SubscriberJobInteraction,
+    SubscriberJobInteractionEvent,
+    SubscriberKeywordPreference,
+    SubscriberLanguageCertificate,
+    SubscriberLanguageEntry,
+    SubscriberLoginHistoryEntry,
+    SubscriberMagicLinkToken,
+    SubscriberNotificationPreference,
+    SubscriberOAuthProvider,
+    SubscriberOAuthState,
+    SubscriberPasswordResetToken,
+    SubscriberProfile,
+    SubscriberProfileFeature,
+    SubscriberSavedJob,
+    SubscriberSavedJobNote,
+    SubscriberSession,
+    SubscriberSignupVerification,
+    SubscriberSkillDetail,
+    SubscriberTotpSecret,
 )
 
 
@@ -319,6 +321,25 @@ def _row_to_subscriber(row: sqlite3.Row) -> Subscriber:
         is_active=bool(row["is_active"]),
         digest_enabled=bool(row["digest_enabled"]),
         created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _row_to_subscriber_notification_preference(
+    row: sqlite3.Row,
+    *,
+    job_digest_enabled: bool,
+) -> SubscriberNotificationPreference:
+    return SubscriberNotificationPreference(
+        subscriber_id=row["subscriber_id"],
+        job_digest_enabled=job_digest_enabled,
+        product_updates_enabled=bool(row["product_updates_enabled"]),
+        employer_messages_enabled=bool(row["employer_messages_enabled"]),
+        security_alerts_enabled=bool(row["security_alerts_enabled"]),
+        quiet_hours_enabled=bool(row["quiet_hours_enabled"]),
+        quiet_hours_start=row["quiet_hours_start"],
+        quiet_hours_end=row["quiet_hours_end"],
+        timezone=row["timezone"],
         updated_at=row["updated_at"],
     )
 
@@ -827,6 +848,12 @@ class HiringRadarRepository:
 
     def __init__(self, connection: sqlite3.Connection) -> None:
         self.connection = connection
+        # Domain facades introduced in Patch 11. Legacy methods remain available
+        # on this class; new code should prefer repo.auth / repo.profile / repo.jobs
+        # so future patches can move SQL implementations without touching routers.
+        self.auth = AuthRepository(self)
+        self.profile = ProfileRepository(self)
+        self.jobs = JobsRepository(self)
 
     def start_crawl_run(self, source_name: str, started_at: str) -> int:
         with self.connection:
@@ -5667,6 +5694,112 @@ class HiringRadarRepository:
         )
 
         return ([_row_to_subscriber(row) for row in cursor.fetchall()], total_items)
+
+    def get_subscriber_notification_preference(
+        self,
+        subscriber_id: int,
+    ) -> SubscriberNotificationPreference | None:
+        subscriber = self.get_subscriber_by_id(subscriber_id)
+        if subscriber is None:
+            return None
+
+        cursor = self.connection.execute(
+            """
+            SELECT
+                subscriber_id,
+                product_updates_enabled,
+                employer_messages_enabled,
+                security_alerts_enabled,
+                quiet_hours_enabled,
+                quiet_hours_start,
+                quiet_hours_end,
+                timezone,
+                updated_at
+            FROM subscriber_notification_preferences
+            WHERE subscriber_id = ?
+            """,
+            (subscriber_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return SubscriberNotificationPreference(
+                subscriber_id=subscriber_id,
+                job_digest_enabled=subscriber.digest_enabled,
+                updated_at=subscriber.updated_at,
+            )
+
+        return _row_to_subscriber_notification_preference(
+            row,
+            job_digest_enabled=subscriber.digest_enabled,
+        )
+
+    def upsert_subscriber_notification_preference(
+        self,
+        subscriber_id: int,
+        *,
+        product_updates_enabled: bool | None = None,
+        employer_messages_enabled: bool | None = None,
+        security_alerts_enabled: bool | None = None,
+        quiet_hours_enabled: bool | None = None,
+        quiet_hours_start: str | None = None,
+        quiet_hours_end: str | None = None,
+        timezone: str | None = None,
+        updated_at: str,
+    ) -> SubscriberNotificationPreference | None:
+        existing = self.get_subscriber_notification_preference(subscriber_id)
+        if existing is None:
+            return None
+
+        next_values = {
+            "product_updates_enabled": existing.product_updates_enabled if product_updates_enabled is None else product_updates_enabled,
+            "employer_messages_enabled": existing.employer_messages_enabled if employer_messages_enabled is None else employer_messages_enabled,
+            "security_alerts_enabled": existing.security_alerts_enabled if security_alerts_enabled is None else security_alerts_enabled,
+            "quiet_hours_enabled": existing.quiet_hours_enabled if quiet_hours_enabled is None else quiet_hours_enabled,
+            "quiet_hours_start": existing.quiet_hours_start if quiet_hours_start is None else quiet_hours_start,
+            "quiet_hours_end": existing.quiet_hours_end if quiet_hours_end is None else quiet_hours_end,
+            "timezone": existing.timezone if timezone is None else timezone,
+        }
+
+        with self.connection:
+            self.connection.execute(
+                """
+                INSERT INTO subscriber_notification_preferences (
+                    subscriber_id,
+                    product_updates_enabled,
+                    employer_messages_enabled,
+                    security_alerts_enabled,
+                    quiet_hours_enabled,
+                    quiet_hours_start,
+                    quiet_hours_end,
+                    timezone,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(subscriber_id) DO UPDATE SET
+                    product_updates_enabled = excluded.product_updates_enabled,
+                    employer_messages_enabled = excluded.employer_messages_enabled,
+                    security_alerts_enabled = excluded.security_alerts_enabled,
+                    quiet_hours_enabled = excluded.quiet_hours_enabled,
+                    quiet_hours_start = excluded.quiet_hours_start,
+                    quiet_hours_end = excluded.quiet_hours_end,
+                    timezone = excluded.timezone,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    subscriber_id,
+                    int(next_values["product_updates_enabled"]),
+                    int(next_values["employer_messages_enabled"]),
+                    int(next_values["security_alerts_enabled"]),
+                    int(next_values["quiet_hours_enabled"]),
+                    next_values["quiet_hours_start"],
+                    next_values["quiet_hours_end"],
+                    next_values["timezone"],
+                    updated_at,
+                ),
+            )
+
+        return self.get_subscriber_notification_preference(subscriber_id)
+
 
     def update_subscriber_fields_by_id(
         self,

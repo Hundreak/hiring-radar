@@ -227,7 +227,7 @@ def build_employer_candidate_match(
     # ---------- Language fit ----------
     language_fit = 0.0
     if job_language_requirements and candidate_languages:
-        cand_lang_set = {l.lower() for l in candidate_languages}
+        cand_lang_set = {lang.lower() for lang in candidate_languages}
         matches = sum(1 for jl in job_language_requirements if jl.lower() in cand_lang_set)
         language_fit = matches / max(len(job_language_requirements), 1)
 

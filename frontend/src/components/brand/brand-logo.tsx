@@ -1,62 +1,69 @@
-import Image from 'next/image';
-import Link from 'next/link';
+'use client';
 
-type BrandLogoSize = 'sm' | 'md' | 'lg';
+import Link from 'next/link';
+import {Sparkles} from 'lucide-react';
 
 type BrandLogoProps = {
-  href?: string;
-  size?: BrandLogoSize;
+  size?: 'sm' | 'md' | 'lg';
+  showSubtitle?: boolean;
+  locale?: string;
   className?: string;
   priority?: boolean;
-  locale?: string;
-  showSubtitle?: boolean;
+  asLink?: boolean;
 };
 
-const sizeClasses: Record<BrandLogoSize, string> = {
-  sm: 'h-8 w-8',
-  md: 'h-10 w-10',
-  lg: 'h-12 w-12'
-};
+const iconSizeClass = {
+  sm: 'h-7 w-7 rounded-lg',
+  md: 'h-8 w-8 rounded-lg',
+  lg: 'h-10 w-10 rounded-2xl'
+} as const;
 
-function BrandLogoInner({
+const iconGlyphSizeClass = {
+  sm: 'size-3.5',
+  md: 'size-4',
+  lg: 'size-5'
+} as const;
+
+const titleSizeClass = {
+  sm: 'text-base',
+  md: 'text-lg',
+  lg: 'text-xl'
+} as const;
+
+export function BrandLogo({
   size = 'md',
+  showSubtitle = true,
+  locale = 'tr',
   className,
-  priority = false
-}: Omit<BrandLogoProps, 'href'>) {
-  return (
-    <div className={`inline-flex items-center justify-center ${className ?? ''}`}>
-      <div className={`relative shrink-0 ${sizeClasses[size]}`}>
-        <Image
-          src="/brand/noytera-logo.png"
-          alt="NoyTera logo"
-          width={256}
-          height={256}
-          priority={priority}
-          sizes={size === 'sm' ? '32px' : size === 'md' ? '40px' : '48px'}
-          className="h-auto w-full select-none object-contain"
-          draggable={false}
-        />
+  asLink = true
+}: BrandLogoProps) {
+  const content = (
+    <>
+      <div className={`flex items-center justify-center bg-primary text-primary-foreground ${iconSizeClass[size]}`}>
+        <Sparkles className={iconGlyphSizeClass[size]} />
       </div>
-    </div>
+      {showSubtitle && (
+        <div className="min-w-0">
+          <div className={`truncate font-semibold leading-none tracking-tight text-foreground ${titleSizeClass[size]}`}>
+            NoyTera
+          </div>
+          <div className="mt-0.5 truncate text-[11px] leading-none text-muted-foreground">
+            AI destekli kariyer platformu
+          </div>
+        </div>
+      )}
+    </>
   );
-}
 
-export function BrandLogo(props: BrandLogoProps) {
-  const {href} = props;
+  const classes = `inline-flex items-center gap-2 ${className || ''}`;
 
-  if (!href) {
-    return <BrandLogoInner {...props} />;
+  if (!asLink) {
+    return <span className={classes}>{content}</span>;
   }
 
   return (
-    <Link
-      href={href}
-      aria-label="NoyTera home"
-      className="inline-flex items-center justify-center"
-    >
-      <BrandLogoInner {...props} />
+    <Link href={`/${locale}`} className={classes} aria-label="NoyTera home">
+      {content}
     </Link>
   );
 }
-
-export default BrandLogo;

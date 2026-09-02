@@ -172,7 +172,7 @@ def test_score_ocr_quality_strict_mode_for_ocr() -> None:
     # PDF text should score lower for OCR.
     short_text = "Python developer Berlin"
     report_ocr = score_ocr_quality(short_text, extraction_method="image_ocr")
-    report_pdf = score_ocr_quality(short_text, extraction_method="pdf_text")
+    score_ocr_quality(short_text, extraction_method="pdf_text")
     # OCR is stricter — should score lower or have more reasons
     assert report_ocr.band in (CV_OCR_QUALITY_LOW, CV_OCR_QUALITY_UNUSABLE)
 

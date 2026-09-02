@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from html import unescape
 from typing import Any, Final
 from urllib.parse import urlparse
@@ -897,7 +897,7 @@ class WebContextService:
 
     @staticmethod
     def _add_minutes(value: str, minutes: int) -> str:
-        return (WebContextService._parse_iso(value) + timedelta(minutes=minutes)).astimezone(timezone.utc).isoformat()
+        return (WebContextService._parse_iso(value) + timedelta(minutes=minutes)).astimezone(UTC).isoformat()
 
 
 __all__ = ["WebContextService", "WebContextServiceConfig"]

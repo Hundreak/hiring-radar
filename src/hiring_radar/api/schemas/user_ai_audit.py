@@ -6,7 +6,6 @@ from pydantic import Field
 
 from hiring_radar.api.schemas.profile_contract import StrictSchema
 
-
 AiAuditActionType = Literal["replace", "append"]
 AiAuditPersistenceStatus = Literal["unsaved", "saved", "reverted"]
 AiAuditEvaluationStatus = Literal["pending", "accepted", "rejected", "modified", "reverted"]

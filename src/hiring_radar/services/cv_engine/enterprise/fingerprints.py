@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from hiring_radar.services.cv_engine.enterprise.models import DocumentFingerprints
 

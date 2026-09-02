@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hiring-radar"
 version = "0.1.0"
-description = "CLI-based system for tracking company career pages and detecting new job postings."
+description = "AI-assisted job matching platform with crawling, CV parsing, matching, candidate and employer workspaces."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -52,7 +52,30 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# Satır uzunluğu formatlayıcının işidir (`make format`); linter doğruluk
+# kurallarını korur. Kapının anlamı, geçmek için gevşetilmiş olmasında değil,
+# gerçekten hata yakalıyor olmasında.
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI'nin bağımlılık enjeksiyonu argüman varsayılanında çağrı yapar;
+# B008 bu deyim için yanlış pozitiftir.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.File",
+    "fastapi.Form",
+]
 
 [tool.ruff.lint.per-file-ignores]
-"src/hiring_radar/api/routers/admin_shell.py" = ["E501"]
-"src/hiring_radar/api/routers/user_shell.py" = ["E501"]
+# Bu dosyalar yardımcı fonksiyonlarını kendi bölümlerinin yanında tutuyor ve
+# import'ları oraya alıyor; yerleşim bilinçli, dosya başına taşımak bağlamı
+# dağıtırdı.
+"scripts/release_migration_dry_run.py" = ["E402"]
+"src/hiring_radar/api/routers/user_profile.py" = ["E402"]
+"src/hiring_radar/api/routers/user_security.py" = ["E402"]
+"src/hiring_radar/services/cv_engine/batch/admin_runtime.py" = ["E402"]

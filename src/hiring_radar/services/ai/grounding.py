@@ -4,8 +4,15 @@ from dataclasses import dataclass
 
 from hiring_radar.api.schemas.profile_contract import CandidateProfileAggregate
 from hiring_radar.db.repository import HiringRadarRepository
-from hiring_radar.models import CareerKnowledgeDocument, SubscriberAiLearnedMemory, SubscriberCvUpload
-from hiring_radar.services.ai.career_knowledge import ensure_foundation_career_knowledge, search_career_knowledge
+from hiring_radar.models import (
+    CareerKnowledgeDocument,
+    SubscriberAiLearnedMemory,
+    SubscriberCvUpload,
+)
+from hiring_radar.services.ai.career_knowledge import (
+    ensure_foundation_career_knowledge,
+    search_career_knowledge,
+)
 from hiring_radar.services.ai.contracts import CopilotGroundingSource
 
 

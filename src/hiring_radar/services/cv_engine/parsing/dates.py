@@ -183,12 +183,10 @@ def _fold_text(text: str) -> str:
         "Ö": "o",
         "ç": "c",
         "Ç": "c",
+        # Almancaya özgü olanlar; ö/Ö/ü/Ü yukarıdaki Türkçe blokta aynı
+        # karşılıklarla zaten tanımlı.
         "ä": "a",
         "Ä": "a",
-        "ö": "o",
-        "Ö": "o",
-        "ü": "u",
-        "Ü": "u",
         "ß": "ss",
     })
     return text.translate(replacements).casefold().strip()

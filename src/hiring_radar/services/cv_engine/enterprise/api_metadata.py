@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
 
 from hiring_radar.db.repository import HiringRadarRepository
@@ -12,7 +11,9 @@ from hiring_radar.services.cv_engine.cache.keys import (
     build_parse_cache_key,
     build_section_hashes,
 )
-from hiring_radar.services.cv_engine.cache.models import ParseCacheEntry
+from hiring_radar.services.cv_engine.compliance.audit import (
+    extract_enterprise_metadata_from_parse_run_metadata_json,
+)
 from hiring_radar.services.cv_engine.config import ParserRuntimeConfig
 from hiring_radar.services.cv_engine.enterprise.fingerprints import build_document_fingerprints
 from hiring_radar.services.cv_engine.enterprise.models import (
@@ -28,9 +29,6 @@ from hiring_radar.services.cv_engine.enterprise.versioning import resolve_docume
 from hiring_radar.services.cv_engine.legacy_runtime import build_foundation_parser_result_from_text
 from hiring_radar.services.cv_engine.models import ParserResult
 from hiring_radar.services.cv_engine.redaction.engine import redact_cv_text
-from hiring_radar.services.cv_engine.compliance.audit import (
-    extract_enterprise_metadata_from_parse_run_metadata_json,
-)
 from hiring_radar.services.cv_extraction import CV_PARSE_STATUS_PARSED, normalize_extracted_text
 
 

@@ -1,17 +1,25 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {useLocale, useTranslations} from 'next-intl';
 
 import {MatchCard} from '@/components/matches/match-card';
 import {MatchInsightsPanel} from '@/components/matches/match-insights-panel';
-import {ApiError, api} from '@/lib/api';
-import type {MatchInsightsData} from '@/lib/api';
+import {PaginationControls} from '@/components/ui/pagination-controls';
+import {
+  getQueryErrorMessage,
+  useMatchesQuery,
+  useMatchInsightsQuery,
+  useSaveJobMutation,
+  useSavedJobsEventBridge,
+  useSavedJobsQuery,
+  useUnsaveJobMutation,
+  useUserProfileAggregateQuery,
+} from '@/hooks/use-api-queries';
 import {getSkillAlignmentScore, isScorePreview} from '@/lib/match-ui';
-import {dispatchSavedJobsChanged, onSavedJobsChanged} from '@/lib/saved-jobs-events';
-import type {UserProfileAggregateResponse} from '@/types/profile';
-import type {JobListItem, JobRankingMode} from '@/types/job';
+import {DEFAULT_LIST_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS, createPaginationMeta} from '@/lib/pagination';
+import type {JobListItem} from '@/types/job';
 
 type SortMode = 'score' | 'newest' | 'skill';
 
@@ -23,77 +31,60 @@ export default function MatchesPage() {
   const t = useTranslations('matches');
   const locale = useLocale();
   const router = useRouter();
-  const [jobs, setJobs] = useState<JobListItem[]>([]);
-  const [insights, setInsights] = useState<MatchInsightsData | null>(null);
-  const [profileAggregate, setProfileAggregate] = useState<UserProfileAggregateResponse | null>(null);
-  const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<SortMode>('score');
-  const [rankingMode, setRankingMode] = useState<JobRankingMode>('legacy_keyword');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_LIST_PAGE_SIZE);
+  const matchesQuery = useMatchesQuery({page, pageSize});
+  const insightsQuery = useMatchInsightsQuery();
+  const savedJobsQuery = useSavedJobsQuery();
+  const profileAggregateQuery = useUserProfileAggregateQuery();
+  const saveJobMutation = useSaveJobMutation();
+  const unsaveJobMutation = useUnsaveJobMutation();
 
-  useEffect(() => {
-    let active = true;
-    Promise.all([
-      api.getMatches(),
-      api.getMatchInsights(),
-      api.getSavedJobs(),
-      api.getUserProfileAggregate(),
-    ])
-      .then(([res, ins, savedRes, profileRes]) => {
-        if (!active) return;
-        setJobs(res.items);
-        setRankingMode(res.ranking_mode ?? 'legacy_keyword');
-        setInsights(ins);
-        setProfileAggregate(profileRes);
-        setSavedJobIds(new Set(savedRes.items.map((s) => s.job_id)));
-      })
-      .catch((reason: Error) => {
-        if (!active) return;
-        if (reason instanceof ApiError && reason.status === 401) return;
-        setError(reason.message);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  useSavedJobsEventBridge();
 
-  useEffect(() => {
-    return onSavedJobsChanged(({jobId, action}) => {
-      setSavedJobIds((prev) => {
-        const next = new Set(prev);
-        if (action === 'unsaved') next.delete(jobId);
-        else next.add(jobId);
-        return next;
-      });
-    });
-  }, []);
+  const jobs = matchesQuery.data?.items ?? [];
+  const paginationMeta = useMemo(
+    () => createPaginationMeta({
+      page: matchesQuery.data?.page ?? page,
+      pageSize: matchesQuery.data?.page_size ?? pageSize,
+      totalItems: matchesQuery.data?.total_items ?? jobs.length,
+      totalPages: matchesQuery.data?.total_pages ?? null,
+    }),
+    [jobs.length, matchesQuery.data?.page, matchesQuery.data?.page_size, matchesQuery.data?.total_items, matchesQuery.data?.total_pages, page, pageSize]
+  );
+  const insights = insightsQuery.data ?? null;
+  const profileAggregate = profileAggregateQuery.data ?? null;
+  const rankingMode = matchesQuery.data?.ranking_mode ?? 'legacy_keyword';
+  const savedJobIds = useMemo(
+    () => new Set((savedJobsQuery.data?.items ?? []).map((savedJob) => savedJob.job_id)),
+    [savedJobsQuery.data?.items]
+  );
+  const loading =
+    matchesQuery.isLoading ||
+    insightsQuery.isLoading ||
+    savedJobsQuery.isLoading ||
+    profileAggregateQuery.isLoading;
+  const error =
+    getQueryErrorMessage(matchesQuery.error) ??
+    getQueryErrorMessage(insightsQuery.error) ??
+    getQueryErrorMessage(savedJobsQuery.error) ??
+    getQueryErrorMessage(profileAggregateQuery.error);
 
   const handleToggleSave = useCallback(
     async (jobId: number, matchScore?: number) => {
       const isSaved = savedJobIds.has(jobId);
       try {
         if (isSaved) {
-          await api.unsaveJob(jobId);
-          setSavedJobIds((prev) => {
-            const next = new Set(prev);
-            next.delete(jobId);
-            return next;
-          });
-          dispatchSavedJobsChanged({jobId, action: 'unsaved'});
+          await unsaveJobMutation.mutateAsync(jobId);
         } else {
-          await api.saveJob(jobId, matchScore);
-          setSavedJobIds((prev) => new Set(prev).add(jobId));
-          dispatchSavedJobsChanged({jobId, action: 'saved'});
+          await saveJobMutation.mutateAsync({jobId, matchScore});
         }
       } catch {
         // keep silent for now
       }
     },
-    [savedJobIds]
+    [saveJobMutation, savedJobIds, unsaveJobMutation]
   );
 
   const sorted = useMemo(() => {
@@ -203,7 +194,7 @@ export default function MatchesPage() {
             <button
               key={s.key}
               type="button"
-              onClick={() => setSort(s.key)}
+              onClick={() => { setSort(s.key); setPage(1); }}
               className={`rounded-lg border px-3 py-1.5 text-xs transition ${
                 sort === s.key
                   ? 'border-primary/40 bg-primary/15 text-secondary-foreground'
@@ -219,6 +210,22 @@ export default function MatchesPage() {
           {t('matchedCount', {count: sorted.length})}
         </span>
       </div>
+
+      <PaginationControls
+        meta={paginationMeta}
+        labels={{
+          previous: t('paginationPrevious'),
+          next: t('paginationNext'),
+          pageSize: t('paginationPageSize'),
+          summary: ({start, end, total}) => t('paginationSummary', {start, end, total}),
+        }}
+        pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+      />
 
       {loading ? (
         <div className="rounded-xl border border-border bg-surface p-8 text-sm text-muted-foreground">{t('loading')}</div>
@@ -240,7 +247,7 @@ export default function MatchesPage() {
                   matchScore: job.match_score ?? 0,
                   postedLabel: formatPostedLabel(job),
                   contractType: job.source_name,
-                  matchedKeywords: job.matched_keywords,
+                  matchedKeywords: job.matched_keywords ?? [],
                   explanation: job.explanation,
                   isScorePreview: scorePreview,
                   href: job.canonical_url,
@@ -253,6 +260,19 @@ export default function MatchesPage() {
           <MatchInsightsPanel insights={insights} />
         </div>
       )}
+
+      {!loading && !error && paginationMeta.totalPages > 1 ? (
+        <PaginationControls
+          meta={paginationMeta}
+          labels={{
+            previous: t('paginationPrevious'),
+            next: t('paginationNext'),
+            pageSize: t('paginationPageSize'),
+            summary: ({start, end, total}) => t('paginationSummary', {start, end, total}),
+          }}
+          onPageChange={setPage}
+        />
+      ) : null}
     </div>
   );
 }

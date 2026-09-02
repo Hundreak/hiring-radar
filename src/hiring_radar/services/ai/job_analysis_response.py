@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
-from hiring_radar.services.ai.job_analysis_grounding import JobAnalysisGroundingBundle, JobAnalysisStructuredContext
-
+from hiring_radar.services.ai.job_analysis_grounding import (
+    JobAnalysisGroundingBundle,
+    JobAnalysisStructuredContext,
+)
 
 _GENERIC_TOKENS = (
     "açıklayacağım",

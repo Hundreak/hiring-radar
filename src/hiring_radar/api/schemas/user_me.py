@@ -30,3 +30,32 @@ class UserFilterPolicyResponse(BaseModel):
     include_keywords: list[str]
     exclude_keywords: list[str]
     active_fields: list[str]
+
+class UserNotificationPreferenceResponse(BaseModel):
+    subscriber_id: int
+    job_digest_enabled: bool
+    product_updates_enabled: bool
+    employer_messages_enabled: bool
+    security_alerts_enabled: bool
+    quiet_hours_enabled: bool
+    quiet_hours_start: str
+    quiet_hours_end: str
+    timezone: str
+    updated_at: str | None
+
+
+class UserNotificationPreferenceUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    job_digest_enabled: bool | None = None
+    product_updates_enabled: bool | None = None
+    employer_messages_enabled: bool | None = None
+    security_alerts_enabled: bool | None = None
+    quiet_hours_enabled: bool | None = None
+    quiet_hours_start: str | None = None
+    quiet_hours_end: str | None = None
+    timezone: str | None = None
+
+    def provided_update_fields(self) -> dict[str, object]:
+        return {field_name: getattr(self, field_name) for field_name in self.model_fields_set}
+

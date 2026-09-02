@@ -15,8 +15,8 @@ from hiring_radar.services.ai.contracts import (
 )
 from hiring_radar.services.ai.exceptions import (
     LocalAiGenerationError,
-    LocalAiStructuredOutputError,
     LocalAiRuntimeUnreachableError,
+    LocalAiStructuredOutputError,
 )
 
 

@@ -2,9 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-export type Theme = 'obsidian' | 'platinum' | 'crimson' | 'aurum';
+export type Theme = 'clarity' | 'obsidian' | 'platinum' | 'crimson' | 'aurum';
 
-const THEMES: Theme[] = ['obsidian', 'platinum', 'crimson', 'aurum'];
+const THEMES: Theme[] = ['clarity', 'obsidian', 'platinum', 'crimson', 'aurum'];
 
 function isTheme(value: string | null): value is Theme {
   return THEMES.includes(value as Theme);
@@ -17,15 +17,15 @@ type ThemeContextValue = {
   cycleTheme: () => void;
 };
 
-const STORAGE_KEY = 'noytera-theme-v1';
+const STORAGE_KEY = 'noytera-theme-v2';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'obsidian';
+  if (typeof window === 'undefined') return 'clarity';
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (isTheme(stored)) return stored;
-  return 'obsidian';
+  return 'clarity';
 }
 
 function applyTheme(theme: Theme) {

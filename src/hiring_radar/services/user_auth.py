@@ -13,6 +13,13 @@ from typing import Any
 from itsdangerous import BadSignature, URLSafeSerializer
 
 from hiring_radar.email_config import load_env_file
+from hiring_radar.security_runtime import (
+    RuntimeSecurityError,
+    bool_env,
+    default_secure_cookie,
+    normalize_cookie_samesite,
+    require_production_secret,
+)
 
 
 class UserAuthError(ValueError):
@@ -31,12 +38,19 @@ USER_SESSION_COOKIE_NAME = os.getenv(
     "HIRING_RADAR_SESSION_COOKIE_NAME",
     "hiring_radar_session",
 )
+DEV_USER_AUTH_SECRET = "dev-user-auth-secret"
 
 
 @dataclass(slots=True, frozen=True)
 class UserAuthSettings:
-    secret_key: str
+    secret_key: str = ""
     session_cookie_name: str = USER_SESSION_COOKIE_NAME
+    secure_cookie: bool = False
+    cookie_samesite: str = "lax"
+    # Compatibility aliases kept for older tests/local scripts. New code should
+    # use ``secret_key`` and ``HIRING_RADAR_APP_BASE_URL`` directly.
+    session_secret: str | None = None
+    app_base_url: str | None = None
     session_ttl_seconds: int = 60 * 60 * 24 * 14
     magic_link_ttl_seconds: int = 60 * 30
     password_reset_ttl_seconds: int = 60 * 30
@@ -44,6 +58,10 @@ class UserAuthSettings:
     password_min_length: int = 10
     password_pbkdf2_iterations: int = 600_000
     session_signing_salt: str = "hiring-radar:user-session:v1"
+
+    def __post_init__(self) -> None:
+        if not self.secret_key and self.session_secret:
+            object.__setattr__(self, "secret_key", self.session_secret)
 
 
 @dataclass(slots=True, frozen=True)
@@ -61,7 +79,25 @@ def load_user_auth_settings(env_path: str | os.PathLike[str] = ".env") -> UserAu
         "HIRING_RADAR_SECRET_KEY"
     )
     if not secret_key:
-        secret_key = "dev-user-auth-secret"
+        secret_key = DEV_USER_AUTH_SECRET
+
+    try:
+        require_production_secret(
+            "HIRING_RADAR_AUTH_SECRET",
+            secret_key,
+            unsafe_values={DEV_USER_AUTH_SECRET},
+        )
+    except RuntimeSecurityError as exc:
+        raise UserAuthError(str(exc)) from exc
+
+    secure_cookie = bool_env(
+        "HIRING_RADAR_SESSION_COOKIE_SECURE",
+        default=default_secure_cookie(),
+    )
+    cookie_samesite = normalize_cookie_samesite(
+        "HIRING_RADAR_SESSION_COOKIE_SAMESITE",
+        default="lax",
+    )
 
     return UserAuthSettings(
         secret_key=secret_key,
@@ -69,6 +105,8 @@ def load_user_auth_settings(env_path: str | os.PathLike[str] = ".env") -> UserAu
             "HIRING_RADAR_SESSION_COOKIE_NAME",
             USER_SESSION_COOKIE_NAME,
         ),
+        secure_cookie=secure_cookie,
+        cookie_samesite=cookie_samesite,
         session_ttl_seconds=int(
             os.getenv("HIRING_RADAR_SESSION_TTL_SECONDS", str(60 * 60 * 24 * 14))
         ),
@@ -423,13 +461,10 @@ def session_cookie_kwargs(
     settings: UserAuthSettings | None = None,
 ) -> dict[str, Any]:
     resolved_settings = settings or load_user_auth_settings()
-    secure_cookie = os.getenv("HIRING_RADAR_SESSION_COOKIE_SECURE", "0") == "1"
-    same_site = os.getenv("HIRING_RADAR_SESSION_COOKIE_SAMESITE", "lax")
-
     return {
         "httponly": True,
-        "secure": secure_cookie,
-        "samesite": same_site,
+        "secure": resolved_settings.secure_cookie,
+        "samesite": resolved_settings.cookie_samesite,
         "max_age": resolved_settings.session_ttl_seconds,
         "path": "/",
     }

@@ -211,6 +211,20 @@ class Subscriber:
 
 
 @dataclass(slots=True, frozen=True)
+class SubscriberNotificationPreference:
+    subscriber_id: int = 0
+    job_digest_enabled: bool = True
+    product_updates_enabled: bool = False
+    employer_messages_enabled: bool = True
+    security_alerts_enabled: bool = True
+    quiet_hours_enabled: bool = False
+    quiet_hours_start: str = "22:00"
+    quiet_hours_end: str = "08:00"
+    timezone: str = "Europe/Istanbul"
+    updated_at: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
 class SubscriberMagicLinkToken:
     id: int | None = None
     subscriber_id: int = 0

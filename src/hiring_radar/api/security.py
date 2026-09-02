@@ -10,6 +10,13 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from hiring_radar.email_config import load_env_file
+from hiring_radar.security_runtime import (
+    RuntimeSecurityError,
+    bool_env,
+    default_secure_cookie,
+    normalize_cookie_samesite,
+    require_production_secret,
+)
 
 ADMIN_SESSION_COOKIE_NAME = "hiring_radar_admin_session"
 DEFAULT_ADMIN_SESSION_TTL_SECONDS = 60 * 60 * 12
@@ -25,6 +32,8 @@ class AdminAuthSettings:
     password: str
     session_secret: str
     session_ttl_seconds: int = DEFAULT_ADMIN_SESSION_TTL_SECONDS
+    secure_cookie: bool = False
+    cookie_samesite: str = "lax"
 
 
 @dataclass(slots=True, frozen=True)
@@ -97,6 +106,22 @@ def load_admin_auth_settings(env_path: str | Path = ".env") -> AdminAuthSettings
         joined = ", ".join(missing)
         raise AdminAuthError(f"Missing required admin auth settings: {joined}")
 
+    try:
+        require_production_secret(
+            "HIRING_RADAR_ADMIN_SESSION_SECRET",
+            session_secret,
+        )
+        secure_cookie = bool_env(
+            "HIRING_RADAR_ADMIN_SESSION_COOKIE_SECURE",
+            default=default_secure_cookie(),
+        )
+        cookie_samesite = normalize_cookie_samesite(
+            "HIRING_RADAR_ADMIN_SESSION_COOKIE_SAMESITE",
+            default="lax",
+        )
+    except RuntimeSecurityError as exc:
+        raise AdminAuthError(str(exc)) from exc
+
     session_ttl_seconds = _coerce_positive_int(
         field_name="HIRING_RADAR_ADMIN_SESSION_TTL_SECONDS",
         value=os.environ.get("HIRING_RADAR_ADMIN_SESSION_TTL_SECONDS"),
@@ -108,6 +133,8 @@ def load_admin_auth_settings(env_path: str | Path = ".env") -> AdminAuthSettings
         password=password,
         session_secret=session_secret,
         session_ttl_seconds=session_ttl_seconds,
+        secure_cookie=secure_cookie,
+        cookie_samesite=cookie_samesite,
     )
 
 

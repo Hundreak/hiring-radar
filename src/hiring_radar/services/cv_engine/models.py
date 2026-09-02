@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +12,7 @@ from hiring_radar.services.cv_engine.semantic.models import (
 )
 
 
-class ParserStageName(str, Enum):
+class ParserStageName(StrEnum):
     """Supported CV parser engine pipeline stages."""
 
     INGESTION = "ingestion"
@@ -25,7 +25,7 @@ class ParserStageName(str, Enum):
     QUALITY_SCORING = "quality_scoring"
 
 
-class ParserStatus(str, Enum):
+class ParserStatus(StrEnum):
     """High-level parse result status."""
 
     SUCCEEDED = "succeeded"
@@ -33,7 +33,7 @@ class ParserStatus(str, Enum):
     FAILED = "failed"
 
 
-class QualityBand(str, Enum):
+class QualityBand(StrEnum):
     """Coarse quality label for downstream routing."""
 
     HIGH = "high"
@@ -41,7 +41,7 @@ class QualityBand(str, Enum):
     LOW = "low"
 
 
-class SectionName(str, Enum):
+class SectionName(StrEnum):
     """Normalized CV section names used by the engine."""
 
     HEADER = "header"
@@ -56,7 +56,7 @@ class SectionName(str, Enum):
     OTHER = "other"
 
 
-class WarningSeverity(str, Enum):
+class WarningSeverity(StrEnum):
     """Severity level for structured parse warnings."""
 
     INFO = "info"

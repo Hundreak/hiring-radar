@@ -1,8 +1,6 @@
 """Tests for Ollama-assisted OCR structuring and hallucination guard."""
 from __future__ import annotations
 
-import pytest
-
 from hiring_radar.services.cv_ocr_structuring import (
     _build_draft_from_extraction,
     _validate_extraction,
@@ -309,12 +307,15 @@ def test_icon_prefixed_section_headings_are_detected() -> None:
 
 
 def test_split_role_title_is_merged_in_preparation() -> None:
-    from hiring_radar.services.cv_profile_parser import _prepare_cv_text_for_parsing, _extract_headline
+    from hiring_radar.services.cv_profile_parser import (
+        _extract_headline,
+        _prepare_cv_text_for_parsing,
+    )
     text = "OLIVIA CAMPOS\nSenior Software\nEngineer\nolivia.campos@email.com"
     prepared = _prepare_cv_text_for_parsing(text)
     # "Senior Software" + "Engineer" should merge into "Senior Software Engineer"
     assert "Senior Software Engineer" in prepared
-    lines = [l for l in prepared.splitlines() if l.strip()]
+    lines = [line for line in prepared.splitlines() if line.strip()]
     headline = _extract_headline(lines)
     assert headline == "Senior Software Engineer"
 

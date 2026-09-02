@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from hiring_radar.api.schemas.profile_contract import CandidateProfileAggregate, ProfileCompletenessSummary, ProfilePreferencesRecord, ProfileTextField
+from hiring_radar.api.schemas.profile_contract import (
+    CandidateProfileAggregate,
+    ProfileCompletenessSummary,
+    ProfilePreferencesRecord,
+    ProfileTextField,
+)
 from hiring_radar.services.ai.config import LocalAiRuntimeConfig
 from hiring_radar.services.ai.contracts import AiStructuredGenerationResponse
 from hiring_radar.services.ai.runtime import LocalAiRuntimeService

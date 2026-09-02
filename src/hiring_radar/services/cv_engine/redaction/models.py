@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class PiiType(str, Enum):
+class PiiType(StrEnum):
     """Personally identifiable information categories used by redaction."""
 
     FULL_NAME = "full_name"

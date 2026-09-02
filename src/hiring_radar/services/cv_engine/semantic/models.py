@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class FieldSource(str, Enum):
+class FieldSource(StrEnum):
     """Normalized source category for semantic field extraction."""
 
     RULE = "rule"
@@ -19,7 +19,7 @@ class FieldSource(str, Enum):
     MULTI_SIGNAL = "multi_signal"
 
 
-class ConfidenceLevel(str, Enum):
+class ConfidenceLevel(StrEnum):
     """Coarse confidence band for downstream consumers."""
 
     HIGH = "high"

@@ -2,18 +2,21 @@
 from __future__ import annotations
 
 import os
+from datetime import UTC
 from typing import Annotated
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse
 
+from hiring_radar.api.csrf import attach_csrf_cookie
 from hiring_radar.api.dependencies import (
     get_repository,
     get_user_auth_settings,
 )
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.services.google_auth import (
+    OAUTH_STATE_TTL_SECONDS,
     GoogleOAuthError,
     GoogleOAuthSettings,
     build_google_authorize_url,
@@ -23,14 +26,12 @@ from hiring_radar.services.google_auth import (
     hash_state_token,
     load_google_oauth_settings,
     verify_id_token,
-    OAUTH_STATE_TTL_SECONDS,
 )
 from hiring_radar.services.user_auth import (
     UserAuthSettings,
     create_session_cookie_value,
     normalize_email,
     session_cookie_kwargs,
-    utc_now,
     utc_now_iso,
 )
 
@@ -119,6 +120,7 @@ def _issue_session(
         value=session_token,
         **session_cookie_kwargs(settings=auth_settings),
     )
+    attach_csrf_cookie(response)
     now = utc_now_iso()
     ip = _client_ip(request)
     ua = request.headers.get("user-agent", "")
@@ -161,9 +163,9 @@ def google_initiate(
     nonce = generate_nonce()
     state_hash = hash_state_token(raw_state)
 
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta
     expires_at = (
-        datetime.now(timezone.utc) + timedelta(seconds=OAUTH_STATE_TTL_SECONDS)
+        datetime.now(UTC) + timedelta(seconds=OAUTH_STATE_TTL_SECONDS)
     ).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
     repository.create_oauth_state(
@@ -213,20 +215,20 @@ def google_callback(
         )
 
     # Check state expiry
-    from datetime import datetime, timezone
+    from datetime import datetime
     try:
         expires_dt = datetime.fromisoformat(
             state_record.expires_at.replace("Z", "+00:00")
         )
         if expires_dt.tzinfo is None:
-            expires_dt = expires_dt.replace(tzinfo=timezone.utc)
+            expires_dt = expires_dt.replace(tzinfo=UTC)
     except ValueError:
         return RedirectResponse(
             url=f"{base}/tr/login?error=google_auth_failed&detail=state_expired",
             status_code=302,
         )
 
-    if datetime.now(timezone.utc) > expires_dt:
+    if datetime.now(UTC) > expires_dt:
         return RedirectResponse(
             url=f"{base}/tr/login?error=google_auth_failed&detail=state_expired",
             status_code=302,
@@ -237,7 +239,7 @@ def google_callback(
     # Exchange code for tokens
     try:
         google_settings: GoogleOAuthSettings = load_google_oauth_settings()
-    except GoogleOAuthError as exc:
+    except GoogleOAuthError:
         return RedirectResponse(
             url=_build_error_redirect(redirect_path, "configuration_error"),
             status_code=302,
@@ -250,7 +252,7 @@ def google_callback(
             client_id=google_settings.client_id,
             expected_nonce=state_record.nonce,
         )
-    except GoogleOAuthError as exc:
+    except GoogleOAuthError:
         return RedirectResponse(
             url=_build_error_redirect(redirect_path, "token_verification_failed"),
             status_code=302,

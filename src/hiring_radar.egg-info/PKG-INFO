@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: hiring-radar
 Version: 0.1.0
-Summary: CLI-based system for tracking company career pages and detecting new job postings.
+Summary: AI-assisted job matching platform with crawling, CV parsing, matching, candidate and employer workspaces.
 Requires-Python: >=3.11
 Description-Content-Type: text/markdown
 Requires-Dist: httpx<1.0,>=0.27
@@ -23,552 +23,289 @@ Requires-Dist: ruff<1.0,>=0.5; extra == "dev"
 
 # Hiring Radar
 
-Hiring Radar is a CLI-based job monitoring system that tracks company careers pages, detects new job postings, normalizes the data, stores crawl history, and produces actionable outputs such as CSV exports and terminal summaries.
+Hiring Radar is an AI-assisted job matching platform. It started as a CLI job monitoring system, but the current product now includes a candidate web app, an employer workspace, authentication, CV parsing, matching, retrieval/context services, and AI-assisted guidance.
 
-It is designed as both:
-- a portfolio-quality engineering project
-- and a foundation for a real product that can later grow into scheduled monitoring, email digests, dashboards, and search/filter workflows
+This README is the project-level source of truth for the current codebase. The old CLI crawler still exists and remains useful, but it is no longer the whole product.
 
 ---
 
-## What problem does it solve?
+## Product scope
 
-Tracking job openings manually across multiple companies is repetitive, inconsistent, and easy to miss.
+The platform is organized around two primary users:
 
-Different companies expose job postings through different systems such as:
-- Greenhouse
-- Lever
-- custom careers pages
+1. **Candidates**
+   - create an account
+   - upload and parse a CV
+   - complete a structured profile
+   - receive job matches and explainable match insights
+   - save jobs and manage application intent
+   - use AI-assisted career/copilot features
+   - manage account security, including session and 2FA-related flows
 
-That makes it difficult to:
-- detect newly published roles consistently
-- keep historical visibility
-- compare what changed over time
-- build reusable workflows around the data
+2. **Employers**
+   - access an employer workspace
+   - review talent and candidate match signals
+   - manage outreach/campaign workflow
+   - inspect dashboard, quality, compliance, localization, interviews, jobs, analytics and team screens
 
-Hiring Radar solves this with:
-- modular crawlers
-- normalized job records
-- change detection
-- crawl run tracking
-- CSV export
-- terminal summaries
+The original crawler/CLI layer still supports company source ingestion, job normalization, crawl history, exports, filtering and notification-oriented workflows.
 
 ---
 
-## Current MVP status
-
-The current MVP already supports a complete end-to-end workflow:
-
-- crawl configured job sources
-- normalize postings into a shared job model
-- store results in SQLite
-- detect new vs existing postings via fingerprinting
-- mark missing postings inactive
-- track crawl executions in `crawl_runs`
-- export all stored jobs to CSV
-- print a terminal summary of stored job data
-
-### Live-validated source types
-
-The following source types have been validated with real public sources:
-
-- **Greenhouse**
-  - implemented with an API-first strategy for stronger compatibility with branded Greenhouse career pages
-- **Lever**
-
-### Fixture/test-validated source type
-
-- **Custom static careers pages**
-  - parser contract and fixture-based tests are implemented
-  - live selector adaptation still depends on the target site structure
-
----
-
-## Core features
-
-### Crawling
-- crawl one or more configured company career sources
-- sequential multi-source execution
-- source-level success/failure reporting
-- crawl run history stored in SQLite
-
-### Normalization
-Each job is normalized into a consistent record including:
-- title
-- company name
-- location
-- canonical URL
-- source type
-- source job ID
-- first seen / last seen timestamps
-- active / inactive status
-
-### Change detection
-Hiring Radar keeps track of:
-- newly discovered jobs
-- previously seen jobs that were updated/re-seen
-- jobs that disappeared from a source and should now be marked inactive
-
-### Persistence
-- SQLite storage
-- `jobs` table for normalized postings
-- `crawl_runs` table for source-level crawl history
-
-### Outputs
-- terminal crawl results
-- terminal summary report
-- CSV export under `data/exports/`
-
----
-
-## Architecture at a glance
-
-The project follows a simple but scalable layered structure:
-
-- **CLI**
-  - user-facing commands: `crawl`, `export`, `summary`
-- **Services**
-  - orchestration and output logic
-- **Scrapers**
-  - source-specific parsing logic
-- **Repository / DB**
-  - SQLite persistence and aggregation queries
-- **Utilities**
-  - hashing, normalization, shared helpers
-
-### Important architectural choices
-
-- SQLite first for MVP simplicity and portability
-- fixture-first parser tests instead of live-site-dependent tests
-- API-first Greenhouse support to handle branded Greenhouse pages more reliably
-- clean repository hygiene with data, logs, CSVs, and DB files excluded from Git
-- stepwise growth path toward scheduler, digest, dashboard, and richer filtering
-
----
-
-## Project structure
+## Current architecture
 
 ```text
 hiring-radar/
-├── README.md
-├── pyproject.toml
-├── .gitignore
-├── .env.example
-├── Makefile
-├── config/
-│   ├── companies.example.yml
-│   └── settings.example.yml
-├── data/
-│   ├── .gitkeep
-│   └── exports/
-│       └── .gitkeep
-├── logs/
-│   └── .gitkeep
-├── src/
-│   └── hiring_radar/
-│       ├── __init__.py
-│       ├── cli.py
-│       ├── config.py
-│       ├── logging_config.py
-│       ├── models.py
-│       ├── db/
-│       │   ├── sqlite.py
-│       │   ├── schema.py
-│       │   └── repository.py
-│       ├── scrapers/
-│       │   ├── base.py
-│       │   ├── factory.py
-│       │   ├── greenhouse.py
-│       │   ├── lever.py
-│       │   └── custom_static.py
-│       ├── services/
-│       │   ├── crawl.py
-│       │   ├── change_detection.py
-│       │   ├── export.py
-│       │   └── summary.py
-│       └── utils/
-│           ├── dates.py
-│           ├── hashing.py
-│           └── urls.py
-├── tests/
-│   ├── fixtures/
-│   ├── test_crawl_service.py
-│   ├── test_export_service.py
-│   ├── test_greenhouse.py
-│   ├── test_lever.py
-│   ├── test_repository.py
-│   └── test_summary_service.py
-└── docs/
-    └── architecture.md
+├── src/hiring_radar/              # FastAPI backend, services, DB/repository, CLI crawler
+│   ├── api/                       # API app, dependencies, routers, schemas
+│   ├── db/                        # SQLite initialization, schema, repositories
+│   ├── services/                  # CV, AI, matching, retrieval, auth, email, crawl/export logic
+│   ├── scrapers/                  # Greenhouse, Lever and custom static crawlers
+│   ├── filtering/                 # Keyword filtering configuration and engine
+│   └── utils/                     # Shared helpers
+├── frontend/                      # Next.js App Router frontend
+│   ├── src/app/                   # Route tree: public, auth, candidate dashboard, employer workspace
+│   ├── src/components/            # Canonical React component source
+│   ├── src/lib/                   # API client, copy, helpers
+│   ├── messages/                  # i18n message bundles
+│   └── public/                    # Public static assets
+├── tests/                         # Backend test suite
+├── config/                        # Example YAML configuration
+├── data/                          # Local runtime data; ignored except .gitkeep skeletons
+├── docs/                          # Architecture, technical debt and patch planning
+└── scripts/                       # Local/CI helper scripts
 ```
 
----
+Important frontend source-of-truth rule:
 
-## Data model
-
-### `jobs`
-Stores normalized job records.
-
-Important fields:
-- `title`
-- `company_name`
-- `location`
-- `canonical_url`
-- `source_name`
-- `source_type`
-- `source_job_id`
-- `raw_posted_at`
-- `posted_at`
-- `fingerprint`
-- `first_seen_at`
-- `last_seen_at`
-- `is_active`
-- `scraped_at`
-
-### `crawl_runs`
-Stores one record per source crawl execution.
-
-Important fields:
-- `started_at`
-- `finished_at`
-- `source_name`
-- `success`
-- `notes`
+- `frontend/src/components/**` is the canonical component tree.
+- Legacy duplicate folders such as `frontend/src/profile`, `frontend/src/auth`, `frontend/src/ui`, etc. should not be edited or imported. Patch 01 marks them for cleanup.
 
 ---
 
-## Fingerprint strategy
+## Development setup
 
-New job detection is based on a stable fingerprint built from:
-
-- normalized `company_name`
-- normalized `title`
-- normalized `location`
-- `canonical_url`
-
-If a source provides a stable native job ID, it is also stored separately in `source_job_id`.
-
-This lets the system distinguish:
-- truly new postings
-- already-seen postings
-- postings that disappeared from the source and should be marked inactive
-
----
-
-## Installation
-
-### Requirements
-- Python 3.11+
-- Linux or macOS recommended
-- Git
-
-### Setup
+### Backend
 
 ```bash
-git clone https://github.com/Hundreak/hiring-radar.git
-cd hiring-radar
-
 python3 -m venv .venv
 source .venv/bin/activate
-
-make install
+python3 -m pip install --upgrade pip
+python3 -m pip install -e ".[dev]"
+cp .env.example .env
+pytest
 ```
 
-### Verify the environment
+Run the API:
 
 ```bash
-make lint
-make test
-hiring-radar --help
+hiring-radar-api
+# or
+uvicorn hiring_radar.api.app:app --reload --host 127.0.0.1 --port 8000
 ```
+
+Run the CLI:
+
+```bash
+hiring-radar --help
+hiring-radar crawl --help
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Default local URLs:
+
+- frontend: `http://localhost:3000`
+- backend API: `http://127.0.0.1:8000`
+- API docs: `http://127.0.0.1:8000/api/docs`
 
 ---
 
 ## Configuration
 
-### Example config
+Use `.env.example` as the template for local development. Real secrets belong in `.env` or a deployment secret manager and must not be committed.
 
-The repository includes:
+High-risk production variables that must be explicitly set before deployment:
 
-```text
-config/companies.example.yml
-```
+- `HIRING_RADAR_AUTH_SECRET`
+- `HIRING_RADAR_ADMIN_SESSION_SECRET`
+- `HIRING_RADAR_EMPLOYER_SESSION_SECRET`
+- `HIRING_RADAR_ADMIN_EMAIL`
+- `HIRING_RADAR_ADMIN_PASSWORD`
+- SMTP credentials when email flows are enabled
+- Google OAuth credentials when OAuth is enabled
 
-This is an example source configuration file.
+---
 
-### Local config
+## Quality checks
 
-For real crawling, create your own local config:
+Patch 17 standardizes the local and CI quality gates. After installing dependencies, the preferred project-level command is:
 
 ```bash
-cp config/companies.example.yml config/companies.local.yml
+make ci
+# or
+bash scripts/ci_full_verify.sh .
 ```
 
-Then edit it with real targets.
-
-Example:
-
-```yaml
-sources:
-  - source_name: corelight-greenhouse
-    company_name: Corelight
-    source_type: greenhouse
-    url: https://boards.greenhouse.io/corelight
-
-  - source_name: trendyol-lever
-    company_name: Trendyol
-    source_type: lever
-    url: https://jobs.lever.co/trendyol
-```
-
-### Why `companies.local.yml` is not committed
-
-Local crawling targets are intentionally kept out of Git to preserve:
-- repo hygiene
-- portability
-- reproducibility of the example config
-
----
-
-## Usage
-
-### 1) Crawl configured sources
+Backend-only checks:
 
 ```bash
-hiring-radar crawl --config-path config/companies.local.yml
+make backend-ci
+# runs source hygiene, ruff, compileall and pytest
 ```
 
-Example output:
-
-```text
-[SUCCESS] corelight-greenhouse (greenhouse)
-  parsed=31 new=31 updated=0 deactivated=0
-[SUCCESS] trendyol-lever (lever)
-  parsed=97 new=0 updated=97 deactivated=0
-
-Crawl summary
-  sources=2 succeeded=2 failed=0
-  new_jobs=31 updated_jobs=97 deactivated_jobs=0
-```
-
-### 2) Export stored jobs to CSV
+Frontend-only checks:
 
 ```bash
-hiring-radar export
+make frontend-ci
+# installs frontend deps with npm ci when node_modules is missing, then runs npm run ci:verify
 ```
 
-Example output:
-
-```text
-Export completed
-  rows=128
-  output=data/exports/jobs_export_2026-04-03T14-28-01+00-00.csv
-```
-
-### 3) Show a terminal summary
+The frontend CI gate now includes duplicate-source checks, component/source size checks, lint, typecheck, production build and performance budgets. Run the performance budget alone with:
 
 ```bash
-hiring-radar summary
+make frontend-performance
+# or
+cd frontend && npm run check:performance
 ```
 
-Example output:
-
-```text
-Summary
-
-Overall
-  total_jobs=128
-  active_jobs=128
-  inactive_jobs=0
-
-By source
-  corelight-greenhouse (greenhouse): total=31 active=31 inactive=0
-  trendyol-lever (lever): total=97 active=97 inactive=0
-
-By company
-  Corelight: total=31 active=31 inactive=0
-  Trendyol: total=97 active=97 inactive=0
-```
-
----
-
-
-## Scheduled runs
-
-Hiring Radar can be scheduled on Linux with cron.
-
-A helper script is included:
+The source hygiene check prevents production-risk local artifacts from entering the source tree:
 
 ```bash
-./scripts/run_crawl.sh
+python3 scripts/check_source_hygiene.py .
 ```
 
-What it does:
-- runs the configured crawl using `config/companies.local.yml`
-- writes output to `logs/crawl.log`
-- prevents overlapping runs with a simple lock directory
+For patch work, prefer small, reversible patches. Each patch should include only changed files plus a deletion list when files must be removed.
 
-Example cron setup:
+---
 
-```cron
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+## Current technical focus
 
-0 */6 * * * /home/remzi/projects/hiring-radar/scripts/run_crawl.sh
+The project has now passed through the initial hardening and productization sequence:
+
+1. project hygiene and source-of-truth cleanup
+2. production auth safety
+3. rate limiting and abuse protection
+4. CSRF protection for cookie-authenticated mutating endpoints
+5. frontend duplicate cleanup and API-state standardization
+6. heavy component splitting
+7. employer demo/production separation and DB-backed dashboard/workflow persistence
+8. repository/router modularization seams
+9. migration registry
+10. candidate onboarding, match explainability and saved-job pipeline UX
+11. CI/local quality gate standardization
+12. frontend performance budget and public asset guardrails
+
+See `docs/patch-plan.md` and `docs/technical-debt-register.md` for the detailed sequence.
+
+## Abuse protection baseline
+
+Patch 03 adds in-memory rate limiting for high-risk public/auth/security/upload endpoints. Configure it with:
+
+```env
+HIRING_RADAR_RATE_LIMIT_ENABLED=true
+HIRING_RADAR_RATE_LIMIT_TRUST_PROXY_HEADERS=false
 ```
 
-This runs the crawler every 6 hours.
+Per-action overrides follow this pattern:
 
+```env
+HIRING_RADAR_RATE_LIMIT_<ACTION>_IP_LIMIT=40
+HIRING_RADAR_RATE_LIMIT_<ACTION>_IP_WINDOW_SECONDS=900
+HIRING_RADAR_RATE_LIMIT_<ACTION>_IDENTITY_LIMIT=6
+HIRING_RADAR_RATE_LIMIT_<ACTION>_IDENTITY_WINDOW_SECONDS=1800
+```
 
-## Testing strategy
-
-Hiring Radar intentionally avoids relying on live websites for parser correctness.
-
-### Current testing principles
-- fixture-first parser tests
-- temporary SQLite databases for repository and service tests
-- no live-site dependency for correctness tests
-- Ruff + pytest as the baseline quality gate
-
-This means tests answer:
-- “does the parser behave correctly for expected HTML?”
-- not:
-- “is the website currently up?”
-
-That separation makes the system more stable and easier to maintain.
-
----
-
-## What is live-validated today
-
-The current project has already been validated end-to-end with live crawling for:
-
-- **Greenhouse**
-  - validated using an API-first approach
-- **Lever**
-
-This means the current stack has already demonstrated:
-- live crawling
-- persistence
-- change detection
-- export
-- summary
-
----
-
-## Engineering highlights
-
-A few implementation choices that make this project stronger than a one-off scraping script:
-
-- modular scraper architecture
-- Greenhouse API-first support
-- crawl run audit trail
-- active/inactive lifecycle tracking
-- deterministic CSV export
-- service-layer separation
-- fixture-driven parser tests
-- incremental Git history with conventional commits
-
----
-
-## Current limitations
-
-This is an MVP, so some things are intentionally not yet implemented:
-
-- scheduler / cron integration
-- email digest
-- dashboard UI
-- advanced filtering in CLI
-- richer date/window analysis
-- live hardening for every custom static careers site
-- Playwright fallback for JS-heavy sources
-
-These are planned growth areas, not ignored gaps.
-
----
-
-## Roadmap
-
-### Near-term
-- richer `summary` output
-- live custom static source integration
-- README/demo improvements
-- better config ergonomics
-
-### Next product steps
-- weekly digest
-- scheduler support
-- Streamlit dashboard
-- search/filter layer
-- role/skill tagging
-- source-level health reporting
-
-### Longer-term
-- better source discovery
-- stronger custom careers-page adapters
-- containerization polish
-- CI quality gates
-- deployment/documentation polish
-
----
-
-## Development workflow
-
-### Run checks
+Run the targeted verification suite with:
 
 ```bash
-make lint
-make test
+bash scripts/verify_patch_03_rate_limit.sh
 ```
 
-### Commands currently implemented
-- `hiring-radar crawl`
-- `hiring-radar export`
-- `hiring-radar summary`
 
-### Git strategy
-This project is developed with:
-- GitHub-first workflow
-- short-lived feature branches
-- conventional commit style, e.g.:
-  - `feat:`
-  - `fix:`
-  - `refactor:`
-  - `test:`
-  - `docs:`
+### Patch 04 — CSRF protection
 
----
+Patch 04 adds double-submit CSRF protection for browser requests authenticated by HttpOnly session cookies. Login, signup and OAuth/session bootstrap endpoints remain exempt; after a session is created the backend also issues a browser-readable `hiring_radar_csrf` cookie. The frontend API client mirrors that value into the `X-CSRF-Token` header for `POST`, `PUT`, `PATCH` and `DELETE` requests.
 
-## Repository hygiene
+Important environment keys:
 
-Generated files are intentionally excluded from Git:
-- SQLite database files
-- CSV export files
-- logs
-- local config files
+```bash
+HIRING_RADAR_CSRF_ENABLED=true
+HIRING_RADAR_CSRF_COOKIE_NAME=hiring_radar_csrf
+HIRING_RADAR_CSRF_HEADER_NAME=X-CSRF-Token
+NEXT_PUBLIC_CSRF_COOKIE_NAME=hiring_radar_csrf
+NEXT_PUBLIC_CSRF_HEADER_NAME=X-CSRF-Token
+```
 
-Tracked directories such as `data/`, `data/exports/`, and `logs/` are preserved with `.gitkeep`.
 
----
+### Patch 05 — Frontend duplicate cleanup
 
-## Why this project is portfolio-worthy
+Patch 05 removes the remaining identical frontend route implementation by moving employer talent/candidate route parsing into `frontend/src/components/employer/talent/talent-route-page.tsx`. It also adds `npm run check:duplicates` and `npm run ci:verify` so duplicate source files are caught before they become another source-of-truth problem.
 
-Hiring Radar is not just a scraping script.
+Verify this patch with:
 
-It demonstrates:
-- backend thinking
-- data normalization
-- durable persistence design
-- change detection
-- CLI product thinking
-- testable parser architecture
-- disciplined incremental engineering
+```bash
+bash scripts/verify_patch_05_frontend_duplicates.sh
+```
 
-It is intentionally built to be understandable, extensible, and productizable.
+After installing frontend dependencies, run:
 
----
+```bash
+cd frontend
+npm run ci:verify
+```
 
-## License
 
-License selection can be added in the next documentation/polish phase.
+## Employer demo/runtime safety
+
+Patch 08 hard-disables mock employer tokens in production. Patch 09 wires the employer dashboard, job, candidate, match and analytics read surfaces to company-scoped repository data for real employer sessions. Local/demo mode can still return fixture data when both `HIRING_RADAR_EMPLOYER_DEMO_MODE=1` and `HIRING_RADAR_EMPLOYER_ALLOW_MOCK_AUTH=1` are enabled, but production DB sessions now receive real empty/full dashboard states instead of demo-fixture responses.
+
+Verify the DB bridge with:
+
+```bash
+bash scripts/verify_patch_09_employer_dashboard_real_data.sh
+```
+
+
+## CI verify suite
+
+Patch 17 adds `.github/workflows/ci.yml` with separate backend and frontend quality gates. The workflow runs on pull requests, pushes to `main`/`master`, and manual dispatch. It uses:
+
+- Python 3.11 + `python -m pip install -e ".[dev]"`
+- `bash scripts/ci_backend_verify.sh .`
+- Node.js 22 + `npm ci`
+- `bash scripts/ci_frontend_verify.sh .`
+
+Local equivalents:
+
+```bash
+make backend-ci
+make frontend-ci
+make ci
+```
+
+If frontend dependencies are already installed and you do not want the script to run `npm ci`, use:
+
+```bash
+HIRING_RADAR_FRONTEND_INSTALL=never bash scripts/ci_frontend_verify.sh .
+```
+
+
+### Patch 19 — Performance budget
+
+Patch 19 adds an executable frontend performance budget. It checks public asset size, source/route file size, localization message size and, after `next build`, gzip JS/CSS chunk size.
+
+Run:
+
+```bash
+bash scripts/apply_patch_19_performance_cleanup.sh .
+make frontend-performance
+```
+
+See `docs/performance-budget.md` for the budget policy.

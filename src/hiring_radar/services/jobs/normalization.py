@@ -7,7 +7,6 @@ from collections.abc import Iterable
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-
 _WHITESPACE_PATTERN = re.compile(r"\s+")
 _HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 _MULTI_SLASH_PATTERN = re.compile(r"/{2,}")
@@ -692,7 +691,7 @@ def infer_profile_seniority(
     # Score each level based on title signals across all entries
     level_counts: dict[str, int] = {}
     # Weight recent entries more (last entry weight = n, first = 1)
-    total_entries = len(experience_titles)
+    len(experience_titles)
     for idx, title in enumerate(experience_titles):
         if not title:
             continue

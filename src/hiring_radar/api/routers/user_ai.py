@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import inspect
 import time
-from typing import Annotated, Callable, TypeVar
+from collections.abc import Callable
+from typing import Annotated, TypeVar
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -12,10 +13,10 @@ from hiring_radar.api.schemas.profile_contract import UserProfileAggregateRespon
 from hiring_radar.api.schemas.user_ai import (
     UserAiCopilotChatRequest,
     UserAiCopilotChatResponse,
-    UserAiJobAnalysisContextRequest,
-    UserAiHealthResponse,
     UserAiHeadlineSummaryRequest,
     UserAiHeadlineSummaryResponse,
+    UserAiHealthResponse,
+    UserAiJobAnalysisContextRequest,
     UserAiRoleFocusRequest,
     UserAiRoleFocusResponse,
     UserAiSkillEvidenceRequest,
@@ -26,8 +27,11 @@ from hiring_radar.api.schemas.user_ai import (
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.services.ai.contracts import AiAuditRecord
 from hiring_radar.services.ai.exceptions import LocalAiGenerationError
+from hiring_radar.services.ai.job_analysis_grounding import (
+    JobAnalysisGroundingBundle,
+    build_job_analysis_grounding_bundle,
+)
 from hiring_radar.services.ai.runtime import build_local_ai_runtime_service
-from hiring_radar.services.ai.job_analysis_grounding import JobAnalysisGroundingBundle, build_job_analysis_grounding_bundle
 from hiring_radar.services.ai.tasks.copilot_chat_task import CopilotChatTask
 from hiring_radar.services.ai.tasks.headline_summary_task import HeadlineSummarySuggestionTask
 from hiring_radar.services.ai.tasks.role_focus_task import RoleFocusSuggestionTask

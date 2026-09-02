@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import pytest
 
 from hiring_radar.api.routers.user_ai import router as user_ai_router
 from hiring_radar.services.ai.contracts import AiHealthCheckResult

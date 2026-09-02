@@ -6,6 +6,26 @@
       "jobs": "İşler",
       "matches": "Eşleşmeler",
       "saved": "Kaydedilenler"
+    },
+    "dataError": {
+      "retry": "Tekrar dene",
+      "requestId": "İstek kodu: {requestId}",
+      "statusCode": "HTTP {status}",
+      "retryAfter": "Yaklaşık {time} sonra tekrar deneyebilirsin.",
+      "genericTitle": "Veri yüklenemedi",
+      "genericDescription": "Bu alan şu anda yenilenemedi. Bağlantı veya sunucu geçici olarak yanıt vermiyor olabilir.",
+      "networkTitle": "Bağlantı kurulamadı",
+      "networkDescription": "İnternet bağlantını veya API erişimini kontrol edip tekrar dene.",
+      "serverTitle": "Sunucu tarafında geçici sorun var",
+      "serverDescription": "İstek sunucuya ulaştı ama işlem tamamlanamadı. Tekrar denemek çoğu zaman yeterli olur.",
+      "rateLimitedTitle": "Çok fazla istek gönderildi",
+      "rateLimitedDescription": "Korumaya takılmamak için kısa bir süre bekleyip tekrar dene.",
+      "unauthorizedTitle": "Oturum gerekli",
+      "unauthorizedDescription": "Bu veriyi görmek için tekrar giriş yapman gerekebilir.",
+      "forbiddenTitle": "Erişim izni yok",
+      "forbiddenDescription": "Bu işlem için gerekli yetki bu oturumda görünmüyor.",
+      "notFoundTitle": "Veri bulunamadı",
+      "notFoundDescription": "İstenen kayıt taşınmış, silinmiş veya artık erişilebilir olmayabilir."
     }
   },
   "landing": {
@@ -196,7 +216,11 @@
     "analysisCoverage": "İlan analizi",
     "analysisStrong": "Güçlü — ilan içeriği net şekilde alındı ve deterministik olarak analiz edildi.",
     "analysisModerate": "Orta — ilan içeriği analiz edildi ancak bazı bölümler ideal kadar zengin değil.",
-    "analysisLimited": "Sınırlı — ilan şu an kısmi içerikle analiz ediliyor; skor daha dikkatli okunmalı."
+    "analysisLimited": "Sınırlı — ilan şu an kısmi içerikle analiz ediliyor; skor daha dikkatli okunmalı.",
+    "paginationPrevious": "Önceki",
+    "paginationNext": "Sonraki",
+    "paginationPageSize": "Sayfa başına",
+    "paginationSummary": "{start}-{end} / {total} kayıt"
   },
   "matches": {
     "title": "Eşleşmeler",
@@ -248,13 +272,38 @@
     "analysisCoverage": "İlan analizi",
     "analysisStrong": "Güçlü — ilan içeriği net şekilde alındı ve deterministik olarak analiz edildi.",
     "analysisModerate": "Orta — ilan içeriği analiz edildi ancak bazı bölümler ideal kadar zengin değil.",
-    "analysisLimited": "Sınırlı — ilan şu an kısmi içerikle analiz ediliyor; skor daha dikkatli okunmalı."
+    "analysisLimited": "Sınırlı — ilan şu an kısmi içerikle analiz ediliyor; skor daha dikkatli okunmalı.",
+    "explainabilityTitle": "Eşleşme netliği",
+    "explainabilityReadiness": "Hazırlık",
+    "explainabilityConfidence": "Güven",
+    "explainabilityReady": "Başvuruya yakın",
+    "explainabilityReview": "İncele ve güçlendir",
+    "explainabilityStretch": "Stretch rol",
+    "explainabilityReadySummary": "Bu ilan başvuruya yakın görünüyor; güçlü sinyalleri kanıtlarla görünür yapman yeterli olabilir.",
+    "explainabilityReviewSummary": "Bu ilan umut veriyor ama başvurmadan önce birkaç kritik sinyali netleştirmek iyi olur.",
+    "explainabilityStretchSummary": "Bu rol şu an daha iddialı görünüyor; eksik sinyalleri bilinçli kapatırsan değerlendirilebilir.",
+    "analysisStrongShort": "Güçlü",
+    "analysisModerateShort": "Orta",
+    "analysisLimitedShort": "Sınırlı",
+    "explainabilityDrivers": "Skoru taşıyan ana bileşenler",
+    "explainabilityStrongSignals": "Güçlü sinyaller",
+    "explainabilityRiskSignals": "Risk / eksik sinyaller",
+    "explainabilityActionPlan": "Önerilen sonraki adım",
+    "explainabilityActionApply": "Başvuruya hazırlan: güçlü sinyalleri kısa, ölçülebilir örneklerle öne çıkar.",
+    "explainabilityActionStory": "CV/ön yazıda şu sinyalleri kanıtlayan mini hikâye hazırla: {terms}.",
+    "explainabilityActionGap": "Başvurmadan önce şu eksik sinyalleri güçlendirmeye çalış: {terms}.",
+    "explainabilityActionVerify": "İlan içeriği sınırlı; başvurmadan önce orijinal ilanı ve şirket bağlamını kontrol et.",
+    "explainabilityAiPlan": "Başvuru planı çıkar",
+    "paginationPrevious": "Önceki",
+    "paginationNext": "Sonraki",
+    "paginationPageSize": "Sayfa başına",
+    "paginationSummary": "{start}-{end} / {total} kayıt"
   },
   "saved": {
     "title": "Kaydedilen ilanlar",
-    "description": "İlanları kaydet, başvuru durumunu kendin güncelle. CoreSift hazırlanmana yardım eder.",
+    "description": "İlanları kaydet, her başvuru aşamasını takip et ve takip notlarını tek pipeline içinde yönet. CoreSift hazırlanmana yardım eder.",
     "howTitle": "Nasıl çalışır?",
-    "howText": "CoreSift şirketlerle doğrudan bağlantılı değil — başvuru sonuçlarını sen takip edersin. Mülakat daveti aldığında bunu kendin işaretle.",
+    "howText": "CoreSift şirketlerle doğrudan bağlantılı değil — başvuru pipeline’ını sen yönetirsin. Başvurdun, yanıt aldın, mülakata girdin, reddedildin veya teklif aldın: her ilanı aşamasına taşı.",
     "tabAll": "Tümü",
     "tabReviewing": "Değerlendiriliyor",
     "tabApplied": "Başvuruldu",
@@ -274,7 +323,7 @@
     "updateResult": "Sonucu güncelle:",
     "statusApplied": "Başvurdum",
     "statusInterview": "Mülakat aldım",
-    "statusRejected": "Reddedildim",
+    "statusRejected": "Reddedildi",
     "statusNoResponse": "Yanıt yok",
     "statusOffer": "Teklif aldım ✓",
     "statusSecondInterview": "2. mülakat",
@@ -305,7 +354,37 @@
     "interviewPrepPrompt": "{company} şirketindeki {title} pozisyonu için mülakata hazırlanmama yardım et. Neler beklemeliyi̇m? Hangi sorular gelebilir? Nasıl hazırlanmalıyım?",
     "reviewingProgressLabel": "Profil uyumu görünümü",
     "reviewingProgressActive": "İşleniyor",
-    "reviewingProgressReady": "Hazır"
+    "reviewingProgressReady": "Hazır",
+    "tabOffer": "Teklif",
+    "tabRejected": "Red",
+    "colOffer": "Teklif",
+    "colRejected": "Reddedildi",
+    "statusArchive": "Arşivle",
+    "restoreInterview": "Mülakata taşı",
+    "pipelineActive": "Aktif pipeline",
+    "pipelineActiveHint": "Değerlendirme, başvuru ve mülakat aşamaları.",
+    "pipelineInterviews": "Mülakatlar",
+    "pipelineInterviewsHint": "Görüşme aşamasındaki fırsatlar.",
+    "pipelineOffers": "Teklifler",
+    "pipelineOffersHint": "Olumlu sonuçları burada takip et.",
+    "pipelineOfferRate": "Teklif oranı",
+    "pipelineOfferRateHint": "Başvuru/mülakat/sonuç aşamalarındaki teklif oranı.",
+    "pipelineToolbarTitle": "Pipeline kontrolleri",
+    "pipelineToolbarSubtitle": "Aşamaya göre filtrele, not/şirket/anahtar kelime ara ve listeyi bağlamı kaybetmeden sırala.",
+    "searchPlaceholder": "İlan, şirket, anahtar kelime, not ara…",
+    "sortActivity": "Son aktivite",
+    "sortDeadline": "En yakın son tarih",
+    "sortScore": "En iyi eşleşme skoru",
+    "emptySearch": "Bu filtreye uyan kaydedilmiş ilan yok.",
+    "emptyOfferColumn": "Mülakat olumlu sonuca döndüğünde teklifler burada görünecek.",
+    "emptyRejectedColumn": "Reddedilen veya kapanan başvuruları arşivlemeden önce burada takip edebilirsin.",
+    "removeSaved": "Kaydedilenlerden çıkar",
+    "createdAt": "Kaydedildi",
+    "lastActivity": "Aktivite",
+    "paginationPrevious": "Önceki",
+    "paginationNext": "Sonraki",
+    "paginationPageSize": "Sayfa başına",
+    "paginationSummary": "{start}-{end} / {total} kayıt"
   },
   "profile": {
     "completion": {
@@ -432,7 +511,67 @@
       "timeJustNow": "az önce",
       "timeMinutesAgo": "{count} dk önce",
       "timeHoursAgo": "{count} sa önce",
-      "timeDaysAgo": "{count} gün önce"
+      "timeDaysAgo": "{count} gün önce",
+      "center": {
+        "scoreLabel": "Güvenlik skoru",
+        "checklistLabel": "Güvenlik merkezi",
+        "hero": {
+          "strong": {
+            "title": "Hesabın güçlü bir güvenlik seviyesinde.",
+            "description": "İki aşamalı doğrulama, aktif oturum kontrolü ve son giriş sinyalleri iyi durumda. Bu merkezi düzenli kontrol ederek hesabını ürün seviyesinde güvenli tutabilirsin."
+          },
+          "watch": {
+            "title": "Hesabın iyi durumda, birkaç kontrol güvenliği artırır.",
+            "description": "Oturumlarını, iki aşamalı doğrulamayı ve son giriş hareketlerini tek yerden takip et. Küçük kontroller, hesabı kötüye kullanım denemelerine karşı daha dayanıklı hale getirir."
+          },
+          "risk": {
+            "title": "Hesabında güçlendirilmesi gereken güvenlik adımları var.",
+            "description": "İki aşamalı doğrulamayı açmanı, aktif oturumları gözden geçirmeni ve şüpheli giriş hareketlerini kontrol etmeni öneririz."
+          }
+        },
+        "checklist": {
+          "totp": "2FA doğrulandı",
+          "sessions": "Oturumlar temiz",
+          "history": "Giriş geçmişi sakin"
+        },
+        "metrics": {
+          "twoFactor": {
+            "label": "2FA",
+            "strong": "Ek doğrulama aktif; hesap ele geçirme riski azalır.",
+            "action": "Şifre sızsa bile hesabı korumak için 2FA aç."
+          },
+          "sessions": {
+            "label": "Aktif oturumlar",
+            "value": "{count} oturum",
+            "clean": "Sadece beklenen oturumlar görünüyor.",
+            "review": "Kullanmadığın cihazları kapatmanı öneririz."
+          },
+          "activity": {
+            "label": "Son güvenli giriş",
+            "empty": "Kayıt yok",
+            "clean": "Son hareketlerde başarısız giriş sinyali görünmüyor.",
+            "failed": "Son listede {count} başarısız giriş denemesi var."
+          }
+        },
+        "actions": {
+          "password": {
+            "title": "Şifreyi güncel tut",
+            "description": "Güçlü ve benzersiz bir şifre, hesap güvenliğinin ilk savunmasıdır.",
+            "button": "Şifre bölümüne git"
+          },
+          "totp": {
+            "title": "2FA ile kilidi güçlendir",
+            "description": "Authenticator kodu ile giriş riskini azalt ve kritik ayarları daha güvenli hale getir.",
+            "button": "2FA kur",
+            "reviewButton": "2FA durumunu gör"
+          },
+          "sessions": {
+            "title": "Cihazları denetle",
+            "description": "Tanımadığın oturumları kapat ve sadece kullandığın cihazları aktif bırak.",
+            "button": "Oturumları incele"
+          }
+        }
+      }
     },
     "preferences": {
       "title": "Eşleşme tercihleri",

@@ -40,7 +40,6 @@ from hiring_radar.services.cv_profile_parser import (
     parse_cv_text_to_profile_draft,
 )
 
-
 CV_AI_STRUCTURING_MODE_ENV_VAR = "HIRING_RADAR_CV_AI_STRUCTURING"
 CV_AI_STRUCTURING_MODE_OFF = "off"
 CV_AI_STRUCTURING_MODE_OCR = "ocr"

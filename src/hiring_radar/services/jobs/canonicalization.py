@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.models import CanonicalJob, CanonicalJobLink, JobSource, JobSourceRecord
 from hiring_radar.services.jobs.contracts import CanonicalRefreshResult
@@ -276,7 +277,7 @@ def refresh_canonical_jobs(
     refreshed_at: str,
 ) -> CanonicalRefreshResult:
     sources = repository.list_job_sources(active_only=True)
-    source_by_id = {source.id or 0: source for source in sources}
+    {source.id or 0: source for source in sources}
     active_records: list[tuple[JobSourceRecord, JobSource]] = []
 
     for source in sources:

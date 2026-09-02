@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
-from typing import Iterable
 
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.services.retrieval.chunking import estimate_token_count
@@ -10,7 +10,11 @@ from hiring_radar.services.retrieval.embedding_jobs import (
     DEFAULT_EMBEDDING_PROVIDER,
     EmbeddingProvider,
 )
-from hiring_radar.services.retrieval.search import RetrievalSearchResponse, RetrievalSearchResult, search_retrieval_chunks
+from hiring_radar.services.retrieval.search import (
+    RetrievalSearchResponse,
+    RetrievalSearchResult,
+    search_retrieval_chunks,
+)
 
 DEFAULT_CONTEXT_SEARCH_TOP_K = 12
 DEFAULT_CONTEXT_RESULT_LIMIT = 5

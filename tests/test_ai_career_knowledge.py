@@ -4,7 +4,10 @@ from pathlib import Path
 
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.db.sqlite import close_connection, initialize_database
-from hiring_radar.services.ai.career_knowledge import ensure_foundation_career_knowledge, search_career_knowledge
+from hiring_radar.services.ai.career_knowledge import (
+    ensure_foundation_career_knowledge,
+    search_career_knowledge,
+)
 
 
 def _make_repo(tmp_path: Path) -> tuple[HiringRadarRepository, object]:

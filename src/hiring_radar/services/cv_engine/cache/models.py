@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class ParseReuseMode(str, Enum):
+class ParseReuseMode(StrEnum):
     """The degree of reuse that can be applied to a new parse request."""
 
     EXACT_HIT = "exact_hit"

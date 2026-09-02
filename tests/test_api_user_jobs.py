@@ -10,7 +10,14 @@ from hiring_radar.api.dependencies import get_current_user_session, get_reposito
 from hiring_radar.api.job_identity import decode_canonical_job_api_id, is_canonical_job_api_id
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.db.sqlite import initialize_database
-from hiring_radar.models import CanonicalJob, CanonicalJobLink, JobExternalContextSnapshot, JobRecord, JobSource, JobSourceRecord
+from hiring_radar.models import (
+    CanonicalJob,
+    CanonicalJobLink,
+    JobExternalContextSnapshot,
+    JobRecord,
+    JobSource,
+    JobSourceRecord,
+)
 from hiring_radar.services.jobs.feature_engine import refresh_matching_readiness_features
 from hiring_radar.services.user_auth import UserSession
 

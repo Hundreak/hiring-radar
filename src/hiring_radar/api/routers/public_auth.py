@@ -5,11 +5,13 @@ import os
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from itsdangerous import BadSignature, URLSafeSerializer
 from pydantic import BaseModel, EmailStr, Field
 
+from hiring_radar.api.csrf import attach_csrf_cookie
 from hiring_radar.api.dependencies import get_env_path, get_repository, get_user_auth_settings
+from hiring_radar.api.rate_limit import enforce_rate_limit
 from hiring_radar.api.schemas.public_auth import (
     PublicSignupConfirmRequest,
     PublicSignupResponse,
@@ -60,9 +62,11 @@ class LegacySignupRequest(BaseModel):
     challenge_answer: str = Field(min_length=1, max_length=32)
 
 
-def _legacy_signup_serializer() -> URLSafeSerializer:
-    secret_key = os.getenv("HIRING_RADAR_AUTH_SECRET") or os.getenv("HIRING_RADAR_SECRET_KEY") or "dev-user-auth-secret"
-    return URLSafeSerializer(secret_key=secret_key, salt="hiring-radar:legacy-signup-challenge:v1")
+def _legacy_signup_serializer(settings: UserAuthSettings) -> URLSafeSerializer:
+    return URLSafeSerializer(
+        secret_key=settings.secret_key,
+        salt="hiring-radar:legacy-signup-challenge:v1",
+    )
 
 
 def _build_legacy_challenge_text() -> str:
@@ -81,9 +85,19 @@ def issue_magic_link_for_email(**_: object) -> None:
 
 
 @router.get("/signup-challenge", response_model=LegacySignupChallengeResponse)
-def create_legacy_signup_challenge() -> LegacySignupChallengeResponse:
+def create_legacy_signup_challenge(
+    request: Request,
+    auth_settings: UserAuthSettingsDep,
+) -> LegacySignupChallengeResponse:
+    enforce_rate_limit(
+        request,
+        action="public_signup_challenge",
+        ip_limit=120,
+        ip_window_seconds=900,
+    )
+
     challenge_text = _build_legacy_challenge_text()
-    challenge_token = _legacy_signup_serializer().dumps({"answer": challenge_text})
+    challenge_token = _legacy_signup_serializer(auth_settings).dumps({"answer": challenge_text})
     return LegacySignupChallengeResponse(
         challenge_text=challenge_text,
         challenge_token=challenge_token,
@@ -93,11 +107,23 @@ def create_legacy_signup_challenge() -> LegacySignupChallengeResponse:
 @router.post("/signup")
 def legacy_public_signup(
     payload: LegacySignupRequest,
+    request: Request,
     repository: RepositoryDep,
     env_path: Annotated[str, Depends(get_env_path)],
+    auth_settings: UserAuthSettingsDep,
 ) -> dict[str, bool]:
+    enforce_rate_limit(
+        request,
+        action="public_legacy_signup",
+        identity=payload.email,
+        ip_limit=40,
+        ip_window_seconds=900,
+        identity_limit=6,
+        identity_window_seconds=1800,
+    )
+
     try:
-        token_payload = _legacy_signup_serializer().loads(payload.challenge_token)
+        token_payload = _legacy_signup_serializer(auth_settings).loads(payload.challenge_token)
     except BadSignature as exc:
         raise HTTPException(status_code=400, detail="Invalid signup challenge.") from exc
 
@@ -209,10 +235,21 @@ def _build_signup_verification_email_payload(
 )
 def request_signup_verification(
     payload: PublicSignupVerificationRequest,
+    request: Request,
     repository: RepositoryDep,
     auth_settings: UserAuthSettingsDep,
     env_path: Annotated[str, Depends(get_env_path)],
 ) -> PublicSignupVerificationResponse:
+    enforce_rate_limit(
+        request,
+        action="public_signup_request",
+        identity=payload.email,
+        ip_limit=40,
+        ip_window_seconds=900,
+        identity_limit=6,
+        identity_window_seconds=1800,
+    )
+
     full_name = payload.full_name.strip()
     if not full_name:
         raise HTTPException(status_code=400, detail="Full name is required.")
@@ -262,7 +299,7 @@ def request_signup_verification(
     except (EmailConfigError, EmailDeliveryError) as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Verification email could not be sent: {exc}",
+            detail="Verification email could not be sent. Please try again later.",
         ) from exc
 
     return PublicSignupVerificationResponse(message=SIGNUP_VERIFICATION_SENT_MESSAGE)
@@ -286,10 +323,21 @@ def request_signup_verification(
 
 def confirm_signup_verification(
     payload: PublicSignupConfirmRequest,
+    request: Request,
     response: Response,
     repository: RepositoryDep,
     auth_settings: UserAuthSettingsDep,
 ) -> PublicSignupResponse:
+    enforce_rate_limit(
+        request,
+        action="public_signup_confirm",
+        identity=payload.email,
+        ip_limit=80,
+        ip_window_seconds=900,
+        identity_limit=10,
+        identity_window_seconds=1800,
+    )
+
     normalized_email = normalize_email(payload.email)
     verification = repository.get_subscriber_signup_verification_by_email(normalized_email)
     if verification is None or verification.id is None:
@@ -341,6 +389,7 @@ def confirm_signup_verification(
         value=session_token,
         **session_cookie_kwargs(settings=auth_settings),
     )
+    attach_csrf_cookie(response)
 
     return PublicSignupResponse(
         subscriber_id=subscriber.id,

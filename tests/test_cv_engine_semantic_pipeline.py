@@ -6,7 +6,6 @@ from hiring_radar.services.cv_engine.legacy_runtime import (
 )
 from hiring_radar.services.cv_engine.models import ParserStatus
 
-
 SAMPLE_CV_TEXT = """
 Alice Example
 Senior Backend Engineer

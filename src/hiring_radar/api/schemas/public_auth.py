@@ -12,7 +12,7 @@ class PublicSignupVerificationRequest(BaseModel):
     password_confirmation: str = Field(min_length=1, max_length=4096)
 
     @model_validator(mode="after")
-    def validate_password_confirmation(self) -> "PublicSignupVerificationRequest":
+    def validate_password_confirmation(self) -> PublicSignupVerificationRequest:
         if self.password != self.password_confirmation:
             raise ValueError("Password confirmation does not match.")
         return self

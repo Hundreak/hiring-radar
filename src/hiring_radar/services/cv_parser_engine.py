@@ -12,7 +12,6 @@ import re
 import tempfile
 import time
 import unicodedata
-from collections import Counter
 from collections.abc import Iterable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field

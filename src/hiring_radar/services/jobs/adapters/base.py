@@ -3,7 +3,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from hiring_radar.models import JobSource
-from hiring_radar.services.jobs.contracts import JobSourceDefinition, JobSourcePayload, ParsedSourceJob
+from hiring_radar.services.jobs.contracts import (
+    JobSourceDefinition,
+    JobSourcePayload,
+    ParsedSourceJob,
+)
 
 
 class JobSourceAdapter(ABC):

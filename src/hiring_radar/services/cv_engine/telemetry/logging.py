@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from hiring_radar.services.cv_engine.models import ParseContext, ParserResult, StageTelemetry
+from hiring_radar.services.cv_engine.models import ParserResult, StageTelemetry
 
 
 class CvEngineJsonFormatter(logging.Formatter):

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from hiring_radar.models import (
     SubscriberExperienceEntry,
     SubscriberLanguageEntry,

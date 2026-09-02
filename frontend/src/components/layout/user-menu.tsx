@@ -4,6 +4,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
+import {useQueryClient} from '@tanstack/react-query';
 import {Bell, ChevronDown, LogOut, LockKeyhole, Settings2, UserCircle2} from 'lucide-react';
 
 import {FeedbackBanner} from '@/components/ui/feedback-banner';
@@ -62,6 +63,7 @@ const menuCopy: Record<SupportedLocale, {
 export function UserMenu({locale}: {locale: SupportedLocale}) {
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const copy = menuCopy[locale];
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -132,6 +134,7 @@ export function UserMenu({locale}: {locale: SupportedLocale}) {
       setLoggingOut(true);
       setMenuError(null);
       await api.logout();
+      queryClient.clear();
       setOpen(false);
       router.push(`/${locale}/login`);
       router.refresh();

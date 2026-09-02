@@ -1,0 +1,20 @@
+{
+  "$schema": "./performance-budget.schema.json",
+  "public": {
+    "maxTotalBytes": 2097152,
+    "maxAssetBytes": 524288,
+    "assetExtensions": [".avif", ".gif", ".ico", ".jpg", ".jpeg", ".png", ".svg", ".webp"]
+  },
+  "source": {
+    "maxSourceFileBytes": 98304,
+    "maxAppRouteFileBytes": 65536,
+    "maxMessageFileBytes": 131072
+  },
+  "build": {
+    "required": false,
+    "maxSingleJsChunkGzipBytes": 524288,
+    "maxTotalJsGzipBytes": 3145728,
+    "maxSingleCssChunkGzipBytes": 98304,
+    "maxTotalCssGzipBytes": 524288
+  }
+}

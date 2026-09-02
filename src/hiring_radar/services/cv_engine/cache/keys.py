@@ -14,7 +14,6 @@ from hiring_radar.services.cv_engine.enterprise.fingerprints import (
     normalize_text_for_content_fingerprint,
 )
 
-
 JSONDict = Mapping[str, Any]
 
 

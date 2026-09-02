@@ -3,19 +3,19 @@ from __future__ import annotations
 import os
 import re
 import shutil
-import unicodedata
 import subprocess
 import tempfile
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
 from hiring_radar.services.cv_engine.config import ParserRuntimeConfig
+from hiring_radar.services.cv_engine.extraction.normalization import (
+    normalize_extracted_text as normalize_engine_text,
+)
 from hiring_radar.services.cv_engine.layout import (
     PyMuPdfLayoutAnalyzer,
     layout_artifact_to_text,
-)
-from hiring_radar.services.cv_engine.extraction.normalization import (
-    normalize_extracted_text as normalize_engine_text,
 )
 
 CV_PARSE_STATUS_PENDING = "pending"
@@ -517,7 +517,6 @@ def extract_text_from_docx(file_path: str | Path) -> CvExtractionResult:
     path = Path(file_path)
     try:
         from docx import Document
-        from docx.document import Document as _DocumentType
         from docx.oxml.ns import qn
         from docx.table import Table, _Cell
         from docx.text.paragraph import Paragraph
@@ -543,7 +542,7 @@ def extract_text_from_docx(file_path: str | Path) -> CvExtractionResult:
         seen_blocks.add(cleaned)
         blocks.append(cleaned)
 
-    def render_cell(cell: "_Cell") -> str:
+    def render_cell(cell: _Cell) -> str:
         parts: list[str] = []
         for child in _iter_block_items(cell, Paragraph, Table, qn):
             if isinstance(child, Paragraph):
@@ -556,7 +555,7 @@ def extract_text_from_docx(file_path: str | Path) -> CvExtractionResult:
                     parts.append("\n".join(nested_rows))
         return " ".join(part for part in parts if part)
 
-    def _render_table_rows(table: "Table", renderer) -> list[str]:
+    def _render_table_rows(table: Table, renderer) -> list[str]:
         rendered: list[str] = []
         seen_keys: set[tuple[str, ...]] = set()
         for row in table.rows:
@@ -707,10 +706,8 @@ def _iter_block_items(parent, Paragraph, Table, qn):
     ``element`` exposing a body of ``w:p``/``w:tbl`` children.
     """
     try:
-        from docx.document import Document as _DocumentType
         from docx.oxml.table import CT_Tbl
         from docx.oxml.text.paragraph import CT_P
-        from docx.table import _Cell
     except ImportError:  # pragma: no cover
         return
 

@@ -1,12 +1,19 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from hiring_radar.api.dependencies import get_current_user_session, get_repository
 from hiring_radar.api.job_identity import resolve_job_reference
+from hiring_radar.api.pagination import (
+    SAVED_JOB_LIST_BOUNDS,
+    normalize_page_contract,
+    normalize_query_text,
+    paginate_sequence,
+    set_pagination_headers,
+)
 from hiring_radar.api.schemas.user_saved_jobs import (
     AddNoteRequest,
     SavedJobListResponse,
@@ -20,7 +27,10 @@ from hiring_radar.filtering.engine import evaluate_job_text_against_keyword_filt
 from hiring_radar.filtering.models import KeywordFilterSettings
 from hiring_radar.filtering.service import build_filterable_job_text
 from hiring_radar.models import JobRecord
-from hiring_radar.services.matching import get_ranked_match_for_canonical_job, score_legacy_job_for_subscriber
+from hiring_radar.services.matching import (
+    get_ranked_match_for_canonical_job,
+    score_legacy_job_for_subscriber,
+)
 from hiring_radar.services.user_auth import UserSession
 
 router = APIRouter(prefix="/api/user/saved-jobs", tags=["user-saved-jobs"])
@@ -28,7 +38,7 @@ router = APIRouter(prefix="/api/user/saved-jobs", tags=["user-saved-jobs"])
 UserSessionDep = Annotated[UserSession, Depends(get_current_user_session)]
 RepositoryDep = Annotated[HiringRadarRepository, Depends(get_repository)]
 
-VALID_STATUSES = {"reviewing", "applied", "interview", "archived"}
+VALID_STATUSES = {"reviewing", "applied", "interview", "offer", "rejected", "archived"}
 
 
 
@@ -68,7 +78,7 @@ def _compute_saved_job_match_snapshot(
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 
@@ -204,17 +214,43 @@ def _ensure_legacy_job_mirror_for_canonical(
 def list_saved_jobs(
     user_session: UserSessionDep,
     repository: RepositoryDep,
+    response: Response,
+    pipeline_status: Annotated[str | None, Query(alias="status", max_length=32)] = None,
+    page: Annotated[int, Query(ge=1, le=1000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 100,
 ) -> SavedJobListResponse:
+    requested_status = normalize_query_text(pipeline_status, max_length=32)
+    if requested_status is not None and requested_status not in VALID_STATUSES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_saved_job_status")
+
     saved = repository.list_saved_jobs(user_session.subscriber_id)
+    if requested_status is not None:
+        saved = [saved_job for saved_job in saved if saved_job.status == requested_status]
+
+    meta = normalize_page_contract(
+        page=page,
+        page_size=page_size,
+        total_items=len(saved),
+        bounds=SAVED_JOB_LIST_BOUNDS,
+    )
+    set_pagination_headers(response, meta=meta)
+    page_saved = paginate_sequence(saved, meta=meta)
     items = [
         _enrich_saved_job(
             saved_job,
             repository=repository,
             subscriber_id=user_session.subscriber_id,
         )
-        for saved_job in saved
+        for saved_job in page_saved
     ]
-    return SavedJobListResponse(items=items)
+    return SavedJobListResponse(
+        items=items,
+        page=meta.page,
+        page_size=meta.page_size,
+        total_items=meta.total_items,
+        total_pages=meta.total_pages,
+        status=requested_status,
+    )
 
 
 @router.post("", response_model=SavedJobResponse, status_code=status.HTTP_201_CREATED)

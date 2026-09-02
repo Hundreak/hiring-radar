@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from hiring_radar.services.cv_engine.models import (
-    ParseWarning,
     ParserStageName,
+    ParseWarning,
     WarningSeverity,
 )
 
 
-class WarningCode(str, Enum):
+class WarningCode(StrEnum):
     """Canonical warning codes for the v2 parser engine."""
 
     EXTRACTION_EMPTY = "extraction_empty"

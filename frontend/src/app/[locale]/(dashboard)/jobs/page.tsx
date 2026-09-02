@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Suspense, useCallback, useEffect, useMemo, useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 
@@ -11,9 +11,17 @@ import {
   type FilterState,
 } from '@/components/jobs/job-filter-sidebar';
 import {JobCard} from '@/components/jobs/job-card';
+import {PaginationControls} from '@/components/ui/pagination-controls';
 import {Badge} from '@/components/ui/badge';
-import {ApiError, api} from '@/lib/api';
-import {dispatchSavedJobsChanged, onSavedJobsChanged} from '@/lib/saved-jobs-events';
+import {
+  getQueryErrorMessage,
+  useJobsQuery,
+  useSaveJobMutation,
+  useSavedJobsEventBridge,
+  useSavedJobsQuery,
+  useUnsaveJobMutation,
+} from '@/hooks/use-api-queries';
+import {DEFAULT_LIST_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS, createPaginationMeta} from '@/lib/pagination';
 import type {JobListItem} from '@/types/job';
 
 function formatPostedLabel(job: JobListItem) {
@@ -24,71 +32,44 @@ function includesIgnoreCase(value: string | null | undefined, query: string): bo
   return typeof value === 'string' && value.toLowerCase().includes(query);
 }
 
-function buildActiveFilterTotal(filters: FilterState): number {
-  return (
-    filters.quick.size +
-    filters.companies.size +
-    filters.locations.size +
-    filters.workplaceTypes.size +
-    filters.employmentTypes.size +
-    filters.seniorities.size +
-    filters.keywords.length
-  );
-}
-
-export default function JobsPage() {
+function JobsPageContent() {
   const t = useTranslations('jobs');
   const searchParams = useSearchParams();
 
-  const [jobs, setJobs] = useState<JobListItem[]>([]);
-  const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(() => createEmptyJobFilters());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_LIST_PAGE_SIZE);
 
   const query = useMemo(() => searchParams.get('q') || '', [searchParams]);
+  const jobsQuery = useJobsQuery(query, {page, pageSize});
+  const savedJobsQuery = useSavedJobsQuery();
+  const saveJobMutation = useSaveJobMutation();
+  const unsaveJobMutation = useUnsaveJobMutation();
 
-  useEffect(() => {
-    let active = true;
+  useSavedJobsEventBridge();
 
-    async function loadPageData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [jobsResponse, savedResponse] = await Promise.all([
-          api.getJobs(query ? `?q=${encodeURIComponent(query)}` : ''),
-          api.getSavedJobs(),
-        ]);
-        if (!active) return;
-        setJobs(jobsResponse.items);
-        setSavedJobIds(new Set(savedResponse.items.map((s) => s.job_id)));
-      } catch (reason) {
-        if (!active) return;
-        if (reason instanceof ApiError && reason.status === 401) return;
-        setError(reason instanceof Error ? reason.message : 'Request failed.');
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void loadPageData();
-    return () => {
-      active = false;
-    };
-  }, [query]);
-
-  useEffect(() => {
-    return onSavedJobsChanged(({jobId, action}) => {
-      setSavedJobIds((prev) => {
-        const next = new Set(prev);
-        if (action === 'unsaved') next.delete(jobId);
-        else next.add(jobId);
-        return next;
-      });
-    });
-  }, []);
+  const jobs = jobsQuery.data?.items ?? [];
+  const paginationMeta = useMemo(
+    () => createPaginationMeta({
+      page: jobsQuery.data?.page ?? page,
+      pageSize: jobsQuery.data?.page_size ?? pageSize,
+      totalItems: jobsQuery.data?.total_items ?? jobs.length,
+      totalPages: jobsQuery.data?.total_pages ?? null,
+    }),
+    [jobs.length, jobsQuery.data?.page, jobsQuery.data?.page_size, jobsQuery.data?.total_items, jobsQuery.data?.total_pages, page, pageSize]
+  );
+  const savedJobIds = useMemo(
+    () => new Set((savedJobsQuery.data?.items ?? []).map((savedJob) => savedJob.job_id)),
+    [savedJobsQuery.data?.items]
+  );
+  const loading = jobsQuery.isLoading || savedJobsQuery.isLoading;
+  const error = getQueryErrorMessage(jobsQuery.error) ?? getQueryErrorMessage(savedJobsQuery.error);
 
   const normalizedFilters = useMemo(() => normalizeJobFilters(filters), [filters]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, normalizedFilters, pageSize]);
 
   const filteredJobs = useMemo(() => {
     let result = jobs;
@@ -205,23 +186,15 @@ export default function JobsPage() {
       const isSaved = savedJobIds.has(jobId);
       try {
         if (isSaved) {
-          await api.unsaveJob(jobId);
-          setSavedJobIds((prev) => {
-            const next = new Set(prev);
-            next.delete(jobId);
-            return next;
-          });
-          dispatchSavedJobsChanged({jobId, action: 'unsaved'});
+          await unsaveJobMutation.mutateAsync(jobId);
         } else {
-          await api.saveJob(jobId, matchScore);
-          setSavedJobIds((prev) => new Set(prev).add(jobId));
-          dispatchSavedJobsChanged({jobId, action: 'saved'});
+          await saveJobMutation.mutateAsync({jobId, matchScore});
         }
       } catch {
         // silent
       }
     },
-    [savedJobIds]
+    [saveJobMutation, savedJobIds, unsaveJobMutation]
   );
 
   const activeFilterLabels = useMemo(() => {
@@ -356,6 +329,22 @@ export default function JobsPage() {
           </div>
         )}
 
+        <PaginationControls
+          meta={paginationMeta}
+          labels={{
+            previous: t('paginationPrevious'),
+            next: t('paginationNext'),
+            pageSize: t('paginationPageSize'),
+            summary: ({start, end, total}) => t('paginationSummary', {start, end, total}),
+          }}
+          pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
+        />
+
         {loading ? (
           <div className="rounded-xl border border-border bg-surface p-8 text-sm text-muted-foreground">
             {t('loadingJobs')}
@@ -400,7 +389,35 @@ export default function JobsPage() {
             ))}
           </div>
         )}
+
+        {!loading && !error && paginationMeta.totalPages > 1 ? (
+          <PaginationControls
+            meta={paginationMeta}
+            labels={{
+              previous: t('paginationPrevious'),
+              next: t('paginationNext'),
+              pageSize: t('paginationPageSize'),
+              summary: ({start, end, total}) => t('paginationSummary', {start, end, total}),
+            }}
+            onPageChange={setPage}
+          />
+        ) : null}
       </div>
     </div>
+  );
+}
+
+
+export default function JobsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="rounded-3xl border border-border bg-surface p-6 text-sm text-muted-foreground">
+          Loading jobs…
+        </div>
+      }
+    >
+      <JobsPageContent />
+    </Suspense>
   );
 }

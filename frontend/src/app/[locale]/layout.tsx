@@ -3,6 +3,7 @@ import {hasLocale} from 'next-intl';
 import {getMessages, setRequestLocale} from 'next-intl/server';
 
 import {IntlProvider} from '@/components/providers/intl-provider';
+import {QueryProvider} from '@/components/providers/query-provider';
 import {ThemeProvider} from '@/components/theme/theme-provider';
 import {routing} from '@/i18n/routing';
 
@@ -29,7 +30,9 @@ export default async function LocaleLayout({
 
   return (
     <IntlProvider locale={locale} messages={messages}>
-      <ThemeProvider>{children}</ThemeProvider>
+      <QueryProvider>
+        <ThemeProvider>{children}</ThemeProvider>
+      </QueryProvider>
     </IntlProvider>
   );
 }

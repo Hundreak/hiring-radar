@@ -1,3 +1,8 @@
+from hiring_radar.services.matching.catalog import (
+    DeterministicMatchCatalog,
+    build_deterministic_match_catalog,
+    get_ranked_match_for_canonical_job,
+)
 from hiring_radar.services.matching.contracts import (
     DeterministicMatchResult,
     ExternalSourceInsights,
@@ -10,17 +15,12 @@ from hiring_radar.services.matching.contracts import (
     ProfileFeatureRefreshResult,
     RankedJobMatch,
 )
-from hiring_radar.services.matching.catalog import (
-    DeterministicMatchCatalog,
-    build_deterministic_match_catalog,
-    get_ranked_match_for_canonical_job,
-)
 from hiring_radar.services.matching.engine import (
     rank_canonical_jobs_for_subscriber,
     score_canonical_job_for_subscriber,
 )
-from hiring_radar.services.matching.external_context import build_cached_external_source_insights
 from hiring_radar.services.matching.explanations import ExplanationGenerator
+from hiring_radar.services.matching.external_context import build_cached_external_source_insights
 from hiring_radar.services.matching.legacy_runtime import (
     build_transient_canonical_job,
     rank_legacy_jobs_for_subscriber,

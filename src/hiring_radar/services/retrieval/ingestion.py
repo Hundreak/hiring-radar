@@ -9,7 +9,7 @@ from typing import Any
 
 from hiring_radar.db.repository import HiringRadarRepository
 from hiring_radar.models import RetrievalChunk, RetrievalDocument, RetrievalSource
-from hiring_radar.services.retrieval.chunking import ChunkDraft, chunk_text
+from hiring_radar.services.retrieval.chunking import chunk_text
 from hiring_radar.services.retrieval.embedding_jobs import enqueue_chunk_embedding_jobs
 
 RETRIEVAL_STATUS_PENDING = "pending"

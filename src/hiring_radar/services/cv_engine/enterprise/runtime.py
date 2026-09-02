@@ -20,7 +20,7 @@ from hiring_radar.services.cv_engine.enterprise.models import (
     VersionMatchResult,
 )
 from hiring_radar.services.cv_engine.enterprise.versioning import resolve_document_relation
-from hiring_radar.services.cv_engine.models import ParseContext, ParserResult, SectionBlock
+from hiring_radar.services.cv_engine.models import ParseContext, ParserResult
 from hiring_radar.services.cv_engine.redaction.engine import redact_cv_text
 
 FOUNDATION_PARSER_VERSION = "cv_engine_v2"

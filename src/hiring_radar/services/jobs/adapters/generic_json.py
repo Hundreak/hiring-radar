@@ -31,7 +31,11 @@ import json
 from typing import Any
 
 from hiring_radar.services.jobs.adapters.base import JobSourceAdapter
-from hiring_radar.services.jobs.contracts import JobSourceDefinition, JobSourcePayload, ParsedSourceJob
+from hiring_radar.services.jobs.contracts import (
+    JobSourceDefinition,
+    JobSourcePayload,
+    ParsedSourceJob,
+)
 from hiring_radar.services.jobs.normalization import normalize_location_text, normalize_text
 
 
@@ -128,7 +132,7 @@ class GenericJsonJobSourceAdapter(JobSourceAdapter):
         apply_url = self._extract_url(item, field_map, "apply_url")
         canonical_url = self._extract_url(item, field_map, "canonical_url") or apply_url
         posted_at = self._extract_string(item, field_map, "posted_at")
-        description = self._extract_string(item, field_map, "description")
+        self._extract_string(item, field_map, "description")
 
         raw_payload: dict[str, Any] = dict(item)
         raw_payload["_adapter_type"] = self.source_type

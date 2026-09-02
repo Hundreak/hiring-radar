@@ -3,7 +3,6 @@ from __future__ import annotations
 from hiring_radar.services.cv_engine.parsing.experience_lines import parse_experience_block
 
 
-
 def test_parse_experience_block_supports_multiline_role_company_date() -> None:
     parsed = parse_experience_block(
         [

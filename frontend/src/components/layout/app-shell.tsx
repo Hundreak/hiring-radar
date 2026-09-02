@@ -1,8 +1,9 @@
 import {Suspense} from 'react';
 
 import {AuthGuard} from '@/components/auth/auth-guard';
-import {CopilotWidget} from '@/components/ai/copilot-widget';
+import {CopilotWidgetLoader} from '@/components/ai/copilot-widget-loader';
 import {AppHeader} from '@/components/layout/app-header';
+import {CandidateOnboardingPanel} from '@/components/onboarding/candidate-onboarding-panel';
 
 export function AppShell({locale, children}: {locale: string; children: React.ReactNode}) {
   return (
@@ -10,8 +11,9 @@ export function AppShell({locale, children}: {locale: string; children: React.Re
       <Suspense fallback={<div className="container-shell py-4 text-sm text-muted-foreground">Loading navigation…</div>}>
         <AppHeader locale={locale} />
       </Suspense>
+      <CandidateOnboardingPanel locale={locale} />
       <main className="container-shell py-8">{children}</main>
-      <CopilotWidget locale={locale} />
+      <CopilotWidgetLoader locale={locale} />
     </AuthGuard>
   );
 }

@@ -66,12 +66,6 @@ export function ComboboxField({
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, []);
 
-  useEffect(() => {
-    if (!open) {
-      setQuery(value);
-    }
-  }, [open, value]);
-
   return (
     <div ref={containerRef} className="relative">
       <div className="flex gap-2">

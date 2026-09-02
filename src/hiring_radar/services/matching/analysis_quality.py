@@ -6,7 +6,6 @@ from hiring_radar.models import CanonicalJob, CanonicalJobFeature
 from hiring_radar.services.jobs.normalization import normalize_text, strip_html
 from hiring_radar.services.matching.contracts import JobAnalysisCoverage
 
-
 _ANALYSIS_SOURCE_LABELS: dict[str, str] = {
     "canonical_description": "canonical_description",
     "original_source_page": "original_source_page",

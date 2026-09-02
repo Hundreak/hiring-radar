@@ -69,3 +69,10 @@ frontend/tsconfig.tsbuildinfo
 .backup_*/
 *_backup/
 *.bak
+
+# Patch/çalışma notları — yerel geçmiş kaydıdır, ürün kaynağı değil
+PATCH_*_NOTES.md
+PATCH_*_SUMMARY.md
+PATCH_*_DELETE_FILES.txt
+_PATCH_*
+_DELETE_FILES.txt

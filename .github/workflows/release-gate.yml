@@ -1,0 +1,84 @@
+name: Release Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_frontend_ci:
+        description: "Run frontend CI as part of the release gate"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-gate:
+    name: Production release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Set up Node.js
+        if: ${{ inputs.run_frontend_ci == 'true' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Build redacted production env file from secrets
+        run: |
+          cat > .env.production <<EOF
+          HIRING_RADAR_ENV=production
+          HIRING_RADAR_APP_BASE_URL=${{ secrets.HIRING_RADAR_APP_BASE_URL }}
+          BACKEND_URL=${{ secrets.HIRING_RADAR_BACKEND_URL }}
+          HIRING_RADAR_DB_PATH=${{ secrets.HIRING_RADAR_DB_PATH }}
+          HIRING_RADAR_UPLOAD_DIR=${{ secrets.HIRING_RADAR_UPLOAD_DIR }}
+          HIRING_RADAR_AUTH_SECRET=${{ secrets.HIRING_RADAR_AUTH_SECRET }}
+          HIRING_RADAR_ADMIN_SESSION_SECRET=${{ secrets.HIRING_RADAR_ADMIN_SESSION_SECRET }}
+          HIRING_RADAR_EMPLOYER_SESSION_SECRET=${{ secrets.HIRING_RADAR_EMPLOYER_SESSION_SECRET }}
+          HIRING_RADAR_ADMIN_EMAIL=${{ secrets.HIRING_RADAR_ADMIN_EMAIL }}
+          HIRING_RADAR_ADMIN_PASSWORD=${{ secrets.HIRING_RADAR_ADMIN_PASSWORD }}
+          HIRING_RADAR_SESSION_COOKIE_SECURE=true
+          HIRING_RADAR_ADMIN_SESSION_COOKIE_SECURE=true
+          HIRING_RADAR_EMPLOYER_SESSION_COOKIE_SECURE=true
+          HIRING_RADAR_CSRF_COOKIE_SECURE=true
+          HIRING_RADAR_CSRF_ENABLED=true
+          HIRING_RADAR_RATE_LIMIT_ENABLED=true
+          HIRING_RADAR_OBSERVABILITY_ENABLED=true
+          HIRING_RADAR_EMPLOYER_DEMO_MODE=false
+          HIRING_RADAR_EMPLOYER_ALLOW_MOCK_AUTH=false
+          HIRING_RADAR_SMTP_HOST=${{ secrets.HIRING_RADAR_SMTP_HOST }}
+          HIRING_RADAR_SMTP_PASSWORD=${{ secrets.HIRING_RADAR_SMTP_PASSWORD }}
+          HIRING_RADAR_EMAIL_FROM=${{ secrets.HIRING_RADAR_EMAIL_FROM }}
+          GOOGLE_OAUTH_REDIRECT_URI=${{ secrets.GOOGLE_OAUTH_REDIRECT_URI }}
+          AI_ENABLED=${{ vars.AI_ENABLED || 'false' }}
+          AI_AUDIT_ENABLED=true
+          EOF
+
+      - name: Run release gate
+        env:
+          HIRING_RADAR_RELEASE_ENV_FILE: .env.production
+          HIRING_RADAR_RELEASE_SKIP_FRONTEND_CI: ${{ inputs.run_frontend_ci == 'true' && '0' || '1' }}
+        run: bash scripts/release_check.sh .

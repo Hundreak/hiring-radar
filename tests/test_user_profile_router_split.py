@@ -4,34 +4,67 @@ from fastapi.routing import APIRoute
 
 from hiring_radar.api.app import create_app
 
+EXPECTED_SPLIT_ROUTES = (
+    ("/api/user/profile/suggestions", "get"),
+    ("/api/user/profile/ai-audit/events", "post"),
+    ("/api/user/profile/ai-audit/events/{audit_log_id}", "patch"),
+    ("/api/user/profile/ai-audit/export", "get"),
+    ("/api/user/profile/ai-audit/events/{audit_log_id}/revert", "post"),
+)
 
-def test_user_profile_split_routes_are_registered_once() -> None:
-    app = create_app()
-    methods_by_path: dict[str, set[str]] = {}
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
+
+def _iter_api_routes(container, seen: set[int] | None = None):
+    """Alt router'lara inerek bütün APIRoute'ları toplar.
+
+    FastAPI'nin yeni sürümleri `include_router` çağrısında rotaları üst
+    router'a kopyalamıyor; araya bir sarmalayıcı koyup asıl router'ı
+    `original_router` altında tutuyor. Bu yüzden yalnızca `app.routes`
+    üzerinde gezmek iç içe dahil edilmiş rotaları göremez.
+    """
+
+    seen = set() if seen is None else seen
+    if id(container) in seen:
+        return
+    seen.add(id(container))
+
+    for route in getattr(container, "routes", ()):
+        if isinstance(route, APIRoute):
+            yield route
             continue
+        inner = getattr(route, "original_router", None)
+        if inner is None and hasattr(route, "routes"):
+            inner = route
+        if inner is not None:
+            yield from _iter_api_routes(inner, seen)
+
+
+def test_user_profile_split_routes_are_registered() -> None:
+    """Ayrılan alt router'ların rotaları gerçekten yayınlanıyor mu?
+
+    Kaynak olarak OpenAPI şeması kullanılıyor: uygulamanın dışarıya açtığı
+    sözleşme budur ve FastAPI'nin dahili rota temsili sürümden sürüme
+    değişse bile aynı kalır.
+    """
+
+    app = create_app()
+    paths = app.openapi()["paths"]
+
+    for path, method in EXPECTED_SPLIT_ROUTES:
+        assert path in paths, f"rota yayınlanmamış: {path}"
+        assert method in paths[path], f"{path} için {method.upper()} yok"
+
+
+def test_user_profile_routes_are_registered_once() -> None:
+    """Aynı rota iki kez dahil edilmiş olmasın."""
+
+    app = create_app()
+    counts: dict[tuple[str, str], int] = {}
+    for route in _iter_api_routes(app):
         if not route.path.startswith("/api/user/profile"):
             continue
-        methods_by_path.setdefault(route.path, set()).update(route.methods or set())
+        for method in route.methods or ():
+            key = (route.path, method)
+            counts[key] = counts.get(key, 0) + 1
 
-    assert "GET" in methods_by_path["/api/user/profile/suggestions"]
-    assert "POST" in methods_by_path["/api/user/profile/ai-audit/events"]
-    assert "PATCH" in methods_by_path["/api/user/profile/ai-audit/events/{audit_log_id}"]
-    assert "GET" in methods_by_path["/api/user/profile/ai-audit/export"]
-    assert "POST" in methods_by_path["/api/user/profile/ai-audit/events/{audit_log_id}/revert"]
-
-    duplicate_method_routes = [
-        (path, method)
-        for path, methods in methods_by_path.items()
-        for method in methods
-        if sum(
-            1
-            for route in app.routes
-            if isinstance(route, APIRoute)
-            and route.path == path
-            and method in (route.methods or set())
-        )
-        > 1
-    ]
-    assert duplicate_method_routes == []
+    duplicates = sorted(key for key, count in counts.items() if count > 1)
+    assert duplicates == [], f"birden fazla kez kayıtlı: {duplicates}"

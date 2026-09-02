@@ -251,7 +251,7 @@ export function EmployerCompliancePage({locale = 'tr'}: {locale?: string}) {
               <TimerReset className="mr-2 size-4 animate-spin" />{copy.loading}
             </SurfaceCard>
           ) : error ? (
-            <RecoverableDataState error={error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
+            <RecoverableDataState error={error} onRetry={() => void query.refetch()} retrying={query.isFetching} locale={locale} />
           ) : items.length ? (
             <div className="space-y-3">
               {items.map((event) => <AuditEventCard key={event.id} event={event} copy={copy} locale={locale} />)}

@@ -286,3 +286,9 @@ make frontend-performance
 ```
 
 See `docs/performance-budget.md` for the budget policy.
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE).

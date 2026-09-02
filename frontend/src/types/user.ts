@@ -158,7 +158,9 @@ export interface EmployerAuditExportResponse {
   items: EmployerAuditEvent[] | null;
 }
 
-export interface EmployerAuditQueryParams {
+// Tip takma adi olarak tanimli: arayuzlerin ortuk index imzasi olmadigi icin
+// Record<string, unknown> bekleyen query-key yardimcilarina gecirilemiyorlar.
+export type EmployerAuditQueryParams = {
   page?: number;
   pageSize?: number;
   eventType?: string;
@@ -167,7 +169,7 @@ export interface EmployerAuditQueryParams {
   actorUserId?: number;
   createdFrom?: string;
   createdTo?: string;
-}
+};
 
 export interface EmployerRuntimeStatus {
   ok: boolean;
